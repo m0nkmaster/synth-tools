@@ -3,12 +3,12 @@ import type { DrumClass, SampleAnalysis, SampleType } from '../types';
 const SILENCE_THRESHOLD_DB = -50;
 const FFT_SIZE = 2048;
 
-export async function classifyAudio(file: File): Promise<SampleAnalysis> {
+export async function classifyAudio(blob: Blob): Promise<SampleAnalysis> {
   const AudioCtx = AudioContext || (window as any).webkitAudioContext;
   const ctx = new AudioCtx();
 
   try {
-    const buffer = await file.arrayBuffer();
+    const buffer = await blob.arrayBuffer();
     const audioBuffer = await ctx.decodeAudioData(buffer.slice(0));
 
     const mono = downmixToMono(audioBuffer);

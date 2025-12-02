@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { probeDuration } from '../audio/metadata';
 import { classifyAudio } from '../audio/classify';
+import { convertToWav } from '../audio/convert';
 import type { Slice, NormalizeMode, SampleAnalysis } from '../types';
 
 const MAX_SLICES = 24;
@@ -48,9 +49,12 @@ export function useSlices() {
       const mapped: Slice[] = [];
       for (const file of incoming) {
         try {
+          const isAiff = /\.aiff?$/i.test(file.name);
+          const playableBlob = isAiff ? await convertToWav(file) : file;
+          
           const [duration, analysis] = await Promise.all([
-            probeDuration(file),
-            classifyAudio(file)
+            probeDuration(playableBlob),
+            classifyAudio(playableBlob)
           ]);
           const baseName = file.name.replace(/\.[^.]+$/, '');
           const ext = file.name.match(/\.[^.]+$/)?.[0] || '';
@@ -58,6 +62,7 @@ export function useSlices() {
           mapped.push({
             id: crypto.randomUUID(),
             file,
+            playableBlob: isAiff ? playableBlob : undefined,
             name: `${prefix}_${baseName}${ext}`,
             duration,
             status: 'ready',

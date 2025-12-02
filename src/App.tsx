@@ -39,12 +39,12 @@ function formatDuration(value: number): string {
 }
 
 function WaveformPreview({
-  file,
+  slice,
   height = 24,
   width = 24,
   color = '#000'
 }: {
-  file: File;
+  slice: Slice;
   height?: number;
   width?: number;
   color?: string;
@@ -54,12 +54,13 @@ function WaveformPreview({
   useEffect(() => {
     let cancelled = false;
     const canvas = canvasRef.current;
-    if (!canvas || !file) return;
+    if (!canvas || !slice) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const ac = new AudioContext();
-    file
+    const blob = slice.playableBlob || slice.file;
+    blob
       .arrayBuffer()
       .then((buf) => ac.decodeAudioData(buf.slice(0)))
       .then((audioBuffer) => {
@@ -101,7 +102,7 @@ function WaveformPreview({
       cancelled = true;
       ac.close().catch(() => {});
     };
-  }, [file, height, width, color]);
+  }, [slice, height, width, color]);
 
   return <canvas ref={canvasRef} style={{ width, height, border: '1px solid #d0d0d0', borderRadius: 2 }} />;
 }
@@ -135,7 +136,7 @@ function SliceList({
         <Paper key={slice.id} variant="outlined" sx={{ p: 1.5, bgcolor: '#fff', transition: 'all 0.2s', '&:hover': { borderColor: '#ff6b35' } }}>
           <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
             <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
-              <WaveformPreview file={slice.file} height={32} width={48} />
+              <WaveformPreview slice={slice} height={32} width={48} />
               <Typography variant="body2" noWrap title={slice.name} sx={{ minWidth: 0, maxWidth: 180 }}>
                 {slice.name}
               </Typography>
@@ -255,7 +256,8 @@ function App() {
         return;
       }
       stopAudio();
-      const url = URL.createObjectURL(slice.file);
+      const blob = slice.playableBlob || slice.file;
+      const url = URL.createObjectURL(blob);
       audioUrlRef.current = url;
       const audio = new Audio(url);
       audioRef.current = audio;
