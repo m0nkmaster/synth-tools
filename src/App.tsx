@@ -9,11 +9,14 @@ import {
   CssBaseline,
   Divider,
   Grid,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   IconButton,
-  Checkbox,
   LinearProgress,
   MenuItem,
   Paper,
+  Slider,
   Stack,
   TextField,
   Toolbar,
@@ -24,6 +27,8 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import DownloadIcon from '@mui/icons-material/Download';
 import SettingsIcon from '@mui/icons-material/Settings';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import TuneIcon from '@mui/icons-material/Tune';
 import theme from './theme';
 import { ThemeProvider } from '@mui/material/styles';
 import { useSlices } from './hooks/useSlices';
@@ -121,6 +126,9 @@ function SliceList({
   playingId: string | null;
   onSemitonesChange: (id: string, semitones: number) => void;
 }) {
+  const [volumeModal, setVolumeModal] = useState<{ idx: number; value: number } | null>(null);
+  const [pitchModal, setPitchModal] = useState<{ id: string; idx: number; value: number } | null>(null);
+
   if (!slices.length) {
     return (
       <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
@@ -146,31 +154,18 @@ function SliceList({
               />
             </Stack>
             <Stack direction="row" spacing={0.5} alignItems="center">
-              <IconButton size="small" onClick={() => onPlay(slice, slice.semitones)} sx={{ bgcolor: playingId === slice.id ? 'primary.main' : 'transparent' }}>
+              <IconButton size="small" onClick={() => onPlay(slice, slice.semitones, meta.volume[idx])} sx={{ bgcolor: playingId === slice.id ? 'primary.main' : 'transparent' }}>
                 <PlayArrowIcon fontSize="small" />
               </IconButton>
               <IconButton size="small" onClick={() => onRemove(slice.id)}>
                 <DeleteOutlineIcon fontSize="small" />
               </IconButton>
-              <Checkbox
-                size="small"
-                checked={(meta.reverse[idx] ?? 8192) === 0}
-                onChange={(e) => onMetaChange(idx, 'reverse', e.target.checked ? 0 : 8192)}
-              />
-              <TextField
-                size="small"
-                label="Vol"
-                type="number"
-                inputProps={{ min: 0, max: 16383, style: { width: 60 } }}
-                value={meta.volume[idx] ?? 8192}
-                onChange={(e) => onMetaChange(idx, 'volume', Number(e.target.value))}
-              />
-              <PitchDial
-                detectedNote={slice.detectedNote ?? null}
-                detectedFrequency={slice.detectedFrequency ?? null}
-                semitones={slice.semitones ?? 0}
-                onChange={(st) => onSemitonesChange(slice.id, st)}
-              />
+              <IconButton size="small" onClick={() => setVolumeModal({ idx, value: meta.volume[idx] ?? 8192 })}>
+                <VolumeUpIcon fontSize="small" />
+              </IconButton>
+              <IconButton size="small" onClick={() => setPitchModal({ id: slice.id, idx, value: slice.semitones ?? 0 })}>
+                <TuneIcon fontSize="small" />
+              </IconButton>
               <Typography variant="caption" color="text.secondary" sx={{ minWidth: 40, textAlign: 'right' }}>
                 {formatDuration(slice.duration)}
               </Typography>
@@ -178,6 +173,66 @@ function SliceList({
           </Stack>
         </Paper>
       ))}
+
+      <Dialog open={!!volumeModal} onClose={() => setVolumeModal(null)}>
+        <DialogTitle>Volume</DialogTitle>
+        <DialogContent sx={{ width: 300, py: 4 }}>
+          <Stack spacing={2} alignItems="center">
+            <Typography variant="h4">{volumeModal?.value ?? 8192}</Typography>
+            <Slider
+              orientation="vertical"
+              value={volumeModal?.value ?? 8192}
+              onChange={(_, v) => {
+                const val = v as number;
+                setVolumeModal(prev => prev ? { ...prev, value: val } : null);
+                if (volumeModal) onMetaChange(volumeModal.idx, 'volume', val);
+              }}
+              min={0}
+              max={16383}
+              sx={{ height: 200, '& .MuiSlider-thumb': { color: '#ff6b35' }, '& .MuiSlider-track': { color: '#ff6b35' }, '& .MuiSlider-rail': { color: '#ffcab8' } }}
+            />
+          </Stack>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pitchModal} onClose={() => setPitchModal(null)}>
+        <DialogTitle>Pitch</DialogTitle>
+        <DialogContent sx={{ width: 300, py: 4 }}>
+          <Stack spacing={2} alignItems="center">
+            <Typography variant="h4">{pitchModal?.value.toFixed(1) ?? '0.0'}</Typography>
+            {(() => {
+              if (!pitchModal) return null;
+              const slice = slices.find(s => s.id === pitchModal.id);
+              if (!slice?.detectedFrequency) return null;
+              const targetFreq = slice.detectedFrequency * Math.pow(2, pitchModal.value / 12);
+              const a4 = 440;
+              const semitoneFromA4 = 12 * Math.log2(targetFreq / a4);
+              const roundedSemitone = Math.round(semitoneFromA4);
+              const cents = Math.round((semitoneFromA4 - roundedSemitone) * 100);
+              const noteNames = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
+              const octave = Math.floor((roundedSemitone + 48) / 12);
+              const noteIdx = ((roundedSemitone % 12) + 12) % 12;
+              const note = noteNames[noteIdx] + octave;
+              const centsStr = cents === 0 ? '' : cents > 0 ? ` +${cents}¢` : ` ${cents}¢`;
+              return <Typography variant="body2" color="text.secondary">{note}{centsStr}</Typography>;
+            })()}
+            <Slider
+              orientation="vertical"
+              value={pitchModal?.value ?? 0}
+              onChange={(_, v) => {
+                const val = v as number;
+                setPitchModal(prev => prev ? { ...prev, value: val } : null);
+                if (pitchModal) onSemitonesChange(pitchModal.id, val);
+              }}
+              min={-12}
+              max={12}
+              step={0.1}
+              marks={[{ value: -12, label: '-12' }, { value: 0, label: '0' }, { value: 12, label: '+12' }]}
+              sx={{ height: 200, '& .MuiSlider-thumb': { color: '#ff6b35' }, '& .MuiSlider-track': { color: '#ff6b35' }, '& .MuiSlider-rail': { color: '#ffcab8' } }}
+            />
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </Stack>
   );
 }
@@ -239,7 +294,7 @@ function App() {
     setPlayingId(null);
   };
 
-  const handlePlay = async (slice: Slice, semitones = 0) => {
+  const handlePlay = async (slice: Slice, semitones = 0, volume?: number) => {
     try {
       if (playingId === slice.id) {
         stopAudio();
@@ -251,9 +306,12 @@ function App() {
       const ac = new AudioContext();
       const audioBuffer = await ac.decodeAudioData(arrayBuffer);
       const source = ac.createBufferSource();
+      const gainNode = ac.createGain();
       source.buffer = audioBuffer;
       source.playbackRate.value = Math.pow(2, semitones / 12);
-      source.connect(ac.destination);
+      gainNode.gain.value = volume !== undefined ? volume / 8192 : 1;
+      source.connect(gainNode);
+      gainNode.connect(ac.destination);
       setPlayingId(slice.id);
       source.onended = () => {
         ac.close();

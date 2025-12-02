@@ -12,7 +12,7 @@ export function useSlices() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [normalizeMode, setNormalizeMode] = useState<NormalizeMode>('loudnorm');
   const [silenceThreshold, setSilenceThreshold] = useState(DEFAULT_SILENCE_THRESHOLD);
-  const maxDuration = MAX_DURATION_SECONDS;
+  const [maxDuration] = useState(MAX_DURATION_SECONDS);
 
   const totalDuration = useMemo(
     () => slices.reduce((acc, slice) => acc + (Number.isFinite(slice.duration) ? slice.duration : 0), 0),
@@ -111,6 +111,7 @@ export function useSlices() {
     error,
     normalizeMode,
     silenceThreshold,
+    maxDuration,
     totalDuration,
     setNormalizeMode,
     setSilenceThreshold
