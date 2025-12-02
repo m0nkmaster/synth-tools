@@ -22,6 +22,7 @@ node_modules/
 npm-debug.log*
 yarn-error.log*
 pnpm-lock.yaml
+bun.lockb
 
 # Builds and coverage
 dist/
