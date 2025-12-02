@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { probeDuration } from '../audio/metadata';
+import { classifyAudio } from '../audio/classify';
 import type { Slice, NormalizeMode } from '../types';
 
 const MAX_SLICES = 24;
@@ -32,13 +33,19 @@ export function useSlices() {
       const mapped: Slice[] = [];
       for (const file of incoming) {
         try {
-          const duration = await probeDuration(file);
+          const [duration, classification] = await Promise.all([
+            probeDuration(file),
+            classifyAudio(file)
+          ]);
+          const baseName = file.name.replace(/\.[^.]+$/, '');
+          const ext = file.name.match(/\.[^.]+$/)?.[0] || '';
           mapped.push({
             id: crypto.randomUUID(),
             file,
-            name: file.name,
+            name: `${classification}_${baseName}${ext}`,
             duration,
-            status: 'ready'
+            status: 'ready',
+            classification
           });
         } catch (err) {
           console.error(err);

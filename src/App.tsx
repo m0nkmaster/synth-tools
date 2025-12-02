@@ -31,6 +31,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { useSlices } from './hooks/useSlices';
 import type { Slice, DrumMetadata } from './types';
 import { buildDrumPack } from './audio/pack';
+import { TEBackground } from './components/TEBackground';
 
 function formatDuration(value: number): string {
   if (!Number.isFinite(value)) return '0.0s';
@@ -39,9 +40,9 @@ function formatDuration(value: number): string {
 
 function WaveformPreview({
   file,
-  height = 60,
-  width = 60,
-  color = '#1f1f1f'
+  height = 24,
+  width = 24,
+  color = '#000'
 }: {
   file: File;
   height?: number;
@@ -68,13 +69,13 @@ function WaveformPreview({
         canvasRef.current.width = w;
         canvasRef.current.height = h;
         const data = audioBuffer.getChannelData(0);
-        const buckets = Math.min(32, Math.max(8, Math.floor(w / 2)));
+        const buckets = Math.floor(w / 2);
         const samplesPerBucket = Math.max(1, Math.floor(data.length / buckets));
         const mid = h / 2;
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = color;
-        const barWidth = Math.max(1, Math.floor(w / buckets) - 1);
+        ctx.fillStyle = '#ff6b35';
+        const barWidth = 1;
         for (let b = 0; b < buckets; b++) {
           const start = b * samplesPerBucket;
           const end = Math.min(start + samplesPerBucket, data.length);
@@ -86,8 +87,8 @@ function WaveformPreview({
             if (v > max) max = v;
           }
           const amp = Math.max(Math.abs(min), Math.abs(max));
-          const barHeight = Math.max(1, amp * (h * 0.45));
-          const x = b * (barWidth + 1);
+          const barHeight = Math.max(1, amp * (h * 0.4));
+          const x = b * 2;
           ctx.fillRect(x, mid - barHeight, barWidth, barHeight * 2);
         }
       })
@@ -102,7 +103,7 @@ function WaveformPreview({
     };
   }, [file, height, width, color]);
 
-  return <canvas ref={canvasRef} style={{ width, height, borderRadius: 4 }} />;
+  return <canvas ref={canvasRef} style={{ width, height, border: '1px solid #d0d0d0', borderRadius: 2 }} />;
 }
 
 function SliceList({
@@ -122,56 +123,45 @@ function SliceList({
 }) {
   if (!slices.length) {
     return (
-      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
-        Drop audio files to start building your pack.
+      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary">No slices added yet</Typography>
       </Paper>
     );
   }
 
   return (
-    <Stack spacing={0.75}>
+    <Stack spacing={1}>
       {slices.map((slice, idx) => (
-        <Paper
-          key={slice.id}
-          variant="outlined"
-          sx={{ p: 0.75, display: 'grid', gap: 0.4 }}
-        >
-          <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="space-between">
-            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
-              <WaveformPreview file={slice.file} height={32} width={32} />
-              <Typography variant="body2" fontWeight={700} noWrap title={slice.name} sx={{ minWidth: 0 }}>
+        <Paper key={slice.id} variant="outlined" sx={{ p: 1.5, bgcolor: '#fff', transition: 'all 0.2s', '&:hover': { borderColor: '#ff6b35' } }}>
+          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
+              <WaveformPreview file={slice.file} height={32} width={48} />
+              <Typography variant="body2" noWrap title={slice.name} sx={{ minWidth: 0, maxWidth: 180 }}>
                 {slice.name}
               </Typography>
               <Chip
-                label={slice.status === 'ready' ? 'Ready' : slice.status === 'processing' ? 'Proc' : 'Pending'}
+                label={slice.status === 'ready' ? 'Ready' : slice.status === 'processing' ? 'Processing' : 'Pending'}
                 size="small"
-                color={slice.status === 'ready' ? 'success' : slice.status === 'processing' ? 'warning' : 'default'}
-                variant="outlined"
+                color={slice.status === 'ready' ? 'primary' : slice.status === 'processing' ? 'secondary' : 'default'}
               />
             </Stack>
             <Stack direction="row" spacing={0.5} alignItems="center">
-              <IconButton
-                size="small"
-                aria-label="Preview slice"
-                color={playingId === slice.id ? 'primary' : 'default'}
-                onClick={() => onPlay(slice)}
-              >
+              <IconButton size="small" onClick={() => onPlay(slice)} sx={{ bgcolor: playingId === slice.id ? 'primary.main' : 'transparent' }}>
                 <PlayArrowIcon fontSize="small" />
               </IconButton>
-              <IconButton size="small" aria-label="Remove slice" onClick={() => onRemove(slice.id)}>
+              <IconButton size="small" onClick={() => onRemove(slice.id)}>
                 <DeleteOutlineIcon fontSize="small" />
               </IconButton>
               <Checkbox
                 size="small"
                 checked={(meta.reverse[idx] ?? 8192) === 0}
                 onChange={(e) => onMetaChange(idx, 'reverse', e.target.checked ? 0 : 8192)}
-                inputProps={{ 'aria-label': 'Reverse' }}
               />
               <TextField
                 size="small"
                 label="Vol"
                 type="number"
-                inputProps={{ min: 0, max: 16383, style: { width: 64, fontSize: 12 } }}
+                inputProps={{ min: 0, max: 16383, style: { width: 60 } }}
                 value={meta.volume[idx] ?? 8192}
                 onChange={(e) => onMetaChange(idx, 'volume', Number(e.target.value))}
               />
@@ -179,11 +169,11 @@ function SliceList({
                 size="small"
                 label="Pitch"
                 type="number"
-                inputProps={{ style: { width: 64, fontSize: 12 } }}
+                inputProps={{ style: { width: 60 } }}
                 value={meta.pitch[idx] ?? 0}
                 onChange={(e) => onMetaChange(idx, 'pitch', Number(e.target.value))}
               />
-              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ minWidth: 40, textAlign: 'right' }}>
                 {formatDuration(slice.duration)}
               </Typography>
             </Stack>
@@ -345,49 +335,50 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-        <AppBar position="static" color="transparent" elevation={0} sx={{ borderBottom: '1px solid #e6e8ef' }}>
-          <Toolbar>
-            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
-              OP Done — Drum Pack Builder
+      <TEBackground />
+      <Box sx={{ minHeight: '100vh', position: 'relative' }}>
+        <AppBar position="static" color="transparent" elevation={0}>
+          <Toolbar variant="dense" sx={{ minHeight: 48, px: 2 }}>
+            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
+              OP-Done
             </Typography>
-            <IconButton color="inherit" aria-label="settings">
-              <SettingsIcon />
+            <IconButton size="small" aria-label="settings">
+              <SettingsIcon fontSize="small" />
             </IconButton>
           </Toolbar>
         </AppBar>
 
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Stack spacing={3}>
-            <Paper variant="outlined" sx={{ p: 2.5 }}>
-              <Grid container spacing={3}>
+        <Container maxWidth="lg" sx={{ py: 2, px: 2 }}>
+          <Stack spacing={2}>
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
-                  <Stack spacing={2}>
-                    <Typography variant="h6" fontWeight={700}>
-                      Inputs
-                    </Typography>
+                  <Stack spacing={1.5}>
+                    <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Input</Typography>
                     <Paper
                       variant="outlined"
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={handleDrop}
                       sx={{
-                        p: 2,
+                        p: 3,
                         textAlign: 'center',
                         borderStyle: 'dashed',
-                        bgcolor: '#f9fbff',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        bgcolor: '#fff',
+                        transition: 'all 0.2s',
+                        '&:hover': { borderColor: '#ff6b35', bgcolor: '#fffaf8' }
                       }}
                       onClick={handleSelectFiles}
                     >
-                      <CloudUploadIcon sx={{ fontSize: 36, color: 'primary.main' }} />
-                      <Typography variant="body1" fontWeight={600} sx={{ mt: 1 }}>
+                      <CloudUploadIcon sx={{ fontSize: 32, color: 'text.secondary', mb: 1 }} />
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>
                         Drop files here
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Up to 24 slices · wav/aiff/mp3/m4a/flac
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                        Up to 24 slices
                       </Typography>
-                      <Button variant="contained" sx={{ mt: 2 }} onClick={handleSelectFiles}>
-                        Select files
+                      <Button variant="contained" size="small" onClick={(e) => { e.stopPropagation(); handleSelectFiles(); }}>
+                        Select Files
                       </Button>
                       <input
                         ref={fileInputRef}
@@ -400,52 +391,19 @@ function App() {
                     </Paper>
 
                     <Divider flexItem />
-
-                    <Typography variant="h6" fontWeight={700}>
-                      Processing
-                    </Typography>
-                    <TextField
-                      select
-                      size="small"
-                      label="Normalize mode"
-                      value={normalizeMode}
-                      onChange={(e) => setNormalizeMode(e.target.value as any)}
-                    >
-                      <MenuItem value="loudnorm">Loudness (LUFS + limiter)</MenuItem>
-                      <MenuItem value="peak">Peak + limiter</MenuItem>
-                      <MenuItem value="off">Limiter only</MenuItem>
+                    <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Processing</Typography>
+                    <TextField select size="small" label="Normalize" value={normalizeMode} onChange={(e) => setNormalizeMode(e.target.value as any)}>
+                      <MenuItem value="loudnorm">Loudness (LUFS)</MenuItem>
+                      <MenuItem value="peak">Peak</MenuItem>
+                      <MenuItem value="off">Off</MenuItem>
                     </TextField>
-                    <TextField
-                      size="small"
-                      label="Silence threshold (dB)"
-                      value={silenceThreshold}
-                      onChange={(e) => setSilenceThreshold(Number(e.target.value))}
-                    />
-                    <TextField size="small" label="Max duration (s)" value={maxDuration} disabled helperText="Device cap for drum packs" />
+                    <TextField size="small" label="Silence Threshold" value={silenceThreshold} onChange={(e) => setSilenceThreshold(Number(e.target.value))} />
+                    <TextField size="small" label="Max Duration" value={maxDuration} disabled />
                     <Divider flexItem />
-                    <Typography variant="h6" fontWeight={700}>
-                      Metadata
-                    </Typography>
-                    <TextField
-                      size="small"
-                      label="Patch name"
-                      value={metadata.name}
-                      onChange={(e) => setMetadata((prev) => ({ ...prev, name: e.target.value }))}
-                    />
-                    <TextField
-                      size="small"
-                      label="Octave"
-                      type="number"
-                      value={metadata.octave}
-                      onChange={(e) => setMetadata((prev) => ({ ...prev, octave: Number(e.target.value) }))}
-                    />
-                    <TextField
-                      select
-                      size="small"
-                      label="Drum version"
-                      value={metadata.drumVersion}
-                      onChange={(e) => setMetadata((prev) => ({ ...prev, drumVersion: Number(e.target.value) }))}
-                    >
+                    <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Metadata</Typography>
+                    <TextField size="small" label="Name" value={metadata.name} onChange={(e) => setMetadata((prev) => ({ ...prev, name: e.target.value }))} />
+                    <TextField size="small" label="Octave" type="number" value={metadata.octave} onChange={(e) => setMetadata((prev) => ({ ...prev, octave: Number(e.target.value) }))} />
+                    <TextField select size="small" label="Version" value={metadata.drumVersion} onChange={(e) => setMetadata((prev) => ({ ...prev, drumVersion: Number(e.target.value) }))}>
                       <MenuItem value={2}>2</MenuItem>
                       <MenuItem value={3}>3</MenuItem>
                     </TextField>
@@ -453,37 +411,21 @@ function App() {
                 </Grid>
 
                 <Grid item xs={12} md={8}>
-                  <Stack spacing={2}>
+                  <Stack spacing={1.5}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Stack spacing={0.5}>
-                        <Typography variant="h6" fontWeight={700}>
-                          Slices
-                        </Typography>
-                        <Typography variant="body2" color={overDuration ? 'error.main' : 'text.secondary'}>
-                          {formatDuration(totalDuration)} / {maxDuration}s · {slices.length} / 24 slices
+                        <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Slices</Typography>
+                        <Typography variant="caption" color={overDuration ? 'error.main' : 'text.secondary'}>
+                          {formatDuration(totalDuration)} / {maxDuration}s · {slices.length} / 24
                         </Typography>
                       </Stack>
-                      <Stack direction="row" spacing={1}>
-                        <Button variant="outlined" startIcon={<FolderOpenIcon />} color="inherit" disabled>
-                          Choose slot
-                        </Button>
-                        <Button
-                          variant="contained"
-                          startIcon={<DownloadIcon />}
-                          disabled={disabledExport}
-                          onClick={handleExport}
-                        >
-                          Export .aif
-                        </Button>
-                      </Stack>
+                      <Button variant="contained" size="small" disabled={disabledExport} onClick={handleExport} startIcon={<DownloadIcon />}>
+                        Export
+                      </Button>
                     </Stack>
 
                     {error && <Alert severity="error">{error}</Alert>}
-                    {overDuration && (
-                      <Alert severity="warning">
-                        Over the 12s cap. Remove or trim slices to proceed.
-                      </Alert>
-                    )}
+                    {overDuration && <Alert severity="warning">Over 12s cap. Remove or trim slices.</Alert>}
                     {exportError && <Alert severity="error">{exportError}</Alert>}
 
                     <SliceList
@@ -501,9 +443,9 @@ function App() {
                     />
 
                     {(isProcessing || isExporting) && (
-                      <Paper variant="outlined" sx={{ p: 2 }}>
-                        <Typography variant="body2" fontWeight={600} gutterBottom>
-                          {isExporting ? 'Exporting pack…' : 'Processing files…'}
+                      <Paper variant="outlined" sx={{ p: 1.5 }}>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          {isExporting ? 'Exporting...' : 'Processing...'}
                         </Typography>
                         <LinearProgress />
                       </Paper>

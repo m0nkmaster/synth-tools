@@ -9,6 +9,7 @@ export type Slice = {
   duration: number; // seconds
   status: SliceStatus;
   error?: string;
+  classification?: string;
 };
 
 export type DrumMetadata = {

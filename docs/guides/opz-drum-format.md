@@ -1,86 +1,317 @@
-Contents
+# OP-Z Sample Format Guide
 
-1  OP-Z And Samples: A Comprehensive Guide
+Comprehensive reference for OP-Z drum and synth sample formats, import procedures, and caveats.
 
-  1.1  Drum Samples
-    1.1.1  OP-1 Drum Utility Caveats
-    1.1.2  Importing to the OP-Z
-    1.1.3  Import Caveats
-  1.2  Synth Samples
-    1.2.1  Synth Sample Caveats
-    1.2.2  Importing to the OP-Z
-    1.2.3  Import Caveats
+---
 
-OP-Z And Samples: A Comprehensive Guide
-I'm writing this guide to get into all the details about samples and the OP-Z because there's a lot of vague information and misconceptions out there.
+## Overview
 
-Current date is Dec 2018, current OP-Z firmware is 1.1.12.
+The OP-Z supports two sample types:
+- **Drum samples** (Tracks 1–4): Multi-slice AIFF with proprietary markers
+- **Synth samples** (Tracks 5–8): Single 6-second AIFF with OP-1 snapshot format
 
-There are two different kinds of samples: Drum samples (Tracks 1-4) and synth samples (Tracks 5-8). You cannot add drum samples to tracks 5-8 or synth samples to tracks 1-4.
+Samples cannot be cross-loaded (drums on synth tracks or vice versa).
 
-Drum Samples
-Drum samples are a special AIFF file: mono, 16bit, 44.1kHz and with proprietary markers that describe some settings as well as the start and end points of the individually triggered sounds inside the big, “consolidated” AIFF file. This is the same format that is used in the OP-1 but in contrast to the OP-1's suggested sample placement the OP-Z likes to have 25 samples of the same kind (kick, snare, hat, fx) in a single sample to place them on the corresponding track. The 2 voice polyphony on tracks 1-4 is a good reason to follow that format.
+---
 
-Each individual sound has to be less than 4 seconds long and the consolidated AIFF has to be less than 12 seconds long. There can be up to 25 individual sounds in one consolidated file.
+## Drum Samples (Tracks 1–4)
 
-Creating the consolidation and the special markers is best done with OP-1 Drum Utility as mentioned in the OP-Z guide.
+### Format Specification
 
-OP-1 Drum Utility Caveats
-OP-1 Drum Utility has some adjustments for the sounds, these are the things you can edit when using the symbols in the top row. All of this is ignored on the OP-Z.
+**File Format:**
+- Container: AIFF (Audio Interchange File Format)
+- Channels: Mono
+- Bit depth: 16-bit PCM
+- Sample rate: 44.1 kHz
+- Max duration: 12 seconds total
+- Max slices: 24 (one per OP-Z drum key)
+- Max slice duration: 4 seconds each
 
-Don't waste your time tuning your samples in OP-1 Drum Utility. Unlike the OP-1, the OP-Z doesn't have individual settings for each sound in the consolidated file, so it disregards all these settings completely.
+**Metadata Structure:**
+- `APPL` chunk inserted before `SSND` chunk
+- Payload: `op-1` prefix + JSON object
+- JSON schema:
+  ```json
+  {
+    "drum_version": 2 | 3,
+    "type": "drum",
+    "name": "pack-name",
+    "octave": 0,
+    "pitch": [0, 0, ...],           // 24 elements, all zero
+    "start": [0, 16384, ...],       // 24 elements, scaled frame indices
+    "end": [16383, 32767, ...],     // 24 elements, scaled frame indices
+    "playmode": [8192, 8192, ...],  // 24 elements, default 8192
+    "reverse": [8192, 8192, ...],   // 24 elements, default 8192
+    "volume": [8192, 8192, ...],    // 24 elements, default 8192
+    "dyna_env": [0, 8192, 0, 8192, 0, 0, 0, 0],
+    "fx_active": false,
+    "fx_type": "delay",
+    "fx_params": [8000, 8000, 8000, 8000, 8000, 8000, 8000, 8000],
+    "lfo_active": false,
+    "lfo_type": "tremolo",
+    "lfo_params": [16000, 16000, 16000, 16000, 0, 0, 0, 0]
+  }
+  ```
 
-Arguably the worst part of this is adjusting the volume. You'll have to make sure your source samples are leveled nicely, also in relation to the other samples on the OP-Z, you cannot adjust them later on.
+**Slice Boundaries:**
+- `start[i]` and `end[i]` define slice `i` boundaries
+- Values are frame indices scaled by 4096: `scaled_frame = frame_index * 4096`
+- Clamped to `0x7ffffffe` (2,147,483,646) to avoid INT32 overflow
+- Unused slots: set `start[i] == end[i]` (zero-length marker)
 
-Importing to the OP-Z
-Mounting the OP-Z as a drive in content mode as described in the OP-Z guide will show you some folders including samplepacks. Inside of samplepacks, there is a folder for every track. Inside of every track's folder, there are folders from 1 to 10 corresponding to the slot on the black numbered keys for this track. You can only place one consolidated sample in each of this numbered folders and it can only be on tracks 1-kick through 4-fx for drum samples.
+**Key Differences from OP-1:**
+- OP-Z ignores per-slice settings from OP-1 Drum Utility (pitch, volume, envelope, FX, LFO)
+- OP-Z uses global track settings; per-slice metadata is for compatibility only
+- Volume leveling must be done in source files before import
 
-Some folders contain empty files starting with a tilde in the name like ~kicks.aiff. These are references to the internal samples. You can delete these files if you want to place custom samples there instead.
+### Creating Drum Packs
 
-After ejecting the disk, the OP-Z should restart and have imported the new samples. If something went wrong, it usually writes some logging into the file import.log that can also be accessed via content mode. The manual states that samples that could not have been imported also end up in the folder rejected but that was never the case for me.
+**Recommended Workflow:**
+1. Prepare 24 or fewer audio files (WAV, AIFF, MP3, M4A, FLAC)
+2. Use OP Done or similar tool to:
+   - Convert to mono 44.1 kHz 16-bit AIFF
+   - Normalize loudness (LUFS recommended)
+   - Trim leading silence
+   - Concatenate with total duration ≤ 12s
+   - Inject OP-Z drum metadata with explicit slice boundaries
+3. Export single `.aif` file
 
-Import Caveats
-The OP-Z only regards the filename of a sample to check if it should trigger an import. If you try to update a sample that is already loaded on the OP-Z, you will have to either
+**Legacy Tools:**
+- OP-1 Drum Utility (macOS app): creates compatible format but per-slice settings ignored by OP-Z
+- `teoperator` (CLI): legacy tool for OP-1/OP-Z drum packs
 
+### Importing to OP-Z
 
-use a different name
-or remove it, go through an import cycle and then place the new sample back
-In both cases all references to the sample inside the OP-Z will be lost. Projects using the sample will not play the corresponding track at all and once you select the “new” updated sample, all previous parameters will be lost, as will any saved preset settings.
+**Procedure:**
+1. Mount OP-Z in content mode (hold Track + power on)
+2. Navigate to `sample packs/` folder
+3. Choose track folder: `1` (kick), `2` (snare), `3` (perc), `4` (fx)
+4. Choose slot folder: `01` through `10`
+5. Copy `.aif` file into slot folder (one file per slot only)
+6. Delete any existing files in slot (e.g., `~kicks.aiff` placeholder)
+7. Eject OP-Z; device restarts and imports samples
 
-Synth Samples
-Synth samples are using the “snapshot format” from the OP-1. This is a special AIFF file as well: mono, 16bit, 44.1kHz. There are also some proprietary markers and the sample has to be exactly 6 seconds long.
+**Import Validation:**
+- Check `import.log` in content mode if import fails
+- Rejected files may appear in `rejected/` folder (firmware-dependent)
+- Common failures: wrong format, >12s duration, multiple files in slot
 
-At first glance the format looks very similar to the drum samples but the markers are different and the 6 second length is different as well.
+**Import Caveats:**
+- OP-Z detects imports by filename change
+- To update existing pack: rename file or remove → import cycle → re-add
+- Updating a pack breaks all project references (track will be silent)
+- Saved presets and parameters are lost on pack update
 
-To create this kind of file you can either use an OP-1 or create a mono 16bit 44.1kHz AIFF file with a length of exactly 6 seconds and add the markers through my OP-Z synth sample hack tool. You should make sure to have your sample fit to the musical key of A because the tool adds a base frequency of 440 Hz, so your sample will be mapped to the correct notes.
+---
 
-Synth Sample Caveats
-There are several settings inside the markers that will control the settings on the OP-1. All of these will be ignored by the OP-Z with the exception of the base frequency which is used to place the pitching of the sample across the keys.
+## Synth Samples (Tracks 5–8)
 
-The most important ignored setting is the ADSR envelope. After importing, the envelope will be very short and will have to be adjusted on the OP-Z using the green parameter page. You'd probably want to save the “corrected” envelope to preset 1 by holding track and the lowest “white key”.
+### Format Specification
 
-Other ignored settings:
+**File Format:**
+- Container: AIFF (Audio Interchange File Format)
+- Channels: Mono
+- Bit depth: 16-bit PCM
+- Sample rate: 44.1 kHz
+- Duration: Exactly 6 seconds (critical—see caveats)
 
+**Metadata Structure:**
+- OP-1 "snapshot format" with proprietary markers
+- Base frequency: 440 Hz (maps sample to key A)
+- ADSR envelope: ignored by OP-Z (must set on device)
+- Effects/LFO: ignored by OP-Z
 
-Effects. There is only one effect and it will always be bitcrusher on synth parameter 1
+**Key Differences from OP-1:**
+- OP-Z ignores ADSR envelope from metadata (defaults to very short attack/release)
+- OP-Z ignores effects and LFO settings
+- OP-Z only uses base frequency for pitch mapping
+- Sample name displayed from filename, not metadata
 
-LFO settings
-The name of the sample/snapshot; it will be displayed in the app according to the file name.
-If your sample is shorter than 6 seconds, it will be imported fine and will play back on the device, but there will be something I always describe as “sample bleed”: When your custom sample is done playing, something else will be played until the 6 seconds are reached. For me this have always been some drum samples but since this is probably a buffer overflow, it could end up being very harsh noises. Please make sure your samples are 6 seconds long!
+### Creating Synth Samples
 
-Importing to the OP-Z
-Importing synth samples is pretty much exactly like importing drum samples.
+**Recommended Workflow:**
+1. Prepare single audio file (WAV, AIFF, MP3, M4A, FLAC)
+2. Convert to mono 44.1 kHz 16-bit AIFF
+3. Trim or loop to exactly 6 seconds
+4. Tune sample to musical key A (440 Hz) for correct pitch mapping
+5. Add OP-1 snapshot metadata with base frequency
+6. Export `.aif` file
 
-Mounting the OP-Z as a drive in content mode as per the OP-Z guide will show you some folders including samplepacks. Inside of samplepacks, there is a folder for every track. Inside of every track's folder, there are folders from 1 to 10 corresponding to the slot on the black numbered keys for this track. You can only place one synth sample in each of this numbered folders and it can only be on tracks 5-lead through 8-chords for synth samples.
+**Critical: 6-Second Requirement**
+- Samples shorter than 6s will play but cause "sample bleed"
+- Sample bleed: after sample ends, buffer overflow plays unrelated audio (often drum samples or harsh noise)
+- Always pad or loop to exactly 6 seconds
 
-Some folders contain empty files starting with a tilde in the name like ~buzz.engine. These are references to the internal synth engines. You can delete these files if you want to place custom samples there instead.
+**Legacy Tools:**
+- OP-Z synth sample hack tool (adds markers to 6s AIFF)
 
-After ejecting the disk, the OP-Z should restart and have imported the new samples. If something went wrong, it usually writes some logging into the file import.log that can also be accessed via content mode. The manual states that samples which could not have been imported also end up in the folder rejected, but that was never the case for me.
+### Importing to OP-Z
 
-Import Caveats
-Same as drum samples. The OP-Z only regards the filename of a sample to check if it should trigger an import. If you try to update a sample that is already loaded on the OP-Z, you will have to either
+**Procedure:**
+1. Mount OP-Z in content mode (hold Track + power on)
+2. Navigate to `sample packs/` folder
+3. Choose track folder: `5` (lead), `6` (arp), `7` (bass), `8` (chord)
+4. Choose slot folder: `01` through `10`
+5. Copy `.aif` file into slot folder (one file per slot only)
+6. Delete any existing files in slot (e.g., `~buzz.engine` placeholder)
+7. Eject OP-Z; device restarts and imports samples
 
+**Post-Import Setup:**
+- Adjust ADSR envelope on OP-Z (green parameter page)
+- Save corrected envelope to preset 1: hold Track + lowest white key
 
-use a different name
-or remove it, go through an import cycle and then place the new sample back
-In both cases all references to the sample inside the OP-Z will be lost. Projects using the sample will not play the corresponding track at all and once you select the “new” updated sample, all previous parameters will be lost, as will any saved preset settings.
+**Import Caveats:**
+- Same as drum samples: filename-based detection, update breaks references
+- Effect is always bitcrusher on synth parameter 1 (cannot be changed)
+
+---
+
+## OP-Z File Structure
+
+```
+[OP-Z mounted disk]/
+├── sample packs/
+│   ├── 1/  (kick drum)
+│   │   ├── 01/
+│   │   │   └── pack.aif
+│   │   ├── 02/
+│   │   └── ... (up to 10/)
+│   ├── 2/  (snare drum)
+│   ├── 3/  (percussion)
+│   ├── 4/  (fx)
+│   ├── 5/  (lead synth)
+│   ├── 6/  (arp synth)
+│   ├── 7/  (bass synth)
+│   └── 8/  (chord synth)
+├── import.log
+└── rejected/  (firmware-dependent)
+```
+
+**Rules:**
+- One file per slot folder
+- Multiple files in slot → import rejected
+- Placeholder files (starting with `~`) reference internal samples; delete to use custom samples
+- Total sample budget: 24 MB across all tracks
+
+---
+
+## Technical Details
+
+### AIFF Chunk Structure
+
+**Standard AIFF:**
+```
+FORM (container)
+├── COMM (common chunk: channels, sample rate, bit depth, frame count)
+├── SSND (sound data chunk: audio samples)
+└── [optional chunks]
+```
+
+**OP-Z Drum AIFF:**
+```
+FORM (container)
+├── COMM (common chunk)
+├── APPL (application-specific chunk: OP-Z drum metadata)
+└── SSND (sound data chunk)
+```
+
+**APPL Chunk Format:**
+- Chunk ID: `APPL` (0x4150504C)
+- Chunk size: 4-byte big-endian integer (payload length)
+- Payload: `op-1` (5 bytes) + JSON string
+- Padding: add 1 byte if payload length is odd (AIFF requirement)
+
+### Frame Scaling
+
+**Why scale by 4096?**
+- Legacy OP-1 format uses scaled frame indices for slice boundaries
+- Scaling allows sub-frame precision in fixed-point representation
+- OP-Z inherits this format for compatibility
+
+**Calculation:**
+```
+scaled_frame = frame_index * 4096
+clamped_value = min(scaled_frame, 0x7ffffffe)
+```
+
+**Example:**
+- Sample rate: 44,100 Hz
+- Slice 1: 0.5 seconds = 22,050 frames
+- Scaled start: 0 * 4096 = 0
+- Scaled end: 22,049 * 4096 = 90,312,704 (0x05621000)
+
+### Metadata Defaults
+
+**Safe defaults for unused fields:**
+- `pitch`: all zero (no pitch shift)
+- `playmode`: 8192 (normal playback)
+- `reverse`: 8192 (forward playback; 0 = reverse)
+- `volume`: 8192 (unity gain)
+- `dyna_env`: `[0, 8192, 0, 8192, 0, 0, 0, 0]` (neutral envelope)
+- `fx_active`: false
+- `fx_params`: `[8000, 8000, 8000, 8000, 8000, 8000, 8000, 8000]`
+- `lfo_active`: false
+- `lfo_params`: `[16000, 16000, 16000, 16000, 0, 0, 0, 0]`
+
+---
+
+## Troubleshooting
+
+### Import Failures
+
+**Symptoms:**
+- Sample not visible in OP-Z app
+- File appears in `rejected/` folder
+- Error logged in `import.log`
+
+**Common Causes:**
+1. Wrong format (not mono 16-bit 44.1 kHz AIFF)
+2. Duration exceeds limit (>12s for drums, ≠6s for synth)
+3. Multiple files in slot folder
+4. Missing or malformed metadata chunk
+5. Incorrect track type (drum on synth track or vice versa)
+
+**Solutions:**
+- Verify format with audio editor or `ffprobe`
+- Check `import.log` for specific error
+- Ensure only one `.aif` file per slot
+- Re-export with correct metadata
+
+### Sample Bleed (Synth Only)
+
+**Symptoms:**
+- After sample ends, unrelated audio plays (drums, noise)
+
+**Cause:**
+- Sample shorter than 6 seconds → buffer overflow
+
+**Solution:**
+- Pad or loop sample to exactly 6 seconds
+
+### Lost Project References
+
+**Symptoms:**
+- After updating sample, track is silent in existing projects
+
+**Cause:**
+- OP-Z detects sample by filename; renaming breaks references
+
+**Solutions:**
+- Keep original filename when updating
+- Or: remove sample → import cycle → re-add with new name
+- Note: parameters and presets will be lost either way
+
+---
+
+## References
+
+- Original guide: Dec 2018, OP-Z firmware 1.1.12
+- OP-1 Drum Utility: macOS app for creating drum packs
+- `teoperator`: legacy CLI tool for OP-1/OP-Z drum packs
+- OP Done: modern browser-based drum pack builder
+
+---
+
+**Document Version:** 2.0  
+**Last Updated:** 2025  
+**Firmware Compatibility:** OP-Z 1.1.12+
