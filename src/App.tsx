@@ -37,6 +37,7 @@ import { formatDuration } from './utils/audio';
 import type { Slice, DrumMetadata } from './types';
 import { buildDrumPack } from './audio/pack';
 import { TEBackground } from './components/TEBackground';
+import { TELogo } from './components/TELogo';
 import { PitchDial } from './components/PitchDial';
 import { semitonesToPitchParam } from './audio/pitch';
 
@@ -383,10 +384,9 @@ function App() {
       <TEBackground />
       <Box sx={{ minHeight: '100vh', position: 'relative' }}>
         <AppBar position="static" color="transparent" elevation={0}>
-          <Toolbar variant="dense" sx={{ minHeight: 48, px: 2 }}>
-            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
-              OP-Done
-            </Typography>
+          <Toolbar sx={{ minHeight: 64, px: 3 }}>
+            <TELogo size={32} />
+            <Box sx={{ flexGrow: 1 }} />
             <IconButton size="small" aria-label="settings">
               <SettingsIcon fontSize="small" />
             </IconButton>
