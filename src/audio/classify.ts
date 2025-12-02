@@ -8,35 +8,26 @@ export async function classifyAudio(file: File): Promise<SampleType> {
     const data = audio.getChannelData(0);
     const sr = audio.sampleRate;
     
-    // Spectral centroid (brightness)
     const fftSize = 2048;
     const centroid = computeCentroid(data, sr, fftSize);
+    const zcr = computeZCR(data);
     
-    // RMS energy
-    const rms = Math.sqrt(data.reduce((sum, v) => sum + v * v, 0) / data.length);
+    const bass = computeBandEnergy(data, sr, 60, 250, fftSize);
+    const subBass = computeBandEnergy(data, sr, 20, 60, fftSize);
+    const highMid = computeBandEnergy(data, sr, 2000, 6000, fftSize);
+    const high = computeBandEnergy(data, sr, 6000, 20000, fftSize);
     
-    // Duration
-    const duration = audio.duration;
+    // Based on analysis of sample files:
+    // kick: bass=0.346, subBass=0.153, centroid=3613Hz, zcr=0.013
+    // snare: bass=0.095, highMid=0.408, high=0.343, centroid=5452Hz, zcr=0.116
+    // hat: high=0.792, centroid=10383Hz, zcr=0.360
+    // perc: high=0.409, centroid=6111Hz, zcr=0.148
     
-    // Low-frequency energy (20-150 Hz)
-    const lowEnergy = computeBandEnergy(data, sr, 20, 150, fftSize);
-    
-    // Mid energy (150-1000 Hz)
-    const midEnergy = computeBandEnergy(data, sr, 150, 1000, fftSize);
-    
-    // High energy (>5000 Hz)
-    const highEnergy = computeBandEnergy(data, sr, 5000, sr / 2, fftSize);
-    
-    // Classification heuristics
-    if (lowEnergy > 0.6 && duration < 0.5 && centroid < 300) return 'kick';
-    if (highEnergy > 0.5 && duration < 0.2) return 'hihat';
-    if (highEnergy > 0.4 && duration > 0.3) return 'cymbal';
-    if (midEnergy > 0.5 && highEnergy > 0.3 && duration < 0.3) return 'snare';
-    if (lowEnergy > 0.4 && midEnergy > 0.3 && duration < 0.6) return 'tom';
-    if (midEnergy > 0.5 && duration < 0.15) return 'clap';
-    if (centroid > 800 && centroid < 2000 && duration < 0.4) return 'cowbell';
-    if (duration > 0.5 && rms > 0.1) return 'synth';
-    if (duration < 0.5) return 'perc';
+    if (high > 0.7 && centroid > 8000 && zcr > 0.25) return 'hihat';
+    if (bass > 0.25 && subBass > 0.1 && centroid < 4500) return 'kick';
+    if (highMid > 0.35 && high > 0.3 && zcr > 0.08 && centroid > 4500 && centroid < 7000) return 'snare';
+    if (high > 0.35 && centroid > 5500) return 'perc';
+    if (bass > 0.15 && centroid < 5000) return 'tom';
     
     return 'other';
   } finally {
@@ -72,6 +63,16 @@ function computeCentroid(data: Float32Array, sr: number, fftSize: number): numbe
   }
   
   return totalMag > 0 ? weightedSum / totalMag : 0;
+}
+
+function computeZCR(data: Float32Array): number {
+  let zcr = 0;
+  for (let i = 1; i < data.length; i++) {
+    if ((data[i] >= 0 && data[i - 1] < 0) || (data[i] < 0 && data[i - 1] >= 0)) {
+      zcr++;
+    }
+  }
+  return zcr / data.length;
 }
 
 function computeBandEnergy(data: Float32Array, sr: number, lowHz: number, highHz: number, fftSize: number): number {

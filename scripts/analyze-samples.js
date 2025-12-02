@@ -27,22 +27,40 @@ function analyzeWav(buffer) {
   const view = new DataView(buffer);
   
   // Parse WAV header
+  const audioFormat = view.getUint16(20, true); // 1=PCM, 3=IEEE float
   const numChannels = view.getUint16(22, true);
   const sampleRate = view.getUint32(24, true);
   const bitsPerSample = view.getUint16(34, true);
-  const dataOffset = 44;
-  const dataSize = view.getUint32(40, true);
+  
+  // Find data chunk
+  let dataOffset = 36;
+  let dataSize = 0;
+  while (dataOffset < buffer.byteLength - 8) {
+    const chunkId = String.fromCharCode(...new Uint8Array(buffer, dataOffset, 4));
+    const chunkSize = view.getUint32(dataOffset + 4, true);
+    if (chunkId === 'data') {
+      dataSize = chunkSize;
+      dataOffset += 8;
+      break;
+    }
+    dataOffset += 8 + chunkSize;
+  }
+  
+  if (dataSize === 0) return null;
   
   // Extract samples (convert to mono float32)
-  const numSamples = dataSize / (bitsPerSample / 8) / numChannels;
+  const bytesPerSample = bitsPerSample / 8;
+  const numSamples = dataSize / bytesPerSample / numChannels;
   const samples = new Float32Array(numSamples);
   
   for (let i = 0; i < numSamples; i++) {
     let sum = 0;
     for (let ch = 0; ch < numChannels; ch++) {
-      const offset = dataOffset + (i * numChannels + ch) * (bitsPerSample / 8);
+      const offset = dataOffset + (i * numChannels + ch) * bytesPerSample;
       let sample = 0;
-      if (bitsPerSample === 16) {
+      if (audioFormat === 3) { // IEEE float
+        sample = view.getFloat32(offset, true);
+      } else if (bitsPerSample === 16) {
         sample = view.getInt16(offset, true) / 32768;
       } else if (bitsPerSample === 24) {
         const byte1 = view.getUint8(offset);
@@ -166,6 +184,11 @@ async function main() {
   for (const file of wavFiles) {
     const buffer = await readFile(join(SAMPLE_DIR, file));
     const features = analyzeWav(buffer.buffer);
+    
+    if (!features) {
+      console.error(`Failed to parse: ${file}`);
+      continue;
+    }
     
     let type = 'perc';
     if (file.includes('Kick')) type = 'kick';

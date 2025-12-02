@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Classification</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    .correct { color: green; }
+    .incorrect { color: red; }
+    table { border-collapse: collapse; margin-top: 20px; }
+    td, th { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h2>Audio Classification Test</h2>
+  <p>Drop sample files here to test classification accuracy</p>
+  <div id="drop" style="border: 2px dashed #ccc; padding: 40px; margin: 20px 0;">
+    Drop WAV files here
+  </div>
+  <table id="results">
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Expected</th>
+        <th>Classified</th>
+        <th>Match</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  
+  <script type="module">
+    import { classifyAudio } from '../src/audio/classify.ts';
+    
+    const drop = document.getElementById('drop');
+    const tbody = document.querySelector('#results tbody');
+    
+    drop.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      drop.style.background = '#f0f0f0';
+    });
+    
+    drop.addEventListener('dragleave', () => {
+      drop.style.background = '';
+    });
+    
+    drop.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      drop.style.background = '';
+      
+      const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.wav'));
+      
+      for (const file of files) {
+        const expected = file.name.includes('Kick') ? 'kick' :
+                        file.name.includes('Snare') ? 'snare' :
+                        file.name.includes('Hat') ? 'hihat' :
+                        file.name.includes('Perc') ? 'perc' : 'unknown';
+        
+        try {
+          const classified = await classifyAudio(file);
+          const match = classified === expected;
+          
+          const row = tbody.insertRow();
+          row.innerHTML = `
+            <td>${file.name}</td>
+            <td>${expected}</td>
+            <td>${classified}</td>
+            <td class="${match ? 'correct' : 'incorrect'}">${match ? '✓' : '✗'}</td>
+            <td><button onclick="this.nextElementSibling.style.display='block'">Show</button><pre style="display:none"></pre></td>
+          `;
+        } catch (err) {
+          const row = tbody.insertRow();
+          row.innerHTML = `
+            <td>${file.name}</td>
+            <td>${expected}</td>
+            <td colspan="3" style="color: red">Error: ${err.message}</td>
+          `;
+        }
+      }
+      
+      // Calculate accuracy
+      const total = tbody.rows.length;
+      const correct = tbody.querySelectorAll('.correct').length;
+      console.log(`Accuracy: ${correct}/${total} (${(correct/total*100).toFixed(1)}%)`);
+    });
+  </script>
+</body>
+</html>
