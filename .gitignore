@@ -1,0 +1,37 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editors and tooling
+.idea/
+.vscode/
+.history/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+
+# Node/JS
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+
+# Builds and coverage
+dist/
+build/
+coverage/
+*.coverage
+
+# Env and secrets
+.env
+.env.*
+
+# Project-specific
+legacy-scripts/
