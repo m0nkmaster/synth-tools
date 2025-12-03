@@ -57,7 +57,11 @@ export function parseAiff(buf: Uint8Array): AiffParseResult {
     buf.byteOffset + comm.offset,
     comm.size + 8
   );
-  const numFrames = view.getUint32(8, false);
+  const baseOffset = 8; // skip chunk id + size
+  if (comm.size < 14) {
+    throw new Error('Invalid COMM chunk');
+  }
+  const numFrames = view.getUint32(baseOffset + 2, false);
 
   return { chunks, numFrames, formSize };
 }
