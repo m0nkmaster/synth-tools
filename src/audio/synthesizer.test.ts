@@ -138,4 +138,64 @@ describe('synthesizeSound', () => {
     const buffer = await synthesizeSound(config);
     expect(buffer.length).toBeGreaterThan(0);
   });
+
+  it('should apply per-layer envelope', async () => {
+    const config: SoundConfig = {
+      ...baseConfig,
+      synthesis: {
+        layers: [{
+          type: 'oscillator',
+          gain: 1,
+          oscillator: { waveform: 'sine', frequency: 440, detune: 0 },
+          envelope: { attack: 0.001, decay: 0.05, sustain: 0.3, release: 0.1 }
+        }]
+      }
+    };
+    const buffer = await synthesizeSound(config);
+    expect(buffer.length).toBeGreaterThan(0);
+  });
+
+  it('should apply filter envelope', async () => {
+    const config: SoundConfig = {
+      ...baseConfig,
+      filter: {
+        type: 'lowpass',
+        frequency: 500,
+        q: 2,
+        envelope: {
+          amount: 2000,
+          attack: 0.01,
+          decay: 0.1,
+          sustain: 0.3,
+          release: 0.2
+        }
+      }
+    };
+    const buffer = await synthesizeSound(config);
+    expect(buffer.length).toBeGreaterThan(0);
+  });
+
+  it('should handle mixed layer and master envelopes', async () => {
+    const config: SoundConfig = {
+      ...baseConfig,
+      synthesis: {
+        layers: [
+          {
+            type: 'oscillator',
+            gain: 0.7,
+            oscillator: { waveform: 'sine', frequency: 60, detune: 0 },
+            envelope: { attack: 0.001, decay: 0.05, sustain: 0.5, release: 0.3 }
+          },
+          {
+            type: 'noise',
+            gain: 0.3,
+            noise: { type: 'white' },
+            envelope: { attack: 0.001, decay: 0.02, sustain: 0, release: 0.05 }
+          }
+        ]
+      }
+    };
+    const buffer = await synthesizeSound(config);
+    expect(buffer.length).toBeGreaterThan(0);
+  });
 });

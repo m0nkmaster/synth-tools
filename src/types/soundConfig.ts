@@ -8,6 +8,14 @@ export interface SoundConfig {
     layers: Array<{
       type: 'oscillator' | 'noise' | 'fm';
       gain: number; // 0-1 mix level
+      envelope?: {
+        attack: number;
+        decay: number;
+        sustain: number;
+        release: number;
+        attackCurve?: 'linear' | 'exponential';
+        releaseCurve?: 'linear' | 'exponential';
+      };
       oscillator?: {
         waveform: 'sine' | 'square' | 'sawtooth' | 'triangle';
         frequency: number;
@@ -41,10 +49,10 @@ export interface SoundConfig {
     q: number; // resonance 0.0001-1000
     gain?: number; // dB for peaking
     envelope?: {
-      amount: number; // -1 to 1
+      amount: number; // Hz modulation amount
       attack: number;
       decay: number;
-      sustain: number;
+      sustain: number; // 0-1 level
       release: number;
     };
   };

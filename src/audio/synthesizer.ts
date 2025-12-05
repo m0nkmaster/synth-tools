@@ -18,7 +18,12 @@ export async function synthesizeSound(config: SoundConfig): Promise<AudioBuffer>
   for (const layer of config.synthesis.layers) {
     const source = createLayerSource(ctx, layer);
     const layerGain = ctx.createGain();
-    layerGain.gain.value = safeValue(layer.gain, 1);
+    
+    if (layer.envelope) {
+      applyEnvelope(layerGain.gain, layer.envelope, config, safeValue(layer.gain, 1));
+    } else {
+      layerGain.gain.value = safeValue(layer.gain, 1);
+    }
     
     source.connect(layerGain);
     layerGain.connect(mixer);
@@ -31,12 +36,21 @@ export async function synthesizeSound(config: SoundConfig): Promise<AudioBuffer>
   if (filter) {
     mixer.connect(filter);
     chain = filter;
+    
+    if (config.filter.envelope) {
+      applyFilterEnvelope(filter.frequency, config.filter, config);
+    }
   }
   
   const masterGain = ctx.createGain();
   chain.connect(masterGain);
   
-  applyEnvelope(masterGain.gain, config.envelope, config);
+  const hasLayerEnvelopes = config.synthesis.layers.some(l => l.envelope);
+  if (!hasLayerEnvelopes) {
+    applyEnvelope(masterGain.gain, config.envelope, config, config.dynamics.velocity);
+  } else {
+    masterGain.gain.value = config.dynamics.velocity;
+  }
   
   const effectsChain = createEffects(ctx, config);
   masterGain.connect(effectsChain);
@@ -131,9 +145,13 @@ function createFilter(ctx: OfflineAudioContext, config: SoundConfig): BiquadFilt
   return filter;
 }
 
-function applyEnvelope(param: AudioParam, envelope: SoundConfig['envelope'], config: SoundConfig) {
+function applyEnvelope(
+  param: AudioParam,
+  envelope: { attack: number; decay: number; sustain: number; release: number; attackCurve?: string; releaseCurve?: string },
+  config: SoundConfig,
+  peakValue: number
+) {
   const { attack, decay, sustain, release } = envelope;
-  const velocity = Math.max(0, Math.min(1, config.dynamics.velocity));
   const sustainLevel = Math.max(0, Math.min(1, sustain));
   const duration = config.timing.duration;
   
@@ -143,10 +161,33 @@ function applyEnvelope(param: AudioParam, envelope: SoundConfig['envelope'], con
   const releaseStart = Math.max(safeAttack + safeDecay, duration - safeRelease);
   
   param.setValueAtTime(0.001, 0);
-  param.exponentialRampToValueAtTime(velocity, safeAttack);
-  param.exponentialRampToValueAtTime(Math.max(0.001, velocity * sustainLevel), safeAttack + safeDecay);
-  param.setValueAtTime(Math.max(0.001, velocity * sustainLevel), releaseStart);
+  param.exponentialRampToValueAtTime(peakValue, safeAttack);
+  param.exponentialRampToValueAtTime(Math.max(0.001, peakValue * sustainLevel), safeAttack + safeDecay);
+  param.setValueAtTime(Math.max(0.001, peakValue * sustainLevel), releaseStart);
   param.exponentialRampToValueAtTime(0.001, duration);
+}
+
+function applyFilterEnvelope(param: AudioParam, filter: NonNullable<SoundConfig['filter']>, config: SoundConfig) {
+  const env = filter.envelope!;
+  const baseFreq = filter.frequency;
+  const amount = safeValue(env.amount, 0);
+  const sustainLevel = Math.max(0, Math.min(1, env.sustain));
+  const duration = config.timing.duration;
+  
+  const safeAttack = Math.max(0.001, env.attack);
+  const safeDecay = Math.max(0.001, env.decay);
+  const safeRelease = Math.max(0.001, env.release);
+  const releaseStart = Math.max(safeAttack + safeDecay, duration - safeRelease);
+  
+  const startFreq = Math.max(20, baseFreq);
+  const peakFreq = Math.max(20, Math.min(20000, baseFreq + amount));
+  const sustainFreq = Math.max(20, baseFreq + (amount * sustainLevel));
+  
+  param.setValueAtTime(startFreq, 0);
+  param.exponentialRampToValueAtTime(peakFreq, safeAttack);
+  param.exponentialRampToValueAtTime(sustainFreq, safeAttack + safeDecay);
+  param.setValueAtTime(sustainFreq, releaseStart);
+  param.exponentialRampToValueAtTime(startFreq, duration);
 }
 
 function createEffects(ctx: OfflineAudioContext, config: SoundConfig): AudioNode {
