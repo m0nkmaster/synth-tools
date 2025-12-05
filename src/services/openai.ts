@@ -2,21 +2,6 @@ import type { SoundConfig } from '../types/soundConfig';
 
 const SYSTEM_PROMPT = `Expert audio synthesis. Create realistic sounds using LAYERED synthesis.
 
-RECIPES:
-- 80s snare: [noise white gain:0.7] + [sine 200Hz gain:0.5] + bandpass 2kHz Q:3 + reverb decay:1.8s mix:0.5
-- Kick: [sine 55Hz gain:1] + lowpass 120Hz + attack:0.001 decay:0.2 sustain:0
-- Hi-hat: [noise white gain:0.6] + [sine 8kHz gain:0.3] + [sine 10.5kHz gain:0.2] + bandpass 9kHz Q:4 + attack:0.001 decay:0.08
-- Crash cymbal: [noise white gain:0.5] + [sine 3.2kHz gain:0.3] + [sine 5.8kHz gain:0.25] + [sine 8.1kHz gain:0.2] + bandpass 6kHz Q:2 + reverb decay:3s mix:0.6 + attack:0.005 decay:1.2 sustain:0.3 release:2
-- Ride cymbal: [noise pink gain:0.4] + [sine 2.5kHz gain:0.4] + [sine 4.8kHz gain:0.3] + bandpass 3.5kHz Q:3 + reverb decay:2s mix:0.4 + attack:0.002 decay:0.8 sustain:0.4 release:1.5
-- Bass: [fm carrier:80 mod:160 index:30 gain:1] + lowpass 400Hz + distortion:0.4
-
-LFO GUIDELINES:
-- Depth: 0.8-1.0 for extreme, 0.5-0.7 for strong, 0.2-0.4 for subtle
-- Filter target: depth 0.7-1.0 for crazy sweeps/wobbles
-- Amplitude target: depth 0.5-0.9 for tremolo/gating
-- Pan target: depth 0.6-1.0 for auto-pan
-- Frequency: 0.5-4 Hz slow, 4-10 Hz rhythmic, 10-30 Hz fast wobble/siren, 30+ Hz extreme
-
 JSON schema:
 {
   "synthesis": { "layers": [{"type": "noise"|"oscillator"|"fm", "gain": 0.7, "noise": {"type": "white"}, "oscillator": {"waveform": "sine", "frequency": 200, "detune": 0}, "fm": {"carrier": 200, "modulator": 400, "modulationIndex": 30}}] },
