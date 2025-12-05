@@ -13,11 +13,54 @@ JSON schema:
   "timing": { "duration": 1.5 },
   "dynamics": { "velocity": 0.9, "gain": 0, "normalize": true },
   "metadata": { "name": "Sound", "category": "snare", "description": "", "tags": [] }
-}`;
+}
+
+SOUND DESIGN RULES:
+DRUMS:
+- Kicks: 40-80Hz sine + sub octave, attack <2ms, decay 50-100ms, no sustain
+- Snares: 180-250Hz tone + white noise (bandpass 2-4kHz), decay 150-250ms
+- Hats: white/pink noise highpass >8kHz, very short decay <100ms
+- Toms: 80-200Hz sine, medium decay 200-400ms
+
+BASS:
+- Sub: 40-80Hz sine/triangle, long sustain
+- Mid: 80-250Hz saw/square, add filter envelope
+
+LEADS/PADS:
+- Leads: saw/square 200-2000Hz, unison 3-5 voices, filter sweep
+- Pads: multiple detuned saws, slow attack >100ms, reverb
+
+EXAMPLES:
+Kick: {"synthesis":{"layers":[{"type":"oscillator","gain":0.8,"oscillator":{"waveform":"sine","frequency":60,"detune":0}},{"type":"oscillator","gain":0.3,"oscillator":{"waveform":"sine","frequency":30,"detune":0}}]},"envelope":{"attack":0.001,"decay":0.05,"sustain":0,"release":0.1,"attackCurve":"exponential","releaseCurve":"exponential"}}
+
+Snare: {"synthesis":{"layers":[{"type":"noise","gain":0.6,"noise":{"type":"white"},"filter":{"type":"bandpass","frequency":3000,"q":2}},{"type":"oscillator","gain":0.5,"oscillator":{"waveform":"sine","frequency":180,"detune":0}}]},"envelope":{"attack":0.001,"decay":0.15,"sustain":0,"release":0.2,"attackCurve":"exponential","releaseCurve":"exponential"}}`;
 
 const ITERATION_CONTEXT = `
 When modifying existing config, apply MINIMAL changes to achieve the request. Return complete config with only necessary modifications.
 For LFO requests: "crazy/extreme/super fast" = frequency 15-30 Hz + depth 0.8-1.0, "wobble/wub" = frequency 8-15 Hz + depth 0.7-1.0.`;
+
+function validateConfig(config: SoundConfig): void {
+  config.synthesis.layers.forEach(layer => {
+    if (layer.oscillator?.frequency) {
+      layer.oscillator.frequency = Math.max(20, Math.min(20000, layer.oscillator.frequency));
+    }
+    if (layer.filter?.frequency) {
+      layer.filter.frequency = Math.max(20, Math.min(20000, layer.filter.frequency));
+    }
+  });
+  
+  if (config.filter?.frequency) {
+    config.filter.frequency = Math.max(20, Math.min(20000, config.filter.frequency));
+  }
+  
+  const totalEnv = config.envelope.attack + config.envelope.decay + config.envelope.release;
+  if (totalEnv > config.timing.duration) {
+    const scale = config.timing.duration / totalEnv;
+    config.envelope.attack *= scale;
+    config.envelope.decay *= scale;
+    config.envelope.release *= scale;
+  }
+}
 
 export async function generateSoundConfig(
   description: string,
@@ -70,5 +113,6 @@ export async function generateSoundConfig(
   if (!config.envelope.releaseCurve) config.envelope.releaseCurve = 'exponential';
   if (!config.synthesis?.layers) config.synthesis = { layers: [{ type: 'oscillator', gain: 1, oscillator: { waveform: 'sine', frequency: 440, detune: 0 } }] };
   
+  validateConfig(config);
   return config;
 }

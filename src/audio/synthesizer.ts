@@ -127,7 +127,8 @@ function createOscillatorSource(ctx: OfflineAudioContext, config: NonNullable<So
     osc.frequency.value = safeValue(config.frequency, 440);
     
     const voiceDetune = voices > 1 ? (i / (voices - 1) - 0.5) * 2 * unison.detune : 0;
-    osc.detune.value = safeValue(config.detune, 0) + voiceDetune;
+    const phaseRandom = (Math.random() - 0.5) * 2;
+    osc.detune.value = safeValue(config.detune, 0) + voiceDetune + phaseRandom;
     
     const voiceGain = ctx.createGain();
     voiceGain.gain.value = gainPerVoice;
@@ -168,10 +169,6 @@ function createNoiseSource(ctx: OfflineAudioContext, type: string): AudioBufferS
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = Math.random() * 2 - 1;
-  }
-  
   if (type === 'pink') {
     let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
     for (let i = 0; i < bufferSize; i++) {
@@ -184,6 +181,18 @@ function createNoiseSource(ctx: OfflineAudioContext, type: string): AudioBufferS
       b5 = PINK_NOISE.B5_DECAY * b5 + white * PINK_NOISE.B5_GAIN;
       data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * PINK_NOISE.WHITE_GAIN) * SYNTHESIS.PINK_NOISE_OUTPUT_GAIN;
       b6 = white * PINK_NOISE.B6_GAIN;
+    }
+  } else if (type === 'brown') {
+    let last = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      data[i] = (last + white * 0.02) / 1.02;
+      last = data[i];
+      data[i] *= 3.5;
+    }
+  } else {
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
     }
   }
   
