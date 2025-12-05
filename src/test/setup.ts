@@ -83,11 +83,12 @@ class MockAudioContext {
       numberOfChannels: channels,
       length,
       sampleRate,
-      getChannelData: (channel: number) => new Float32Array(length)
+      getChannelData: () => new Float32Array(length)
     };
     return buffer;
   }
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   decodeAudioData(buffer: ArrayBuffer) {
     return Promise.resolve(this.createBuffer(1, 44100, 44100));
   }
