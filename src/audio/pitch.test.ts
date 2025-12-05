@@ -45,21 +45,21 @@ describe('pitch utilities', () => {
   });
 
   describe('semitonesToPitchParam', () => {
-    it('should return 0 for 0 semitones', () => {
-      expect(semitonesToPitchParam(0)).toBe(0);
+    it('should return 8192 for 0 semitones', () => {
+      expect(semitonesToPitchParam(0)).toBe(8192);
     });
 
     it('should return positive value for positive semitones', () => {
-      expect(semitonesToPitchParam(1)).toBeGreaterThan(0);
+      expect(semitonesToPitchParam(1)).toBeGreaterThan(8192);
     });
 
     it('should return negative value for negative semitones', () => {
-      expect(semitonesToPitchParam(-1)).toBeLessThan(0);
+      expect(semitonesToPitchParam(-1)).toBeLessThan(8192);
     });
 
-    it('should scale linearly', () => {
-      const one = semitonesToPitchParam(1);
-      const two = semitonesToPitchParam(2);
+    it('should scale linearly from center', () => {
+      const one = semitonesToPitchParam(1) - 8192;
+      const two = semitonesToPitchParam(2) - 8192;
       expect(two).toBeCloseTo(one * 2, 0);
     });
   });

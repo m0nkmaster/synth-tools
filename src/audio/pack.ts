@@ -1,7 +1,6 @@
 import { transcodeAndConcat } from './ffmpeg';
 import { injectDrumMetadata, parseAiff } from './aiff';
 import { calculateSliceBoundaries } from '../utils/opz';
-import { TARGET_SAMPLE_RATE } from '../constants';
 import type { DrumMetadata, Slice } from '../types';
 
 export type BuildPackOptions = {

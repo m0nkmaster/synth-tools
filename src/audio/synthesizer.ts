@@ -390,7 +390,6 @@ function applyLFO(ctx: OfflineAudioContext, input: AudioNode, config: SoundConfi
       
       for (const layer of config.synthesis.layers) {
         if (layer.type === 'oscillator' && layer.oscillator) {
-          const freq = layer.oscillator.frequency;
           const detune = ctx.createConstantSource();
           detune.offset.value = 0;
           pitchGain.connect(detune.offset);

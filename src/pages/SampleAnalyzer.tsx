@@ -34,7 +34,7 @@ export function SampleAnalyzer() {
     try {
       const buf = await selectedFile.arrayBuffer();
       const uint8 = new Uint8Array(buf);
-      const { chunks, numFrames: aiffNumFrames, sampleRate: originalSampleRate } = parseAiff(uint8);
+      const { chunks, numFrames: aiffNumFrames } = parseAiff(uint8);
       
       const applChunk = chunks.find(c => c.id === 'APPL');
       if (!applChunk) throw new Error('No APPL chunk found');

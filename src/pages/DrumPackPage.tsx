@@ -390,7 +390,7 @@ export function DrumPackPage() {
                       bgcolor: '#fff',
                       transition: 'all 0.2s',
                       '&:hover': { borderColor: '#ff6b35', bgcolor: '#fffaf8' }
-                    }
+                    }}
                     onClick={handleSelectFiles}
                   >
                     <CloudUploadIcon sx={{ fontSize: 32, color: 'text.secondary', mb: 1 }} />
