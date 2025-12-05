@@ -198,4 +198,66 @@ describe('synthesizeSound', () => {
     const buffer = await synthesizeSound(config);
     expect(buffer.length).toBeGreaterThan(0);
   });
+
+  it('should apply unison voices', async () => {
+    const config: SoundConfig = {
+      ...baseConfig,
+      synthesis: {
+        layers: [{
+          type: 'oscillator',
+          gain: 1,
+          oscillator: {
+            waveform: 'sawtooth',
+            frequency: 220,
+            detune: 0,
+            unison: { voices: 5, detune: 30, spread: 0.8 }
+          }
+        }]
+      }
+    };
+    const buffer = await synthesizeSound(config);
+    expect(buffer.length).toBeGreaterThan(0);
+    expect(buffer.numberOfChannels).toBe(2);
+  });
+
+  it('should add sub oscillator', async () => {
+    const config: SoundConfig = {
+      ...baseConfig,
+      synthesis: {
+        layers: [{
+          type: 'oscillator',
+          gain: 1,
+          oscillator: {
+            waveform: 'sawtooth',
+            frequency: 110,
+            detune: 0,
+            sub: { level: 0.7, octave: -1, waveform: 'sine' }
+          }
+        }]
+      }
+    };
+    const buffer = await synthesizeSound(config);
+    expect(buffer.length).toBeGreaterThan(0);
+  });
+
+  it('should combine unison and sub', async () => {
+    const config: SoundConfig = {
+      ...baseConfig,
+      synthesis: {
+        layers: [{
+          type: 'oscillator',
+          gain: 1,
+          oscillator: {
+            waveform: 'sawtooth',
+            frequency: 110,
+            detune: 0,
+            unison: { voices: 3, detune: 15, spread: 0.5 },
+            sub: { level: 0.5, octave: -1 }
+          }
+        }]
+      }
+    };
+    const buffer = await synthesizeSound(config);
+    expect(buffer.length).toBeGreaterThan(0);
+  });
 });

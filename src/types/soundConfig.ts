@@ -20,6 +20,16 @@ export interface SoundConfig {
         waveform: 'sine' | 'square' | 'sawtooth' | 'triangle';
         frequency: number;
         detune: number;
+        unison?: {
+          voices: number;      // 1-8
+          detune: number;      // cents spread
+          spread: number;      // stereo width 0-1
+        };
+        sub?: {
+          level: number;       // 0-1 mix
+          octave: -1 | -2;     // octave below
+          waveform?: 'sine' | 'square' | 'triangle';
+        };
       };
       noise?: {
         type: 'white' | 'pink' | 'brown';
@@ -158,6 +168,7 @@ export const DEFAULT_SOUND_CONFIG: SoundConfig = {
         waveform: 'sine',
         frequency: 440,
         detune: 0,
+        unison: { voices: 1, detune: 0, spread: 0 },
       },
     }],
   },

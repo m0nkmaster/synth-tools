@@ -27,7 +27,10 @@ export async function synthesizeSound(config: SoundConfig): Promise<AudioBuffer>
     
     source.connect(layerGain);
     layerGain.connect(mixer);
-    sources.push(source);
+    
+    if ('start' in source && typeof source.start === 'function') {
+      sources.push(source as AudioScheduledSourceNode);
+    }
   }
 
   const filter = config.filter ? createFilter(ctx, config) : null;
@@ -66,7 +69,7 @@ export async function synthesizeSound(config: SoundConfig): Promise<AudioBuffer>
   return buffer;
 }
 
-function createLayerSource(ctx: OfflineAudioContext, layer: SoundConfig['synthesis']['layers'][0]): AudioScheduledSourceNode {
+function createLayerSource(ctx: OfflineAudioContext, layer: SoundConfig['synthesis']['layers'][0]): AudioNode {
   if (layer.type === 'noise' && layer.noise) {
     return createNoiseSource(ctx, layer.noise.type);
   }
@@ -76,16 +79,69 @@ function createLayerSource(ctx: OfflineAudioContext, layer: SoundConfig['synthes
   }
   
   if (layer.type === 'oscillator' && layer.oscillator) {
-    const osc = ctx.createOscillator();
-    osc.type = layer.oscillator.waveform;
-    osc.frequency.value = safeValue(layer.oscillator.frequency, 440);
-    osc.detune.value = safeValue(layer.oscillator.detune, 0);
-    return osc;
+    return createOscillatorSource(ctx, layer.oscillator);
   }
   
   const osc = ctx.createOscillator();
   osc.frequency.value = SYNTHESIS.DEFAULT_FREQUENCY;
   return osc;
+}
+
+function createOscillatorSource(ctx: OfflineAudioContext, config: NonNullable<SoundConfig['synthesis']['layers'][0]['oscillator']>): AudioNode {
+  const unison = config.unison || { voices: 1, detune: 0, spread: 0 };
+  const voices = Math.max(1, Math.min(8, unison.voices));
+  
+  if (voices === 1 && !config.sub) {
+    const osc = ctx.createOscillator();
+    osc.type = config.waveform;
+    osc.frequency.value = safeValue(config.frequency, 440);
+    osc.detune.value = safeValue(config.detune, 0);
+    return osc;
+  }
+  
+  const mixer = ctx.createGain();
+  const gainPerVoice = 1 / Math.sqrt(voices);
+  
+  for (let i = 0; i < voices; i++) {
+    const osc = ctx.createOscillator();
+    osc.type = config.waveform;
+    osc.frequency.value = safeValue(config.frequency, 440);
+    
+    const voiceDetune = voices > 1 ? (i / (voices - 1) - 0.5) * 2 * unison.detune : 0;
+    osc.detune.value = safeValue(config.detune, 0) + voiceDetune;
+    
+    const voiceGain = ctx.createGain();
+    voiceGain.gain.value = gainPerVoice;
+    
+    if (voices > 1 && unison.spread > 0) {
+      const panner = ctx.createStereoPanner();
+      const pan = (i / (voices - 1) - 0.5) * 2 * unison.spread;
+      panner.pan.value = Math.max(-1, Math.min(1, pan));
+      osc.connect(panner);
+      panner.connect(voiceGain);
+    } else {
+      osc.connect(voiceGain);
+    }
+    
+    voiceGain.connect(mixer);
+    osc.start(0);
+  }
+  
+  if (config.sub) {
+    const sub = ctx.createOscillator();
+    sub.type = config.sub.waveform || 'sine';
+    const octaveDivisor = Math.pow(2, Math.abs(config.sub.octave));
+    sub.frequency.value = safeValue(config.frequency, 440) / octaveDivisor;
+    
+    const subGain = ctx.createGain();
+    subGain.gain.value = safeValue(config.sub.level, 0);
+    
+    sub.connect(subGain);
+    subGain.connect(mixer);
+    sub.start(0);
+  }
+  
+  return mixer;
 }
 
 function createNoiseSource(ctx: OfflineAudioContext, type: string): AudioBufferSourceNode {
