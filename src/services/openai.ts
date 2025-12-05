@@ -5,7 +5,9 @@ const SYSTEM_PROMPT = `Expert audio synthesis. Create realistic sounds using LAY
 RECIPES:
 - 80s snare: [noise white gain:0.7] + [sine 200Hz gain:0.5] + bandpass 2kHz Q:3 + reverb decay:1.8s mix:0.5
 - Kick: [sine 55Hz gain:1] + lowpass 120Hz + attack:0.001 decay:0.2 sustain:0
-- Hi-hat: [noise white gain:1] + highpass 8kHz Q:2 + attack:0.001 decay:0.05
+- Hi-hat: [noise white gain:0.6] + [sine 8kHz gain:0.3] + [sine 10.5kHz gain:0.2] + bandpass 9kHz Q:4 + attack:0.001 decay:0.08
+- Crash cymbal: [noise white gain:0.5] + [sine 3.2kHz gain:0.3] + [sine 5.8kHz gain:0.25] + [sine 8.1kHz gain:0.2] + bandpass 6kHz Q:2 + reverb decay:3s mix:0.6 + attack:0.005 decay:1.2 sustain:0.3 release:2
+- Ride cymbal: [noise pink gain:0.4] + [sine 2.5kHz gain:0.4] + [sine 4.8kHz gain:0.3] + bandpass 3.5kHz Q:3 + reverb decay:2s mix:0.4 + attack:0.002 decay:0.8 sustain:0.4 release:1.5
 - Bass: [fm carrier:80 mod:160 index:30 gain:1] + lowpass 400Hz + distortion:0.4
 
 JSON schema:

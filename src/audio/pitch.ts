@@ -1,20 +1,21 @@
 import { ensureFFmpeg } from './ffmpeg';
-import { frequencyToNote as utilFrequencyToNote, semitonesToPitchParam as utilSemitonesToPitchParam } from '../utils/audio';
+import { frequencyToNote, semitonesToPitchParam } from '../utils/audio';
+import { PITCH, AUDIO, FORMATS } from '../config';
 
-// Autocorrelation-based pitch detection
 export async function detectPitch(file: File): Promise<{ note: string | null; frequency: number | null }> {
   try {
     const ac = new AudioContext();
     let buf = await file.arrayBuffer();
     
     // Convert AIFF with ffmpeg first
-    if (file.name.toLowerCase().endsWith('.aif') || file.name.toLowerCase().endsWith('.aiff')) {
+    const isAiff = FORMATS.AIFF_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext));
+    if (isAiff) {
       try {
         const ffmpeg = await ensureFFmpeg();
         const inName = `pitch_${Date.now()}.aif`;
         const outName = `pitch_${Date.now()}.wav`;
         await ffmpeg.writeFile(inName, new Uint8Array(buf));
-        await ffmpeg.exec(['-i', inName, '-f', 'wav', '-ar', '44100', '-ac', '1', outName]);
+        await ffmpeg.exec(['-i', inName, '-f', 'wav', '-ar', String(AUDIO.SAMPLE_RATE), '-ac', String(AUDIO.CHANNELS), outName]);
         const wav = await ffmpeg.readFile(outName);
         await ffmpeg.deleteFile(inName).catch(() => {});
         await ffmpeg.deleteFile(outName).catch(() => {});
@@ -30,17 +31,15 @@ export async function detectPitch(file: File): Promise<{ note: string | null; fr
     
     // Skip initial silence
     let startIdx = 0;
-    const silenceThreshold = 0.01;
     for (let i = 0; i < Math.min(data.length, sampleRate); i++) {
-      if (Math.abs(data[i]) > silenceThreshold) {
+      if (Math.abs(data[i]) > AUDIO.RMS_THRESHOLD) {
         startIdx = i;
         break;
       }
     }
     
-    // Use larger buffer for better accuracy
-    const analyzeLength = Math.min(8192, data.length - startIdx);
-    if (analyzeLength < 2048) {
+    const analyzeLength = Math.min(PITCH.WINDOW_SIZE, data.length - startIdx);
+    if (analyzeLength < PITCH.MIN_WINDOW_SIZE) {
       ac.close();
       return { note: null, frequency: null };
     }
@@ -48,7 +47,7 @@ export async function detectPitch(file: File): Promise<{ note: string | null; fr
     const freq = autoCorrelate(data.slice(startIdx, startIdx + analyzeLength), sampleRate);
     ac.close();
     
-    if (!freq || freq < 20 || freq > 4186) {
+    if (!freq || freq < PITCH.MIN_FREQUENCY || freq > PITCH.MAX_FREQUENCY) {
       return { note: null, frequency: null };
     }
     
@@ -66,7 +65,7 @@ function autoCorrelate(buffer: Float32Array, sampleRate: number): number | null 
     rms += buffer[i] * buffer[i];
   }
   rms = Math.sqrt(rms / size);
-  if (rms < 0.01) return null;
+  if (rms < AUDIO.RMS_THRESHOLD) return null;
   
   // Normalize
   const normalized = new Float32Array(size);
@@ -74,8 +73,8 @@ function autoCorrelate(buffer: Float32Array, sampleRate: number): number | null 
     normalized[i] = buffer[i] / rms;
   }
   
-  const minPeriod = Math.floor(sampleRate / 1000); // 1000 Hz max
-  const maxPeriod = Math.floor(sampleRate / 50);   // 50 Hz min
+  const minPeriod = Math.floor(sampleRate / PITCH.MIN_PERIOD_HZ);
+  const maxPeriod = Math.floor(sampleRate / PITCH.MAX_PERIOD_HZ);
   
   let bestOffset = -1;
   let bestCorrelation = -1;
@@ -93,7 +92,7 @@ function autoCorrelate(buffer: Float32Array, sampleRate: number): number | null 
     }
   }
   
-  if (bestCorrelation > 0.1 && bestOffset > 0) {
+  if (bestCorrelation > PITCH.AUTOCORR_THRESHOLD && bestOffset > 0) {
     // Parabolic interpolation for sub-sample accuracy
     if (bestOffset > minPeriod && bestOffset < maxPeriod - 1) {
       let y1 = 0;
@@ -117,12 +116,11 @@ function autoCorrelate(buffer: Float32Array, sampleRate: number): number | null 
   return null;
 }
 
-export const frequencyToNote = utilFrequencyToNote;
-
 export function semitonesToNote(baseFreq: number | null, semitones: number): string | null {
   if (!baseFreq) return null;
   const targetFreq = baseFreq * Math.pow(2, semitones / 12);
   return frequencyToNote(targetFreq);
 }
 
-export const semitonesToPitchParam = utilSemitonesToPitchParam;
+// Re-export from utils for convenience
+export { frequencyToNote, semitonesToPitchParam };

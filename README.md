@@ -4,21 +4,29 @@ Browser-based drum sample pack builder for Teenage Engineering OP-Z. Converts au
 
 ## Features
 
+### 🥁 Drum Kit Creator
 - **24-slice drum packs**: Import up to 24 audio files (WAV, AIFF, MP3, M4A, FLAC)
 - **Automatic conversion**: Mono, 16-bit, 44.1 kHz AIFF with OP-Z drum metadata
 - **Silence trimming**: Configurable leading-silence removal (-35 dB default)
 - **Duration enforcement**: 12-second pack limit with real-time validation
 - **Per-slice controls**: Volume, pitch, reverse, and playback preview
 - **Waveform preview**: Visual feedback for each slice
-- **Browser-based**: Runs locally via ffmpeg.wasm—no server required
+- **Audio classification**: Automatic detection of kicks, snares, hats, etc.
+- **Pitch detection**: Automatic pitch detection for melodic samples
+
+### 🔍 Sample Analyzer
+- **Inspect existing packs**: Load and analyze OP-Z drum packs
+- **Visual waveform**: See slice boundaries and structure
+- **Metadata viewer**: Examine pack settings and slice parameters
+- **Interactive playback**: Click slices to preview
+
+### 🎹 Sound Creation (Experimental)
+- **AI-powered synthesis**: Generate drum sounds from text descriptions
+- **Web Audio synthesis**: Real-time audio generation in browser
+- **Customizable parameters**: Full control over synthesis engine
+- **Export to WAV**: Download generated sounds
 
 ## Quick Start
-
-**Using Bun (recommended):**
-```bash
-bun install
-bun dev
-```
 
 **Using npm:**
 ```bash
@@ -30,10 +38,27 @@ Open http://localhost:5173
 
 ## Usage
 
+### Drum Kit Creator
+
 1. **Add slices**: Drag/drop or select up to 24 audio files
 2. **Configure**: Adjust silence threshold if needed
 3. **Customize**: Set per-slice volume, pitch, reverse; edit pack name/octave
 4. **Export**: Download `.aif` file when total duration ≤ 12s
+
+### Sample Analyzer
+
+1. **Load pack**: Select an existing OP-Z `.aif` file
+2. **Inspect**: View waveform, metadata, and slice boundaries
+3. **Play**: Click on slice regions to preview
+
+### Sound Creation
+
+1. **Describe**: Enter text description (e.g., "Deep 808 kick")
+2. **Generate**: AI creates synthesis parameters
+3. **Preview**: Listen to generated sound
+4. **Download**: Export as WAV file
+
+**Note:** Requires OpenAI API key in `.env` as `VITE_OPENAI_KEY`
 
 ## OP-Z Drum Format
 
@@ -53,20 +78,25 @@ Open http://localhost:5173
 4. Eject OP-Z; device will import on restart
 5. Check `import.log` if issues occur
 
-## Build
-
-```bash
-bun run build      # or npm run build
-bun run preview    # or npm run preview
-bun run test       # run tests
-bun run test:ui    # run tests with UI
-```
+**See [User Guide](docs/USER_GUIDE.md) for detailed instructions.**
 
 ## Documentation
 
-- Feature requirements: `docs/features/op-done.md`
-- Format reference: `docs/guides/opz-drum-format.md`
-- Sample files: `docs/sample-files/`
+- **[User Guide](docs/USER_GUIDE.md)** - Complete usage instructions
+- **[Architecture](docs/ARCHITECTURE.md)** - Technical architecture
+- **[OP-Z Format](docs/guides/opz-drum-format.md)** - Format specification
+- **[Audit](docs/AUDIT.md)** - Codebase audit and cleanup plan
+
+## Build
+
+```bash
+npm run build      # Production build
+npm run preview    # Preview production build
+npm test           # Run tests
+npm run test:ui    # Run tests with UI
+npm run lint       # Check code quality
+npm run lint:fix   # Auto-fix linting issues
+```
 
 ## Tech Stack
 
@@ -75,8 +105,65 @@ bun run test:ui    # run tests with UI
 - **Format**: Custom AIFF encoder with OP-Z drum metadata injection
 - **Testing**: Vitest with pure function unit tests
 
+## Features in Detail
+
+### Audio Classification
+Automatically detects sample type:
+- **Drum hits**: Kicks, snares, hats, cymbals, percussion
+- **Melodic**: Pitched instruments with note detection
+- **Unknown**: Ambiguous samples
+
+Results used for:
+- Auto-prefixing filenames
+- Optimizing processing
+- Pitch detection for melodic samples
+
+### Pitch Detection
+- Autocorrelation-based algorithm
+- Detects fundamental frequency
+- Converts to note name (e.g., "C4")
+- Displays in pitch control modal
+- Works best with clean, monophonic samples
+
+### Per-Slice Controls
+- **Volume**: 0-16383 (8192 = unity)
+- **Pitch**: ±12 semitones in 0.1 increments
+- **Reverse**: Playback direction (future)
+- **Playmode**: Mono/poly/legato (future)
+
 ## Notes
 
-- Processing is fully local; no network calls
+- Processing is fully local; no network calls (except Sound Creation)
 - Electron packaging planned for direct FS writes to mounted OP-Z
-- Synth sample clipper (6s limit) is next on roadmap
+- All features work offline except Sound Creation
+
+## Troubleshooting
+
+**"Over 12s cap" warning:**
+- Remove slices or trim files before import
+- Increase silence threshold to trim more
+
+**Export button disabled:**
+- Check total duration ≤ 12s
+- Ensure all slices are "Ready" status
+- Wait for processing to complete
+
+**Playback not working:**
+- Click page first (browser security)
+- Check audio permissions
+
+**See [User Guide](docs/USER_GUIDE.md#troubleshooting) for more help.**
+
+## Contributing
+
+See [Development Guide](docs/DEVELOPMENT.md) (coming soon) for setup and contribution guidelines.
+
+## License
+
+MIT
+
+## Credits
+
+- Format specification based on [teoperator](https://github.com/schollz/teoperator)
+- Inspired by OP-1 Drum Utility
+- Built for the OP-Z community
