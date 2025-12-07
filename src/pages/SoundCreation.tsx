@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Box, Button, TextField, Typography, Paper, CircularProgress, Alert, Chip, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Box, Button, TextField, Typography, Paper, CircularProgress, Alert, Chip, ToggleButton, ToggleButtonGroup, FormControlLabel, Switch } from '@mui/material';
 import { generateSoundConfig, type AIProvider } from '../services/ai';
 import { synthesizeSound } from '../audio/synthesizer';
 import type { SoundConfig } from '../types/soundConfig';
@@ -20,9 +20,125 @@ export function SoundCreation() {
   const [provider, setProvider] = useState<AIProvider>('gemini');
 
   const [midiEnabled, setMidiEnabled] = useState(false);
+  const [loopEnabled, setLoopEnabled] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const activeSourcesRef = useRef<Map<number, AudioBufferSourceNode>>(new Map());
   const gainNodesRef = useRef<Map<number, GainNode>>(new Map());
+
+  // Store latest state in ref to avoid re-binding MIDI listeners
+  const stateRef = useRef({ audioBuffer: null as AudioBuffer | null, config: null as SoundConfig | null, loopEnabled: false });
+  useEffect(() => {
+    stateRef.current = { audioBuffer, config, loopEnabled };
+  }, [audioBuffer, config, loopEnabled]);
+
+  const getAudioContext = () => {
+    if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+      audioContextRef.current = new AudioContext();
+    }
+    return audioContextRef.current;
+  };
+
+  // Stable stopNote function
+  const stopNote = (midiNote: number) => {
+    const source = activeSourcesRef.current.get(midiNote);
+    const gainNode = gainNodesRef.current.get(midiNote);
+
+    if (source && gainNode) {
+      const ctx = getAudioContext();
+      const releaseTime = 0.05;
+      try {
+        gainNode.gain.cancelScheduledValues(ctx.currentTime);
+        gainNode.gain.setValueAtTime(gainNode.gain.value, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + releaseTime);
+        source.stop(ctx.currentTime + releaseTime);
+      } catch (e) {
+        // Source might have already stopped
+      }
+
+      // We do NOT delete here immediately to allow the fade out?
+      // Actually, if we delete here, subsequent calls to stopNote (if any) won't work, which is fine.
+      // But we must mostly rely on onended to clean up eventually? 
+      // No, we can delete here to prevent double-stops. The source will run for releaseTime then stop.
+      // onended will fire then.
+
+      // Better to leave cleanup to onended?
+      // If we delete here, and playNote happens immediately after...
+      // playNote sets new source.
+      // onended of OLD source fires.
+
+      // Let's keep deletion here but ensure onended is safe.
+      activeSourcesRef.current.delete(midiNote);
+      gainNodesRef.current.delete(midiNote);
+    }
+  };
+
+  // Stable playNote function reading from ref
+  const playNote = (midiNote: number, velocity: number) => {
+    const { audioBuffer, config, loopEnabled } = stateRef.current;
+    if (!audioBuffer) return;
+
+    const ctx = getAudioContext();
+
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    stopNote(midiNote);
+
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+
+    let rootFreq = 440;
+    if (config?.synthesis?.layers?.[0]?.oscillator?.frequency) {
+      rootFreq = config.synthesis.layers[0].oscillator.frequency;
+    }
+
+    // f = 440 * 2^((d-69)/12)
+    const rootKey = 69 + 12 * Math.log2(rootFreq / 440);
+    const playbackRate = Math.pow(2, (midiNote - rootKey) / 12);
+    source.playbackRate.value = playbackRate;
+
+    const gainNode = ctx.createGain();
+    const velocityGain = velocity / 127;
+    gainNode.gain.setValueAtTime(velocityGain, ctx.currentTime);
+
+    source.loop = loopEnabled;
+    if (loopEnabled && config?.envelope) {
+      const { attack, decay, release } = config.envelope;
+      const duration = config.timing.duration;
+
+      const loopStart = attack + decay;
+      const loopEnd = Math.max(loopStart + 0.1, duration - release);
+
+      if (loopEnd > loopStart && loopEnd <= audioBuffer.duration) {
+        source.loopStart = loopStart;
+        source.loopEnd = loopEnd;
+      }
+    }
+
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    source.start();
+
+    activeSourcesRef.current.set(midiNote, source);
+    gainNodesRef.current.set(midiNote, gainNode);
+    // Clean up when done naturally
+    source.onended = () => {
+      if (activeSourcesRef.current.get(midiNote) === source) {
+        activeSourcesRef.current.delete(midiNote);
+        gainNodesRef.current.delete(midiNote);
+      }
+    };
+  };
+
+  // Keep references to handlers for MIDI effect
+  const playNoteRef = useRef(playNote);
+  const stopNoteRef = useRef(stopNote);
+  useEffect(() => {
+    playNoteRef.current = playNote;
+    stopNoteRef.current = stopNote;
+  });
 
   useEffect(() => {
     let access: any = null;
@@ -33,9 +149,9 @@ export function SoundCreation() {
       const command = status & 0xf0;
 
       if (command === 0x90 && velocity > 0) { // Note On
-        playNote(note, velocity);
+        playNoteRef.current(note, velocity);
       } else if (command === 0x80 || (command === 0x90 && velocity === 0)) { // Note Off
-        stopNote(note);
+        stopNoteRef.current(note);
       }
     };
 
@@ -50,10 +166,8 @@ export function SoundCreation() {
           }
 
           access.onstatechange = (e: any) => {
-            if (e.port.type === 'input') {
-              if (e.port.state === 'connected') {
-                e.port.onmidimessage = onMIDIMessage;
-              }
+            if (e.port.type === 'input' && e.port.state === 'connected') {
+              e.port.onmidimessage = onMIDIMessage;
             }
           };
         }
@@ -82,91 +196,15 @@ export function SoundCreation() {
         audioContextRef.current.close();
       }
     };
-  }, [audioBuffer]); // Re-bind if necessary, but ideally playNote reads the current buffer ref or state
+  }, []); // Run once on mount
 
-  // We need playNote to access the *current* audioBuffer. 
-  // Since the effect matches on [audioBuffer], it might re-bind listeners often. 
-  // Better to use a ref for audioBuffer or just let playNote access state if defined inside component.
-  // Defining playNote inside component works.
-
-  const getAudioContext = () => {
-    if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-      audioContextRef.current = new AudioContext();
+  // Auto-set loop enabled based on category
+  useEffect(() => {
+    if (config) {
+      const percussive = ['kick', 'snare', 'hihat', 'tom', 'perc', 'fx'];
+      setLoopEnabled(!percussive.includes(config.metadata.category));
     }
-    return audioContextRef.current;
-  };
-
-  const playNote = (midiNote: number, velocity: number) => {
-    if (!audioBuffer) return;
-
-    const ctx = getAudioContext();
-
-    // Resume context if suspended (browser policy)
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
-
-    // Stop existing note if playing (monophonic per key)
-    stopNote(midiNote);
-
-    const source = ctx.createBufferSource();
-    source.buffer = audioBuffer;
-
-    // Calculate playback rate for chromatic pitch
-    // Infer root key from the first oscillator's frequency to map MIDI notes correctly
-    let rootFreq = 440;
-    if (config?.synthesis?.layers?.[0]?.oscillator?.frequency) {
-      rootFreq = config.synthesis.layers[0].oscillator.frequency;
-    }
-
-    // Calculate the MIDI note value of the root frequency
-    // f = 440 * 2^((d-69)/12)  =>  d = 69 + 12 * log2(f/440)
-    const rootKey = 69 + 12 * Math.log2(rootFreq / 440);
-
-    const playbackRate = Math.pow(2, (midiNote - rootKey) / 12);
-    source.playbackRate.value = playbackRate;
-
-    const gainNode = ctx.createGain();
-    const velocityGain = velocity / 127;
-    gainNode.gain.setValueAtTime(velocityGain, ctx.currentTime);
-
-    source.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    source.start();
-
-    // Store for Note Off
-    activeSourcesRef.current.set(midiNote, source);
-    gainNodesRef.current.set(midiNote, gainNode);
-
-    // Clean up when done naturally
-    source.onended = () => {
-      activeSourcesRef.current.delete(midiNote);
-      gainNodesRef.current.delete(midiNote);
-    };
-  };
-
-  const stopNote = (midiNote: number) => {
-    const source = activeSourcesRef.current.get(midiNote);
-    const gainNode = gainNodesRef.current.get(midiNote);
-
-    if (source && gainNode) {
-      const ctx = getAudioContext();
-      // Release envelope
-      const releaseTime = 0.1;
-      try {
-        gainNode.gain.cancelScheduledValues(ctx.currentTime);
-        gainNode.gain.setValueAtTime(gainNode.gain.value, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + releaseTime);
-        source.stop(ctx.currentTime + releaseTime);
-      } catch (e) {
-        // Source might have already stopped
-      }
-
-      activeSourcesRef.current.delete(midiNote);
-      gainNodesRef.current.delete(midiNote);
-    }
-  };
+  }, [config]);
 
   const handleGenerate = async () => {
     if (!description) {
@@ -235,6 +273,13 @@ export function SoundCreation() {
           <Typography variant="h4">AI Sound Synthesis</Typography>
           {midiEnabled && (
             <Chip label="MIDI Active" color="success" size="small" variant="outlined" />
+          )}
+          {midiEnabled && (
+            <FormControlLabel
+              control={<Switch size="small" checked={loopEnabled} onChange={(e) => setLoopEnabled(e.target.checked)} />}
+              label="Loop / Gate"
+              sx={{ ml: 1 }}
+            />
           )}
         </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
