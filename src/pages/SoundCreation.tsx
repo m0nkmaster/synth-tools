@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Box, Button, TextField, Typography, Paper, CircularProgress, Alert, Chip } from '@mui/material';
-import { generateSoundConfig } from '../services/openai';
+import { Box, Button, TextField, Typography, Paper, CircularProgress, Alert, Chip, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { generateSoundConfig, type AIProvider } from '../services/ai';
 import { synthesizeSound } from '../audio/synthesizer';
 import type { SoundConfig } from '../types/soundConfig';
 
@@ -17,6 +17,7 @@ export function SoundCreation() {
   const [config, setConfig] = useState<SoundConfig | null>(null);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
+  const [provider, setProvider] = useState<AIProvider>('gemini');
 
   const handleGenerate = async () => {
     if (!description) {
@@ -33,7 +34,7 @@ export function SoundCreation() {
     setError('');
     
     try {
-      const generatedConfig = await generateSoundConfig(description, config || undefined);
+      const generatedConfig = await generateSoundConfig(description, provider, config || undefined);
       setConfig(generatedConfig);
       
       const buffer = await synthesizeSound(generatedConfig);
@@ -87,11 +88,22 @@ export function SoundCreation() {
     <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">AI Sound Synthesis</Typography>
-        {conversation.length > 0 && (
-          <Button variant="outlined" size="small" onClick={handleClear}>
-            Clear Conversation
-          </Button>
-        )}
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <ToggleButtonGroup
+            value={provider}
+            exclusive
+            onChange={(_, val) => val && setProvider(val)}
+            size="small"
+          >
+            <ToggleButton value="openai">OpenAI</ToggleButton>
+            <ToggleButton value="gemini">Gemini</ToggleButton>
+          </ToggleButtonGroup>
+          {conversation.length > 0 && (
+            <Button variant="outlined" size="small" onClick={handleClear}>
+              Clear
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {conversation.length > 0 && (

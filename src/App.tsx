@@ -51,6 +51,17 @@ function App() {
               >
                 Sound Creation
               </Button>
+              <Button
+                onClick={() => navigate('/synth-test')}
+                sx={{
+                  color: location.pathname === '/synth-test' ? '#ff6b35' : 'text.secondary',
+                  borderBottom: location.pathname === '/synth-test' ? '2px solid #ff6b35' : 'none',
+                  borderRadius: 0,
+                  px: 2
+                }}
+              >
+                Synth Test
+              </Button>
             </Box>
           </Toolbar>
         </AppBar>

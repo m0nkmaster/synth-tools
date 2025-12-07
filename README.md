@@ -22,6 +22,7 @@ Browser-based drum sample pack builder for Teenage Engineering OP-Z. Converts au
 
 ### 🎹 Sound Creation (Experimental)
 - **AI-powered synthesis**: Generate sound from text descriptions
+- **Multiple AI providers**: Choose between OpenAI or Google Gemini
 - **Web Audio synthesis**: Real-time audio generation in browser
 - **Customizable parameters**: Full control over synthesis engine
 - **Export to WAV**: Download generated sounds
@@ -53,12 +54,15 @@ Open http://localhost:5173
 
 ### Sound Creation
 
-1. **Describe**: Enter text description (e.g., "Deep 808 kick", "Warm analog pad", "Metallic pluck")
-2. **Generate**: AI creates synthesis parameters
-3. **Preview**: Listen to generated sound
-4. **Download**: Export as WAV file
+1. **Select provider**: Choose OpenAI or Gemini
+2. **Describe**: Enter text description (e.g., "Deep 808 kick", "Warm analog pad", "Metallic pluck")
+3. **Generate**: AI creates synthesis parameters
+4. **Preview**: Listen to generated sound
+5. **Download**: Export as WAV file
 
-**Note:** Requires OpenAI API key in `.env` as `VITE_OPENAI_KEY`
+**Note:** Requires API key in `.env`:
+- OpenAI: `VITE_OPENAI_KEY`
+- Gemini: `VITE_GEMINI_KEY`
 
 ## OP-Z Drum Format
 
