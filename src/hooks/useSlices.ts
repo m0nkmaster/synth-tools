@@ -3,7 +3,7 @@ import { probeDuration } from '../audio/metadata';
 import { classifyAudio } from '../audio/classify';
 import { convertToWav } from '../audio/convert';
 import { formatNamePrefix } from '../utils/naming';
-import { MAX_SLICES, MAX_DURATION_SECONDS, DEFAULT_SILENCE_THRESHOLD } from '../constants';
+import { MAX_SLICES, MAX_DURATION_SECONDS } from '../constants';
 import type { Slice } from '../types';
 
 export function useSlices() {
@@ -11,7 +11,6 @@ export function useSlices() {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const [silenceThreshold, setSilenceThreshold] = useState(DEFAULT_SILENCE_THRESHOLD);
   const [maxDuration] = useState(MAX_DURATION_SECONDS);
 
   const totalDuration = useMemo(
@@ -36,7 +35,7 @@ export function useSlices() {
         try {
           const isAiff = /\.aiff?$/i.test(file.name);
           const playableBlob = isAiff ? await convertToWav(file) : file;
-          
+
           const [duration, analysis, pitch] = await Promise.all([
             probeDuration(playableBlob),
             classifyAudio(playableBlob),
@@ -109,9 +108,7 @@ export function useSlices() {
     reset,
     isProcessing,
     error,
-    silenceThreshold,
     maxDuration,
     totalDuration,
-    setSilenceThreshold
   };
 }

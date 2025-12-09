@@ -66,12 +66,10 @@ export async function synthesizeSound(config: SoundConfig): Promise<AudioBuffer>
   const masterGain = ctx.createGain();
   chain.connect(masterGain);
 
-  const hasLayerEnvelopes = config.synthesis.layers.some(l => l.envelope);
-  if (!hasLayerEnvelopes) {
-    applyEnvelope(masterGain.gain, config.envelope, config, config.dynamics.velocity);
-  } else {
-    masterGain.gain.value = config.dynamics.velocity;
-  }
+  // Always apply global envelope (VCA) to master gain
+  // This ensures that even if layers have their own spectral envelopes, the overall sound
+  // follows the master amplitude envelope (preventing "stuck notes" for layers without envelopes).
+  applyEnvelope(masterGain.gain, config.envelope, config, config.dynamics.velocity);
 
   let outputChain: AudioNode = masterGain;
 
@@ -108,6 +106,10 @@ function createLayerSource(ctx: OfflineAudioContext, layer: SoundConfig['synthes
 
   if (layer.type === 'oscillator' && layer.oscillator) {
     return createOscillatorSource(ctx, layer.oscillator);
+  }
+
+  if (layer.type === 'karplus-strong' && layer.karplus) {
+    return createKarplusStrongSource(ctx, layer.karplus);
   }
 
   const osc = ctx.createOscillator();
@@ -225,6 +227,90 @@ function createFMSource(ctx: OfflineAudioContext, fm: { carrier: number; modulat
   modulator.start(0);
 
   return carrier;
+}
+
+function createKarplusStrongSource(ctx: OfflineAudioContext, config: { frequency: number; damping: number; pluckLocation?: number }): AudioBufferSourceNode {
+  // Karplus-Strong Algorithm:
+  // 1. Create a burst of noise (the "pluck")
+  // 2. Feed it into a delay line (the "string")
+  // 3. Filter the feedback loop (the "damping")
+
+  // Target frequency determines delay time: T = 1 / f
+  const frequency = safeValue(config.frequency, 440);
+  const period = 1 / frequency;
+  const periodSamples = Math.floor(period * ctx.sampleRate);
+
+  // Create noise burst - length of period
+  const bufferSize = ctx.sampleRate * 4.0; // 4 seconds max duration
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  // Initial noise burst (pluck)
+  // Length of burst affects "energy", but for KS it should be exactly one period long to fill the delay line
+  // or a short burst. Classic KS initializes the delay line with noise.
+  // Here we pre-calculate the KS algorithm into the buffer because feedback loops with very short delays 
+  // (high pitches) are imprecise with Web Audio delay nodes at block boundaries.
+
+  // Initialize ring buffer with noise
+  const N = periodSamples;
+  const ringParams = new Float32Array(N);
+
+  // Pluck excitation: White noise or filtered noise
+  // pluckLocation can simulate plucking near bridge (bright) vs neck (dark)
+  // but for basic implementation, just random noise.
+  for (let i = 0; i < N; i++) {
+    ringParams[i] = Math.random() * 2 - 1;
+  }
+
+  // Pre-calculate the result (Synthesis)
+  // Low-pass filter coefficient for damping (0.5 is average, 1.0 is highly damped? No, 
+  // usually y[n] = 0.5 * (x[n] + x[n-1]).
+  // We'll use a variable decay factor.
+  // S = 0.5 (simple average) gives fast decay. We want 'damping' to control t60.
+  // We'll use the classic algorithm: y[n] = alpha * y[n-N] + (1-alpha) * y[n-(N+1)]?
+  // Classic: y[i] = 0.5 * (y[i-BUFFER_SIZE] + y[i-BUFFER_SIZE-1])
+
+  // Let's implement extended KS:
+  // pointer wraps around N.
+  // We fill the output buffer.
+
+  const currentSample = 0;
+  let prevSample = 0;
+  let pointer = 0;
+
+  // Damping factor: 1.0 = sustain forever (no loss), 0.0 = instant mute
+  // In KS, averaging is inherent damping.
+  // Let's modify the blend.
+  // The classic "average" filter corresponds to a specific brightness decay.
+  // To allow longer sustains (like steel strings), we add a 'sustain' multiplier.
+  const damping = Math.max(0.01, Math.min(0.999, 1 - (config.damping * 0.1))); // Map damping to sustain factor.
+
+  // Generate audio
+  for (let i = 0; i < bufferSize; i++) {
+    // Read from Ring Buffer
+    const val = ringParams[pointer];
+
+    // Output
+    data[i] = val;
+
+    // Feedback Lowpass: Average coupled with sustain factor
+    // y[n] = factor * 0.5 * (current + previous)
+    const newVal = damping * 0.5 * (val + prevSample);
+
+    // Update Ring Buffer
+    ringParams[pointer] = newVal;
+
+    // Store for next step
+    prevSample = val;
+
+    // Advance pointer
+    pointer++;
+    if (pointer >= N) pointer = 0;
+  }
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  return source;
 }
 
 function createFilter(ctx: OfflineAudioContext, config: SoundConfig): BiquadFilterNode {
@@ -460,6 +546,13 @@ function createEffects(ctx: OfflineAudioContext, config: SoundConfig): { input: 
     current = compressor;
   }
 
+  // Gate
+  if (config.effects.gate) {
+    const gate = createGateEffect(ctx, config.effects.gate, config.timing.duration);
+    current.connect(gate.input);
+    current = gate.output;
+  }
+
   // Delay
   if (config.effects.delay) {
     const { input: delayInput, output: delayOutput } = createDelay(ctx, config.effects.delay);
@@ -579,6 +672,45 @@ function createCompressor(ctx: OfflineAudioContext, config: NonNullable<SoundCon
   comp.release.value = safeValue(config.release, 0.25);
   comp.knee.value = safeValue(config.knee, 30);
   return comp;
+}
+
+function createGateEffect(ctx: OfflineAudioContext, config: NonNullable<SoundConfig['effects']['gate']>, totalDuration: number): { input: AudioNode, output: AudioNode } {
+  // Since we are in OfflineAudioContext, we can't easily do real-time signal analysis (no AudioWorklet without external file loading).
+  // However, for synthesized sounds like drums, the 'Gate' usually applies to the Reverb Tail.
+  // A true noise gate analyzes the input level. 
+  // For '80s Snare', it's often a "Gated Reverb" where the reverb is just cut off after a fixed time.
+  // Or it detects silence. 
+  // Given we are generating one-shot sounds, we can approximate a "Gated Reverb" effect 
+  // by simply applying a hard volume envelope at the end of the 'hold' time.
+
+  // But wait, the user might want a real gate that reacts to the signal level.
+  // Implementation of a "Sidechain Gate" is hard in OfflineContext without ScriptProcessor (deprecated) or Worklet.
+  // BUT: We know the trigger time is t=0.
+  // So a Gated Reverb on a snare effectively means:
+  // "Let sound pass for X ms, then silence it."
+
+  const input = ctx.createGain();
+  const output = ctx.createGain();
+
+  // Logic: 
+  // 1. Gate is Open at t=0 (Attack)
+  // 2. Stays Open for 'hold' time
+  // 3. Closes over 'release' time
+
+  const attack = safeValue(config.attack, 0.001);
+  const hold = safeValue(config.hold, 0.2); // e.g. 200ms reverb tail
+  const release = safeValue(config.release, 0.05); // quick closure
+
+  const envelope = ctx.createGain();
+  envelope.gain.setValueAtTime(0, 0);
+  envelope.gain.linearRampToValueAtTime(1, attack);
+  envelope.gain.setValueAtTime(1, attack + hold);
+  envelope.gain.linearRampToValueAtTime(0, attack + hold + release);
+
+  input.connect(envelope);
+  envelope.connect(output);
+
+  return { input, output };
 }
 
 function normalizeBuffer(buffer: AudioBuffer): void {

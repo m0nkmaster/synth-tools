@@ -6,7 +6,7 @@ export interface SoundConfig {
   // Core synthesis
   synthesis: {
     layers: Array<{
-      type: 'oscillator' | 'noise' | 'fm';
+      type: 'oscillator' | 'noise' | 'fm' | 'karplus-strong';
       gain: number; // 0-1 mix level
       envelope?: {
         attack: number;
@@ -55,6 +55,11 @@ export interface SoundConfig {
         carrier: number;
         modulator: number;
         modulationIndex: number;
+      };
+      karplus?: {
+        frequency: number;
+        damping: number; // 0-1 (brightness decay)
+        pluckLocation?: number; // 0-1 (affects comb filtering)
       };
     }>;
   };
@@ -137,6 +142,12 @@ export interface SoundConfig {
       attack: number; // seconds
       release: number; // seconds
       knee: number; // dB
+    };
+    gate?: {
+      threshold: number; // dB
+      attack: number; // seconds
+      hold: number; // seconds
+      release: number; // seconds
     };
   };
 

@@ -62,6 +62,17 @@ function App() {
               >
                 Synth Test
               </Button>
+              <Button
+                onClick={() => navigate('/usb-browser')}
+                sx={{
+                  color: location.pathname === '/usb-browser' ? '#ff6b35' : 'text.secondary',
+                  borderBottom: location.pathname === '/usb-browser' ? '2px solid #ff6b35' : 'none',
+                  borderRadius: 0,
+                  px: 2
+                }}
+              >
+                USB Browser
+              </Button>
             </Box>
           </Toolbar>
         </AppBar>

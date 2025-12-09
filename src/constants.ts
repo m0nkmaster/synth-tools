@@ -1,19 +1,16 @@
 import { OPZ, AUDIO, FORMATS } from './config';
 
-/** Maximum number of slices in an OP-Z drum pack */
-export const MAX_SLICES = OPZ.MAX_SLICES;
+// Re-export specific values for convenience
+export const {
+  MAX_SLICES,
+  MAX_DURATION_SECONDS,
+  MAX_SLICE_DURATION_SECONDS,
+  SLICE_GAP_SECONDS,
+  POSITION_SCALE,
+  MAX_POSITION,
+} = OPZ;
 
-/** Maximum duration in seconds for OP-Z drum pack */
-export const MAX_DURATION_SECONDS = OPZ.MAX_DURATION_SECONDS;
-
-/** Target sample rate for OP-Z */
-export const TARGET_SAMPLE_RATE = AUDIO.SAMPLE_RATE;
-
-/** OP-Z position scaling factor */
-export const OP1_SCALE = OPZ.POSITION_SCALE;
-
-/** Maximum position value for OP-Z metadata */
-export const MAX_POSITION = OPZ.MAX_POSITION;
+export const OP1_SCALE = POSITION_SCALE;
 
 /** Default OP-Z parameter values */
 export const OPZ_DEFAULTS = {
@@ -22,9 +19,6 @@ export const OPZ_DEFAULTS = {
   PLAYMODE: OPZ.DEFAULT_PLAYMODE,
   REVERSE: OPZ.DEFAULT_REVERSE,
 } as const;
-
-/** Default silence threshold in dB */
-export const DEFAULT_SILENCE_THRESHOLD = OPZ.DEFAULT_SILENCE_THRESHOLD;
 
 /** Supported audio file extensions */
 export const SUPPORTED_AUDIO_FORMATS = FORMATS.SUPPORTED_EXTENSIONS;

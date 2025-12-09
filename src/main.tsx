@@ -6,6 +6,7 @@ import { DrumCreator } from './pages/DrumCreator';
 import { SampleAnalyzer } from './pages/SampleAnalyzer';
 import { SoundCreation } from './pages/SoundCreation';
 import SynthTest from './pages/SynthTest';
+import { USBBrowser } from './pages/USBBrowser';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
@@ -17,6 +18,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
           <Route path="sample-analyzer" element={<SampleAnalyzer />} />
           <Route path="sound-creation" element={<SoundCreation />} />
           <Route path="synth-test" element={<SynthTest />} />
+          <Route path="usb-browser" element={<USBBrowser />} />
         </Route>
       </Routes>
     </BrowserRouter>

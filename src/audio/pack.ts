@@ -2,9 +2,9 @@ import { transcodeAndConcat } from './ffmpeg';
 import { injectDrumMetadata, parseAiff } from './aiff';
 import { calculateSliceBoundaries } from '../utils/opz';
 import type { DrumMetadata, Slice } from '../types';
+import { SLICE_GAP_SECONDS } from '../constants';
 
 export type BuildPackOptions = {
-  silenceThreshold: number;
   maxDuration: number;
   metadata: DrumMetadata;
 };
@@ -14,12 +14,17 @@ export async function buildDrumPack(
   options: BuildPackOptions
 ): Promise<Blob> {
   const files = slices.map((s) => s.file);
-  const data = await transcodeAndConcat(files, options);
+  // frames returned include the padding added by ffmpeg
+  const { data, frames: chunkFrames } = await transcodeAndConcat(files, options);
   const { numFrames } = parseAiff(data);
 
-  const durations = slices.map((s) => s.duration || 0);
+  // We need to pass the *content* duration (without padding) to the boundary calculator,
+  // because that function adds the gap duration itself.
+  const gapSamples = Math.round(SLICE_GAP_SECONDS * 44100);
+  const contentFrames = chunkFrames.map((f) => Math.max(0, f - gapSamples));
+
   const { start: startFrames, end: endFrames } = calculateSliceBoundaries(
-    durations,
+    contentFrames,
     numFrames
   );
 

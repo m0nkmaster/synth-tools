@@ -28,8 +28,9 @@ function writeUInt32BE(buf: Uint8Array, offset: number, value: number) {
 }
 
 export function parseAiff(buf: Uint8Array): AiffParseResult {
-  if (readString(buf, 0, 4) !== 'FORM' || readString(buf, 8, 4) !== 'AIFF') {
-    throw new Error('Invalid AIFF header');
+  const type = readString(buf, 8, 4);
+  if (readString(buf, 0, 4) !== 'FORM' || (type !== 'AIFF' && type !== 'AIFC')) {
+    throw new Error('Invalid AIFF/AIFC header');
   }
 
   const formSize =
@@ -60,7 +61,7 @@ export function parseAiff(buf: Uint8Array): AiffParseResult {
   );
   // COMM chunk: offset 0-3 = "COMM", 4-7 = size, 8-9 = channels, 10-13 = numFrames
   const numFrames = view.getUint32(10, false);
-  
+
   // Parse sample rate from 80-bit extended float (bytes 16-25 from chunk start)
   // COMM chunk: 0-3="COMM", 4-7=size, 8-9=channels, 10-13=numFrames, 14-15=sampleSize, 16-25=sampleRate
   let sampleRate: number | undefined;
@@ -74,14 +75,14 @@ export function parseAiff(buf: Uint8Array): AiffParseResult {
     const sign = (sampleRateBytes[0] & 0x80) ? -1 : 1;
     const exponent = ((sampleRateBytes[0] & 0x7f) << 8) | sampleRateBytes[1];
     const expValue = exponent - 16383; // bias
-    
+
     // Extract mantissa (64 bits, stored as big-endian)
     // Mantissa is stored as an integer, representing the fractional part
     let mantissa = 0;
     for (let i = 2; i < 10; i++) {
       mantissa = mantissa * 256 + sampleRateBytes[i];
     }
-    
+
     // Convert mantissa to fraction: mantissa / 2^64
     // Value = sign * (1 + mantissa/2^64) * 2^(exponent - 16383)
     if (expValue >= -1022 && expValue <= 1023 && exponent !== 0) {
@@ -127,7 +128,7 @@ function buildDrumMetadataChunk(
     lfo_type: 'tremolo',
     lfo_params: [16000, 16000, 16000, 16000, 0, 0, 0, 0]
   };
-  
+
   if (metadata.drumVersion >= 3) {
     payloadObj.dyna_env = [0, 8192, 0, 0, 0, 0, 0, 0];
     payloadObj.editable = true;

@@ -30,6 +30,7 @@ import { formatDuration } from '../utils/audio';
 import type { Slice, DrumMetadata } from '../types';
 import { buildDrumPack } from '../audio/pack';
 import { semitonesToPitchParam } from '../audio/pitch';
+import { MAX_SLICES, MAX_DURATION_SECONDS, MAX_SLICE_DURATION_SECONDS } from '../constants';
 
 function WaveformPreview({ slice, height = 24, width = 24 }: { slice: Slice; height?: number; width?: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -76,14 +77,14 @@ function WaveformPreview({ slice, height = 24, width = 24 }: { slice: Slice; hei
           ctx.fillRect(x, mid - barHeight, barWidth, barHeight * 2);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
-        ac.close().catch(() => {});
+        ac.close().catch(() => { });
       });
 
     return () => {
       cancelled = true;
-      ac.close().catch(() => {});
+      ac.close().catch(() => { });
     };
   }, [slice, height, width]);
 
@@ -226,10 +227,8 @@ export function DrumCreator() {
     updateSlice,
     isProcessing,
     error,
-    silenceThreshold,
     maxDuration,
     totalDuration,
-    setSilenceThreshold
   } = useSlices();
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -314,7 +313,6 @@ export function DrumCreator() {
         return;
       }
       const blob = await buildDrumPack(readySlices, {
-        silenceThreshold,
         maxDuration,
         metadata
       });
@@ -383,7 +381,7 @@ export function DrumCreator() {
                     Drop files here
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                    Up to 24 slices
+                    Up to {MAX_SLICES} slices
                   </Typography>
                   <Button variant="contained" size="small" onClick={(e) => { e.stopPropagation(); handleSelectFiles(); }}>
                     Select Files
@@ -400,7 +398,6 @@ export function DrumCreator() {
 
                 <Divider flexItem />
                 <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Processing</Typography>
-                <TextField size="small" label="Silence Threshold" value={silenceThreshold} onChange={(e) => setSilenceThreshold(Number(e.target.value))} />
                 <TextField size="small" label="Max Duration" value={maxDuration} disabled />
                 <Divider flexItem />
                 <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Metadata</Typography>
@@ -419,7 +416,7 @@ export function DrumCreator() {
                   <Stack spacing={0.5}>
                     <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Slices</Typography>
                     <Typography variant="caption" color={overDuration ? 'error.main' : 'text.secondary'}>
-                      {formatDuration(totalDuration)} / {maxDuration}s · {slices.length} / 24
+                      {formatDuration(totalDuration)} / {maxDuration}s · {slices.length} / {MAX_SLICES}
                     </Typography>
                   </Stack>
                   <Button variant="contained" size="small" disabled={disabledExport} onClick={handleExport} startIcon={<DownloadIcon />}>
@@ -428,7 +425,12 @@ export function DrumCreator() {
                 </Stack>
 
                 {error && <Alert severity="error">{error}</Alert>}
-                {overDuration && <Alert severity="warning">Over 12s cap. Remove or trim slices.</Alert>}
+                {overDuration && <Alert severity="warning">Over {MAX_DURATION_SECONDS}s cap. Remove or trim slices.</Alert>}
+                {slices.some(s => s.duration > MAX_SLICE_DURATION_SECONDS) && (
+                  <Alert severity="warning">
+                    Some slices exceed {MAX_SLICE_DURATION_SECONDS}s limit. OP-Z may ignore them.
+                  </Alert>
+                )}
                 {exportError && <Alert severity="error">{exportError}</Alert>}
 
                 <SliceList

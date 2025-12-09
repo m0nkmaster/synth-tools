@@ -14,10 +14,12 @@ const PRESETS: Record<string, SoundConfig> = {
     metadata: { name: 'Kick', category: 'kick', description: '', tags: [] }
   },
   snare: {
-    synthesis: { layers: [
-      { type: 'noise', gain: 0.6, noise: { type: 'white' }, filter: { type: 'bandpass', frequency: 3000, q: 2 } },
-      { type: 'oscillator', gain: 0.5, oscillator: { waveform: 'sine', frequency: 180, detune: 0 } }
-    ]},
+    synthesis: {
+      layers: [
+        { type: 'noise', gain: 0.6, noise: { type: 'white' }, filter: { type: 'bandpass', frequency: 3000, q: 2 } },
+        { type: 'oscillator', gain: 0.5, oscillator: { waveform: 'sine', frequency: 180, detune: 0 } }
+      ]
+    },
     envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.2, attackCurve: 'exponential', releaseCurve: 'exponential' },
     effects: {},
     spatial: { pan: 0, width: 1 },
@@ -43,6 +45,58 @@ const PRESETS: Record<string, SoundConfig> = {
     timing: { duration: 3 },
     dynamics: { velocity: 0.9, gain: 0, normalize: true },
     metadata: { name: 'Delay Test', category: 'fx', description: '', tags: [] }
+  },
+  grandPiano: {
+    synthesis: {
+      layers: [
+        { type: 'oscillator', gain: 0.7, oscillator: { waveform: 'triangle', frequency: 440, detune: 0 } },
+        { type: 'oscillator', gain: 0.4, oscillator: { waveform: 'sawtooth', frequency: 440, detune: 1 } },
+        { type: 'noise', gain: 0.1, noise: { type: 'pink' }, filter: { type: 'lowpass', frequency: 800, q: 1 }, envelope: { attack: 0, decay: 0.03, sustain: 0, release: 0.01 } },
+        { type: 'fm', gain: 0.15, fm: { carrier: 440, modulator: 440 * 7, modulationIndex: 0.8 }, envelope: { attack: 0, decay: 0.1, sustain: 0, release: 0.1 } }
+      ]
+    },
+    envelope: { attack: 0.005, decay: 2.0, sustain: 0, release: 0.5, attackCurve: 'exponential', releaseCurve: 'exponential' },
+    filter: { type: 'lowpass', frequency: 800, q: 0.7, envelope: { amount: 2500, attack: 0.005, decay: 0.3, sustain: 0.1, release: 0.3 } },
+    effects: { reverb: { type: 'room', decay: 1.2, mix: 0.1, size: 0.6, damping: 0.5, predelay: 0.01 } },
+    spatial: { pan: 0, width: 0.5 },
+    timing: { duration: 2.5 },
+    dynamics: { velocity: 0.8, gain: 0, normalize: true },
+    metadata: { name: 'Grand Piano', category: 'other', description: 'Natural Acoustic Piano', tags: ['piano', 'keys', 'acoustic'] }
+  },
+  snare80s: {
+    synthesis: {
+      layers: [
+        { type: 'noise', gain: 0.8, noise: { type: 'pink' }, filter: { type: 'lowpass', frequency: 8000, q: 0.5 } },
+        { type: 'oscillator', gain: 0.6, oscillator: { waveform: 'sine', frequency: 180, detune: 0 }, envelope: { attack: 0, decay: 0.15, sustain: 0, release: 0.1 } }
+      ]
+    },
+    envelope: { attack: 0.001, decay: 0.25, sustain: 0, release: 0.2, attackCurve: 'exponential', releaseCurve: 'exponential' },
+    effects: {
+      reverb: { type: 'plate', decay: 3.0, mix: 0.6, size: 1.0, damping: 0.1, predelay: 0.01 },
+      compressor: { threshold: -12, ratio: 4, attack: 0.001, release: 0.1, knee: 10 },
+      gate: { threshold: -50, attack: 0.001, hold: 0.35, release: 0.02 }
+    },
+    spatial: { pan: 0, width: 0.9 },
+    timing: { duration: 1.5 },
+    dynamics: { velocity: 1.0, gain: 3, normalize: true },
+    metadata: { name: "80's Snare", category: 'snare', description: 'Gated Reverb Snare (Phil Collins Style)', tags: ['drums', '80s', 'snare', 'gated'] }
+  },
+  acousticGuitar: {
+    synthesis: {
+      layers: [
+        { type: 'karplus-strong', gain: 0.9, karplus: { frequency: 440, damping: 0.1 } },
+        { type: 'noise', gain: 0.1, noise: { type: 'white' }, envelope: { attack: 0, decay: 0.01, sustain: 0, release: 0.01 }, filter: { type: 'highpass', frequency: 5000, q: 1 } }
+      ]
+    },
+    envelope: { attack: 0.0, decay: 1.0, sustain: 0, release: 0.5, attackCurve: 'exponential', releaseCurve: 'exponential' },
+    filter: { type: 'lowpass', frequency: 4000, q: 0.5 },
+    effects: {
+      reverb: { type: 'room', decay: 1.0, mix: 0.15, size: 0.4, damping: 0.5, predelay: 0.01 }
+    },
+    spatial: { pan: 0, width: 0.6 },
+    timing: { duration: 2.0 },
+    dynamics: { velocity: 0.85, gain: 0, normalize: true },
+    metadata: { name: 'Acoustic Guitar', category: 'other', description: 'Karplus-Strong Physical Modeling', tags: ['guitar', 'plucked', 'physical-modeling'] }
   }
 };
 
@@ -100,7 +154,7 @@ export default function SynthTest() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" gutterBottom>Synthesis Test Harness</Typography>
-      
+
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
         <Select value="" onChange={(e) => loadPreset(e.target.value)} displayEmpty sx={{ minWidth: 150 }}>
           <MenuItem value="" disabled>Load Preset</MenuItem>
@@ -108,6 +162,9 @@ export default function SynthTest() {
           <MenuItem value="snare">Snare</MenuItem>
           <MenuItem value="bass">Bass</MenuItem>
           <MenuItem value="delayTest">Delay Test</MenuItem>
+          <MenuItem value="grandPiano">Grand Piano</MenuItem>
+          <MenuItem value="snare80s">80's Snare</MenuItem>
+          <MenuItem value="acousticGuitar">Acoustic Guitar</MenuItem>
         </Select>
         <Button variant="contained" onClick={play} disabled={playing}>
           {playing ? 'Playing...' : 'Play'}
