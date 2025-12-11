@@ -106,10 +106,10 @@ export async function transcodeAndConcat(
 
   // Cleanup
   for (let i = 0; i < files.length; i++) {
-    try { await ffmpeg.deleteFile(`input_${i}`); } catch { }
-    try { await ffmpeg.deleteFile(`processed_${i}.aif`); } catch { }
+    try { await ffmpeg.deleteFile(`input_${i}`); } catch { /* ignore cleanup errors */ }
+    try { await ffmpeg.deleteFile(`processed_${i}.aif`); } catch { /* ignore cleanup errors */ }
   }
-  try { await ffmpeg.deleteFile('output.aif'); } catch { }
+  try { await ffmpeg.deleteFile('output.aif'); } catch { /* ignore cleanup errors */ }
 
   return { data: data as Uint8Array, frames: processedFrames };
 }

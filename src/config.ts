@@ -12,7 +12,7 @@ export const AUDIO = {
 
 // OP-Z Format
 export const OPZ = {
-  MAX_SLICES: 25,
+  MAX_SLICES: 24,
   MAX_DURATION_SECONDS: 11.8,
   MAX_SLICE_DURATION_SECONDS: 4,
   SLICE_GAP_SECONDS: 0.1,

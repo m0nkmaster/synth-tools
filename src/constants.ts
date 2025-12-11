@@ -1,4 +1,4 @@
-import { OPZ, AUDIO, FORMATS } from './config';
+import { OPZ, FORMATS } from './config';
 
 // Re-export specific values for convenience
 export const {

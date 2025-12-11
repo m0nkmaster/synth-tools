@@ -4,7 +4,7 @@ import { parseAiff } from './aiff';
 describe('parseAiff', () => {
   it('throws on invalid FORM header', () => {
     const invalid = new Uint8Array([0, 0, 0, 0]);
-    expect(() => parseAiff(invalid)).toThrow('Invalid AIFF header');
+    expect(() => parseAiff(invalid)).toThrow('Invalid AIFF/AIFC header');
   });
 
   it('throws on missing COMM chunk', () => {

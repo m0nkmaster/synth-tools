@@ -88,6 +88,7 @@ class MockAudioContext {
       numberOfChannels: channels,
       length,
       sampleRate,
+      duration: length / sampleRate,
       getChannelData: () => new Float32Array(length)
     };
     return buffer;

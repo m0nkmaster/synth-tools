@@ -51,7 +51,7 @@ export function SoundCreation() {
         gainNode.gain.setValueAtTime(gainNode.gain.value, ctx.currentTime);
         gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + releaseTime);
         source.stop(ctx.currentTime + releaseTime);
-      } catch (e) {
+      } catch {
         // Source might have already stopped
       }
 
@@ -188,7 +188,7 @@ export function SoundCreation() {
       }
       // Stop all active notes
       activeSourcesRef.current.forEach(source => {
-        try { source.stop(); } catch { }
+        try { source.stop(); } catch { /* ignore if already stopped */ }
       });
       activeSourcesRef.current.clear();
       gainNodesRef.current.clear();

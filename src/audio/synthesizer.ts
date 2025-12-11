@@ -284,7 +284,6 @@ function createKarplusStrongSource(ctx: OfflineAudioContext, config: { frequency
   // pointer wraps around N.
   // We fill the output buffer.
 
-  const currentSample = 0;
   let prevSample = 0;
   let pointer = 0;
 
@@ -450,7 +449,6 @@ function createSaturation(ctx: OfflineAudioContext, config: NonNullable<SoundCon
 
 function applyLFO(ctx: OfflineAudioContext, input: AudioNode, config: SoundConfig, filter: BiquadFilterNode | null): AudioNode {
   const lfo = config.lfo!;
-  const duration = config.timing.duration;
   const delay = lfo.delay || 0;
   const fade = lfo.fade || 0;
 
@@ -558,7 +556,7 @@ function createEffects(ctx: OfflineAudioContext, config: SoundConfig): { input: 
 
   // Gate
   if (config.effects.gate) {
-    const gate = createGateEffect(ctx, config.effects.gate, config.timing.duration);
+    const gate = createGateEffect(ctx, config.effects.gate);
     current.connect(gate.input);
     current = gate.output;
   }
@@ -681,7 +679,7 @@ function createCompressor(ctx: OfflineAudioContext, config: NonNullable<SoundCon
   return comp;
 }
 
-function createGateEffect(ctx: OfflineAudioContext, config: NonNullable<SoundConfig['effects']['gate']>, totalDuration: number): { input: AudioNode, output: AudioNode } {
+function createGateEffect(ctx: OfflineAudioContext, config: NonNullable<SoundConfig['effects']['gate']>): { input: AudioNode, output: AudioNode } {
   // Since we are in OfflineAudioContext, we can't easily do real-time signal analysis (no AudioWorklet without external file loading).
   // However, for synthesized sounds like drums, the 'Gate' usually applies to the Reverb Tail.
   // A true noise gate analyzes the input level. 

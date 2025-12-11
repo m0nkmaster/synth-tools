@@ -163,7 +163,7 @@ export default function SynthTest() {
           <MenuItem value="bass">Bass</MenuItem>
           <MenuItem value="delayTest">Delay Test</MenuItem>
           <MenuItem value="grandPiano">Grand Piano</MenuItem>
-          <MenuItem value="snare80s">80's Snare</MenuItem>
+          <MenuItem value="snare80s">80&apos;s Snare</MenuItem>
           <MenuItem value="acousticGuitar">Acoustic Guitar</MenuItem>
         </Select>
         <Button variant="contained" onClick={play} disabled={playing}>
