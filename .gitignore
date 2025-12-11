@@ -33,6 +33,7 @@ coverage/
 # Env and secrets
 .env
 .env.*
+private/
 
 # Project-specific
 legacy-scripts/

@@ -52,15 +52,15 @@ function App() {
                 Sound Creation
               </Button>
               <Button
-                onClick={() => navigate('/synth-test')}
+                onClick={() => navigate('/synthesizer')}
                 sx={{
-                  color: location.pathname === '/synth-test' ? '#ff6b35' : 'text.secondary',
-                  borderBottom: location.pathname === '/synth-test' ? '2px solid #ff6b35' : 'none',
+                  color: location.pathname === '/synthesizer' ? '#ff6b35' : 'text.secondary',
+                  borderBottom: location.pathname === '/synthesizer' ? '2px solid #ff6b35' : 'none',
                   borderRadius: 0,
                   px: 2
                 }}
               >
-                Synth Test
+                Synthesizer
               </Button>
               <Button
                 onClick={() => navigate('/usb-browser')}

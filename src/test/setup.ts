@@ -1,3 +1,8 @@
+import { expect } from 'vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
+
+expect.extend(matchers);
+
 // Mock Web Audio API for tests
 class MockAudioContext {
   sampleRate = 44100;
@@ -116,6 +121,26 @@ class MockOfflineAudioContext extends MockAudioContext {
 
 global.AudioContext = MockAudioContext as any;
 global.OfflineAudioContext = MockOfflineAudioContext as any;
+
+// Mock localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+  };
+})();
+
+global.localStorage = localStorageMock as any;
 
 // Mock Blob.arrayBuffer
 if (typeof Blob !== 'undefined' && !Blob.prototype.arrayBuffer) {

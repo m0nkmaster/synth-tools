@@ -18,9 +18,11 @@ export async function synthesizeSound(config: SoundConfig): Promise<AudioBuffer>
 
   const mixer = ctx.createGain();
   const sources: AudioScheduledSourceNode[] = [];
+  const allSources: AudioScheduledSourceNode[] = [];
 
   for (const layer of config.synthesis.layers) {
-    const source = createLayerSource(ctx, layer);
+    const layerSources: AudioScheduledSourceNode[] = [];
+    const source = createLayerSource(ctx, layer, layerSources);
     let chain: AudioNode = source;
 
     if (layer.filter) {
@@ -48,6 +50,7 @@ export async function synthesizeSound(config: SoundConfig): Promise<AudioBuffer>
     if ('start' in source && typeof source.start === 'function') {
       sources.push(source as AudioScheduledSourceNode);
     }
+    allSources.push(...layerSources);
   }
 
   const filter = config.filter ? createFilter(ctx, config) : null;
@@ -82,10 +85,12 @@ export async function synthesizeSound(config: SoundConfig): Promise<AudioBuffer>
   outputChain.connect(effectsInput);
   effectsOutput.connect(ctx.destination);
 
+  const stopTime = config.timing.duration;
   sources.forEach(s => {
     s.start(0);
-    s.stop(config.timing.duration);
+    s.stop(stopTime);
   });
+  allSources.forEach(s => s.stop(stopTime));
 
   const buffer = await ctx.startRendering();
   // Only normalize if requested, otherwise we amplify noise floor on quiet sounds
@@ -95,17 +100,17 @@ export async function synthesizeSound(config: SoundConfig): Promise<AudioBuffer>
   return buffer;
 }
 
-function createLayerSource(ctx: OfflineAudioContext, layer: SoundConfig['synthesis']['layers'][0]): AudioNode {
+function createLayerSource(ctx: OfflineAudioContext, layer: SoundConfig['synthesis']['layers'][0], sources: AudioScheduledSourceNode[]): AudioNode {
   if (layer.type === 'noise' && layer.noise) {
-    return createNoiseSource(ctx, layer.noise.type);
+    return createNoiseSource(ctx, layer.noise.type, sources);
   }
 
   if (layer.type === 'fm' && layer.fm) {
-    return createFMSource(ctx, layer.fm);
+    return createFMSource(ctx, layer.fm, sources);
   }
 
   if (layer.type === 'oscillator' && layer.oscillator) {
-    return createOscillatorSource(ctx, layer.oscillator);
+    return createOscillatorSource(ctx, layer.oscillator, sources);
   }
 
   if (layer.type === 'karplus-strong' && layer.karplus) {
@@ -117,7 +122,7 @@ function createLayerSource(ctx: OfflineAudioContext, layer: SoundConfig['synthes
   return osc;
 }
 
-function createOscillatorSource(ctx: OfflineAudioContext, config: NonNullable<SoundConfig['synthesis']['layers'][0]['oscillator']>): AudioNode {
+function createOscillatorSource(ctx: OfflineAudioContext, config: NonNullable<SoundConfig['synthesis']['layers'][0]['oscillator']>, sources: AudioScheduledSourceNode[]): AudioNode {
   const unison = config.unison || { voices: 1, detune: 0, spread: 0 };
   const voices = Math.max(1, Math.min(8, unison.voices));
 
@@ -156,6 +161,7 @@ function createOscillatorSource(ctx: OfflineAudioContext, config: NonNullable<So
 
     voiceGain.connect(mixer);
     osc.start(0);
+    sources.push(osc);
   }
 
   if (config.sub) {
@@ -170,12 +176,13 @@ function createOscillatorSource(ctx: OfflineAudioContext, config: NonNullable<So
     sub.connect(subGain);
     subGain.connect(mixer);
     sub.start(0);
+    sources.push(sub);
   }
 
   return mixer;
 }
 
-function createNoiseSource(ctx: OfflineAudioContext, type: string): AudioBufferSourceNode {
+function createNoiseSource(ctx: OfflineAudioContext, type: string, sources: AudioScheduledSourceNode[]): AudioBufferSourceNode {
   const bufferSize = ctx.sampleRate * SYNTHESIS.NOISE_BUFFER_DURATION;
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -210,10 +217,11 @@ function createNoiseSource(ctx: OfflineAudioContext, type: string): AudioBufferS
   const source = ctx.createBufferSource();
   source.buffer = buffer;
   source.loop = true;
+  sources.push(source);
   return source;
 }
 
-function createFMSource(ctx: OfflineAudioContext, fm: { carrier: number; modulator: number; modulationIndex: number }): OscillatorNode {
+function createFMSource(ctx: OfflineAudioContext, fm: { carrier: number; modulator: number; modulationIndex: number }, sources: AudioScheduledSourceNode[]): OscillatorNode {
   const carrier = ctx.createOscillator();
   const modulator = ctx.createOscillator();
   const modulatorGain = ctx.createGain();
@@ -225,6 +233,8 @@ function createFMSource(ctx: OfflineAudioContext, fm: { carrier: number; modulat
   modulator.connect(modulatorGain);
   modulatorGain.connect(carrier.frequency);
   modulator.start(0);
+  sources.push(carrier);
+  sources.push(modulator);
 
   return carrier;
 }
@@ -447,7 +457,7 @@ function applyLFO(ctx: OfflineAudioContext, input: AudioNode, config: SoundConfi
   let lfoSource: AudioScheduledSourceNode;
 
   if (lfo.waveform === 'random') {
-    const bufferSize = ctx.sampleRate * duration;
+    const bufferSize = ctx.sampleRate * ctx.length / ctx.sampleRate;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     const samplesPerStep = Math.floor(ctx.sampleRate / (lfo.frequency * 10));
@@ -586,7 +596,7 @@ function createDistortion(ctx: OfflineAudioContext, config: NonNullable<SoundCon
 
 function createReverb(ctx: OfflineAudioContext, config: NonNullable<SoundConfig['effects']['reverb']>): ConvolverNode {
   const convolver = ctx.createConvolver();
-  const length = ctx.sampleRate * config.decay;
+  const length = ctx.sampleRate * Math.min(3, config.decay);
   const impulse = ctx.createBuffer(SYNTHESIS.CHANNELS, length, ctx.sampleRate);
 
   for (let channel = 0; channel < SYNTHESIS.CHANNELS; channel++) {
@@ -628,10 +638,9 @@ function createDelay(ctx: OfflineAudioContext, config: NonNullable<SoundConfig['
   const output = ctx.createGain();
 
   const time = Math.min(SYNTHESIS.MAX_DELAY_TIME, safeValue(config.time, 0.25));
-  const feedbackValue = Math.min(0.95, safeValue(config.feedback, 0.3));
+  const feedbackValue = Math.min(0.5, safeValue(config.feedback, 0.3));
   const mix = safeValue(config.mix, 0.5);
 
-  // Dry/Wet path
   const dryGain = ctx.createGain();
   const wetGain = ctx.createGain();
 
@@ -641,7 +650,6 @@ function createDelay(ctx: OfflineAudioContext, config: NonNullable<SoundConfig['
   input.connect(dryGain);
   dryGain.connect(output);
 
-  // Delay Loop
   const delay = ctx.createDelay(SYNTHESIS.MAX_DELAY_TIME);
   delay.delayTime.value = time;
 
@@ -650,15 +658,14 @@ function createDelay(ctx: OfflineAudioContext, config: NonNullable<SoundConfig['
 
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
-  filter.frequency.value = 4000; // Could be configurable?
+  filter.frequency.value = 4000;
   filter.Q.value = 0.5;
 
   input.connect(delay);
   delay.connect(filter);
   filter.connect(feedback);
   feedback.connect(delay);
-
-  filter.connect(wetGain);
+  delay.connect(wetGain);
   wetGain.connect(output);
 
   return { input, output };
@@ -737,19 +744,15 @@ function calculateEffectsTail(config: SoundConfig): number {
   let tail = 0;
 
   if (config.effects?.reverb) {
-    tail = Math.max(tail, config.effects.reverb.decay);
+    tail = Math.max(tail, Math.min(3, config.effects.reverb.decay));
   }
 
   if (config.effects?.delay) {
     const { time = 0.25, feedback = 0.3 } = config.effects.delay;
-    // Estimate t60: How long until -60dB?
-    // feedback^n < 0.001  =>  n * log10(feedback) < -3  =>  n > -3 / log10(feedback)
-    const safeFeedback = Math.min(0.99, Math.max(0.01, feedback));
+    const safeFeedback = Math.min(0.7, Math.max(0.01, feedback));
     const repeats = -3 / Math.log10(safeFeedback);
     const delayTail = repeats * time;
-
-    // Cap delay tail to reasonable limit (e.g. 10s) to prevent memory issues with high feedback
-    tail = Math.max(tail, Math.min(10, delayTail));
+    tail = Math.max(tail, Math.min(5, delayTail));
   }
 
   // Add a small safety buffer (0.1s)

@@ -34,8 +34,9 @@ LEADS/PADS:
 - Pads: multiple detuned saws, slow attack >100ms, reverb
 
 EFFECTS:
-- Huge/massive/long delay: time 1.0-2.0s, feedback 0.6-0.8, mix 0.5-0.7
-- Short/slapback delay: time 0.08-0.15s, feedback 0.2-0.4, mix 0.3-0.5
+- Huge/massive/long delay: time 0.5-1.0s, feedback 0.4-0.5, mix 0.5-0.7
+- Short/slapback delay: time 0.08-0.15s, feedback 0.2-0.3, mix 0.3-0.5
+- CRITICAL: feedback MUST be ≤0.5 to prevent infinite echo
 
 EXAMPLES:
 Kick: {"synthesis":{"layers":[{"type":"oscillator","gain":0.8,"oscillator":{"waveform":"sine","frequency":60,"detune":0}},{"type":"oscillator","gain":0.3,"oscillator":{"waveform":"sine","frequency":30,"detune":0}}]},"envelope":{"attack":0.001,"decay":0.05,"sustain":0,"release":0.1,"attackCurve":"exponential","releaseCurve":"exponential"}}
@@ -45,7 +46,7 @@ Snare: {"synthesis":{"layers":[{"type":"noise","gain":0.6,"noise":{"type":"white
 const ITERATION_CONTEXT = `
 When modifying existing config, apply MINIMAL changes to achieve the request. Return complete config with only necessary modifications.
 For LFO requests: "crazy/extreme/super fast" = frequency 15-30 Hz + depth 0.8-1.0, "wobble/wub" = frequency 8-15 Hz + depth 0.7-1.0.
-For delay requests: "huge/massive/long" = time 1.0-2.0s + feedback 0.6-0.8 + mix 0.5-0.7, "short/slapback" = time 0.08-0.15s + feedback 0.2-0.4.`;
+For delay requests: "huge/massive/long" = time 0.5-1.0s + feedback 0.4-0.5 + mix 0.5-0.7, "short/slapback" = time 0.08-0.15s + feedback 0.2-0.3. CRITICAL: feedback MUST be ≤0.5.`;
 
 function validateConfig(config: SoundConfig): void {
   config.synthesis.layers.forEach(layer => {
@@ -59,6 +60,10 @@ function validateConfig(config: SoundConfig): void {
 
   if (config.filter?.frequency) {
     config.filter.frequency = Math.max(20, Math.min(20000, config.filter.frequency));
+  }
+
+  if (config.effects.delay?.feedback) {
+    config.effects.delay.feedback = Math.min(0.5, config.effects.delay.feedback);
   }
 
   const totalEnv = config.envelope.attack + config.envelope.decay + config.envelope.release;
