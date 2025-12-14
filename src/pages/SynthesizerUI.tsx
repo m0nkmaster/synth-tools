@@ -1589,50 +1589,6 @@ export function SynthesizerUI() {
           {/* EFFECTS */}
           <Section title="EFFECTS" isMobile={isMobile} TE={TE}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 10 : 6 }}>
-              <Effect name="DISTORT" on={!!config.effects.distortion} onToggle={() => config.effects.distortion ? updateEffects({ ...config.effects, distortion: undefined }) : updateEffects({ ...config.effects, distortion: { type: 'soft', amount: 0.5, mix: 0.5 } })} color={TE.orange} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
-                <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
-                  {['soft', 'hard', 'fuzz', 'bitcrush', 'waveshaper'].map(t => (
-                    <Btn key={t} active={config.effects.distortion?.type === t} onClick={() => updateEffects({ ...config.effects, distortion: { ...config.effects.distortion!, type: t as any } })} color={TE.orange} small size={btnSize} TE={TE}>{t === 'bitcrush' ? 'BIT' : t === 'waveshaper' ? 'WS' : t.slice(0, 2).toUpperCase()}</Btn>
-                  ))}
-                </div>
-                <MiniKnob value={config.effects.distortion?.amount || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, distortion: { ...config.effects.distortion!, amount: v } })} label="AMT" color={TE.orange} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.distortion?.mix || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, distortion: { ...config.effects.distortion!, mix: v } })} label="MIX" color={TE.orange} size={knobSize} TE={TE} />
-              </Effect>
-
-              <Effect name="REVERB" on={!!config.effects.reverb} onToggle={() => config.effects.reverb ? updateEffects({ ...config.effects, reverb: undefined }) : updateEffects({ ...config.effects, reverb: { decay: 2, damping: 0.5, mix: 0.3 } })} color={TE.pink} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
-                <MiniKnob value={config.effects.reverb?.decay || 2} min={0.1} max={10} onChange={v => updateEffects({ ...config.effects, reverb: { ...config.effects.reverb!, decay: v } })} label="DECAY" color={TE.pink} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.reverb?.damping || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, reverb: { ...config.effects.reverb!, damping: v } })} label="DAMP" color={TE.pink} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.reverb?.mix || 0.3} min={0} max={1} onChange={v => updateEffects({ ...config.effects, reverb: { ...config.effects.reverb!, mix: v } })} label="MIX" color={TE.pink} size={knobSize} TE={TE} />
-              </Effect>
-
-              <Effect name="DELAY" on={!!config.effects.delay} onToggle={() => config.effects.delay ? updateEffects({ ...config.effects, delay: undefined }) : updateEffects({ ...config.effects, delay: { time: 0.25, feedback: 0.5, mix: 0.3 } })} color={TE.cyan} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
-                <MiniKnob value={(config.effects.delay?.time || 0.25) * 1000} min={10} max={2000} onChange={v => updateEffects({ ...config.effects, delay: { ...config.effects.delay!, time: v / 1000 } })} label="TIME" color={TE.cyan} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.delay?.feedback || 0.5} min={0} max={0.95} onChange={v => updateEffects({ ...config.effects, delay: { ...config.effects.delay!, feedback: v } })} label="FB" color={TE.cyan} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.delay?.mix || 0.3} min={0} max={1} onChange={v => updateEffects({ ...config.effects, delay: { ...config.effects.delay!, mix: v } })} label="MIX" color={TE.cyan} size={knobSize} TE={TE} />
-              </Effect>
-
-              <Effect name="COMPRESS" on={!!config.effects.compressor} onToggle={() => config.effects.compressor ? updateEffects({ ...config.effects, compressor: undefined }) : updateEffects({ ...config.effects, compressor: { threshold: -20, ratio: 4, attack: 0.003, release: 0.25, knee: 30 } })} color={TE.yellow} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
-                <MiniKnob value={config.effects.compressor?.threshold || -20} min={-60} max={0} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, threshold: v } })} label="THRS" color={TE.yellow} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.compressor?.ratio || 4} min={1} max={20} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, ratio: v } })} label="RATIO" color={TE.yellow} size={knobSize} TE={TE} />
-                <MiniKnob value={(config.effects.compressor?.attack || 0.003) * 1000} min={0.1} max={100} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, attack: v / 1000 } })} label="ATK" color={TE.yellow} size={knobSize} TE={TE} />
-                <MiniKnob value={(config.effects.compressor?.release || 0.25) * 1000} min={10} max={1000} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, release: v / 1000 } })} label="REL" color={TE.yellow} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.compressor?.knee ?? 30} min={0} max={40} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, knee: v } })} label="KNEE" color={TE.yellow} size={knobSize} TE={TE} />
-              </Effect>
-
-              <Effect name="GATE" on={!!config.effects.gate} onToggle={() => config.effects.gate ? updateEffects({ ...config.effects, gate: undefined }) : updateEffects({ ...config.effects, gate: { attack: 0.001, hold: 0.2, release: 0.05 } })} color={TE.green} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
-                <MiniKnob value={(config.effects.gate?.attack || 0.001) * 1000} min={0.1} max={50} onChange={v => updateEffects({ ...config.effects, gate: { ...config.effects.gate!, attack: v / 1000 } })} label="ATK" color={TE.green} size={knobSize} TE={TE} />
-                <MiniKnob value={(config.effects.gate?.hold || 0.2) * 1000} min={10} max={1000} onChange={v => updateEffects({ ...config.effects, gate: { ...config.effects.gate!, hold: v / 1000 } })} label="HOLD" color={TE.green} size={knobSize} TE={TE} />
-                <MiniKnob value={(config.effects.gate?.release || 0.05) * 1000} min={5} max={500} onChange={v => updateEffects({ ...config.effects, gate: { ...config.effects.gate!, release: v / 1000 } })} label="REL" color={TE.green} size={knobSize} TE={TE} />
-              </Effect>
-
-              <Effect name="CHORUS" on={!!config.effects.chorus} onToggle={() => config.effects.chorus ? updateEffects({ ...config.effects, chorus: undefined }) : updateEffects({ ...config.effects, chorus: { rate: 0.5, depth: 0.5, mix: 0.5, feedback: 0, delay: 20 } })} color={TE.pink} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
-                <MiniKnob value={config.effects.chorus?.rate || 0.5} min={0.1} max={10} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, rate: v } })} label="RATE" color={TE.pink} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.chorus?.depth || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, depth: v } })} label="DEPTH" color={TE.pink} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.chorus?.delay || 20} min={1} max={50} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, delay: v } })} label="DELAY" color={TE.pink} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.chorus?.feedback || 0} min={0} max={0.9} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, feedback: v } })} label="FB" color={TE.pink} size={knobSize} TE={TE} />
-                <MiniKnob value={config.effects.chorus?.mix || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, mix: v } })} label="MIX" color={TE.pink} size={knobSize} TE={TE} />
-              </Effect>
-
               <Effect name="EQ" on={!!config.effects.eq} onToggle={() => config.effects.eq ? updateEffects({ ...config.effects, eq: undefined }) : updateEffects({ ...config.effects, eq: { low: { frequency: 100, gain: 0 }, mid: { frequency: 1000, gain: 0, q: 1 }, high: { frequency: 8000, gain: 0 } } })} color={TE.cyan} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 10 : 6, width: '100%' }}>
                   <div style={{ display: 'flex', gap: isMobile ? 10 : 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1652,6 +1608,50 @@ export function SynthesizerUI() {
                     <MiniKnob value={config.effects.eq?.high.gain || 0} min={-24} max={24} onChange={v => updateEffects({ ...config.effects, eq: { ...config.effects.eq!, high: { ...config.effects.eq!.high, gain: v } } })} label="GAIN" color={TE.cyan} size={knobSize} TE={TE} />
                   </div>
                 </div>
+              </Effect>
+
+              <Effect name="DISTORT" on={!!config.effects.distortion} onToggle={() => config.effects.distortion ? updateEffects({ ...config.effects, distortion: undefined }) : updateEffects({ ...config.effects, distortion: { type: 'soft', amount: 0.5, mix: 0.5 } })} color={TE.orange} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
+                <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
+                  {['soft', 'hard', 'fuzz', 'bitcrush', 'waveshaper'].map(t => (
+                    <Btn key={t} active={config.effects.distortion?.type === t} onClick={() => updateEffects({ ...config.effects, distortion: { ...config.effects.distortion!, type: t as any } })} color={TE.orange} small size={btnSize} TE={TE}>{t === 'bitcrush' ? 'BIT' : t === 'waveshaper' ? 'WS' : t.slice(0, 2).toUpperCase()}</Btn>
+                  ))}
+                </div>
+                <MiniKnob value={config.effects.distortion?.amount || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, distortion: { ...config.effects.distortion!, amount: v } })} label="AMT" color={TE.orange} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.distortion?.mix || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, distortion: { ...config.effects.distortion!, mix: v } })} label="MIX" color={TE.orange} size={knobSize} TE={TE} />
+              </Effect>
+
+              <Effect name="COMPRESS" on={!!config.effects.compressor} onToggle={() => config.effects.compressor ? updateEffects({ ...config.effects, compressor: undefined }) : updateEffects({ ...config.effects, compressor: { threshold: -20, ratio: 4, attack: 0.003, release: 0.25, knee: 30 } })} color={TE.yellow} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
+                <MiniKnob value={config.effects.compressor?.threshold || -20} min={-60} max={0} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, threshold: v } })} label="THRS" color={TE.yellow} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.compressor?.ratio || 4} min={1} max={20} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, ratio: v } })} label="RATIO" color={TE.yellow} size={knobSize} TE={TE} />
+                <MiniKnob value={(config.effects.compressor?.attack || 0.003) * 1000} min={0.1} max={100} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, attack: v / 1000 } })} label="ATK" color={TE.yellow} size={knobSize} TE={TE} />
+                <MiniKnob value={(config.effects.compressor?.release || 0.25) * 1000} min={10} max={1000} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, release: v / 1000 } })} label="REL" color={TE.yellow} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.compressor?.knee ?? 30} min={0} max={40} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, knee: v } })} label="KNEE" color={TE.yellow} size={knobSize} TE={TE} />
+              </Effect>
+
+              <Effect name="CHORUS" on={!!config.effects.chorus} onToggle={() => config.effects.chorus ? updateEffects({ ...config.effects, chorus: undefined }) : updateEffects({ ...config.effects, chorus: { rate: 0.5, depth: 0.5, mix: 0.5, feedback: 0, delay: 20 } })} color={TE.pink} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
+                <MiniKnob value={config.effects.chorus?.rate || 0.5} min={0.1} max={10} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, rate: v } })} label="RATE" color={TE.pink} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.chorus?.depth || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, depth: v } })} label="DEPTH" color={TE.pink} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.chorus?.delay || 20} min={1} max={50} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, delay: v } })} label="DELAY" color={TE.pink} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.chorus?.feedback || 0} min={0} max={0.9} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, feedback: v } })} label="FB" color={TE.pink} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.chorus?.mix || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, mix: v } })} label="MIX" color={TE.pink} size={knobSize} TE={TE} />
+              </Effect>
+
+              <Effect name="DELAY" on={!!config.effects.delay} onToggle={() => config.effects.delay ? updateEffects({ ...config.effects, delay: undefined }) : updateEffects({ ...config.effects, delay: { time: 0.25, feedback: 0.5, mix: 0.3 } })} color={TE.cyan} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
+                <MiniKnob value={(config.effects.delay?.time || 0.25) * 1000} min={10} max={2000} onChange={v => updateEffects({ ...config.effects, delay: { ...config.effects.delay!, time: v / 1000 } })} label="TIME" color={TE.cyan} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.delay?.feedback || 0.5} min={0} max={0.95} onChange={v => updateEffects({ ...config.effects, delay: { ...config.effects.delay!, feedback: v } })} label="FB" color={TE.cyan} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.delay?.mix || 0.3} min={0} max={1} onChange={v => updateEffects({ ...config.effects, delay: { ...config.effects.delay!, mix: v } })} label="MIX" color={TE.cyan} size={knobSize} TE={TE} />
+              </Effect>
+
+              <Effect name="REVERB" on={!!config.effects.reverb} onToggle={() => config.effects.reverb ? updateEffects({ ...config.effects, reverb: undefined }) : updateEffects({ ...config.effects, reverb: { decay: 2, damping: 0.5, mix: 0.3 } })} color={TE.pink} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
+                <MiniKnob value={config.effects.reverb?.decay || 2} min={0.1} max={10} onChange={v => updateEffects({ ...config.effects, reverb: { ...config.effects.reverb!, decay: v } })} label="DECAY" color={TE.pink} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.reverb?.damping || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, reverb: { ...config.effects.reverb!, damping: v } })} label="DAMP" color={TE.pink} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.reverb?.mix || 0.3} min={0} max={1} onChange={v => updateEffects({ ...config.effects, reverb: { ...config.effects.reverb!, mix: v } })} label="MIX" color={TE.pink} size={knobSize} TE={TE} />
+              </Effect>
+
+              <Effect name="GATE" on={!!config.effects.gate} onToggle={() => config.effects.gate ? updateEffects({ ...config.effects, gate: undefined }) : updateEffects({ ...config.effects, gate: { attack: 0.001, hold: 0.2, release: 0.05 } })} color={TE.green} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
+                <MiniKnob value={(config.effects.gate?.attack || 0.001) * 1000} min={0.1} max={50} onChange={v => updateEffects({ ...config.effects, gate: { ...config.effects.gate!, attack: v / 1000 } })} label="ATK" color={TE.green} size={knobSize} TE={TE} />
+                <MiniKnob value={(config.effects.gate?.hold || 0.2) * 1000} min={10} max={1000} onChange={v => updateEffects({ ...config.effects, gate: { ...config.effects.gate!, hold: v / 1000 } })} label="HOLD" color={TE.green} size={knobSize} TE={TE} />
+                <MiniKnob value={(config.effects.gate?.release || 0.05) * 1000} min={5} max={500} onChange={v => updateEffects({ ...config.effects, gate: { ...config.effects.gate!, release: v / 1000 } })} label="REL" color={TE.green} size={knobSize} TE={TE} />
               </Effect>
             </div>
           </Section>
