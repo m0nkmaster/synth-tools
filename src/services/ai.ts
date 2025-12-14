@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import type { SoundConfig } from '../types/soundConfig';
+import { generateSchemaPrompt, generateBatchSchemaPrompt } from '../types/soundConfig';
 
 export type AIProvider = 'openai' | 'gemini';
 
@@ -7,58 +8,7 @@ export type AIProvider = 'openai' | 'gemini';
 const SYSTEM_PROMPT = `You are a synthesizer programmer. Return a JSON synthesis config.
 
 COMPLETE SCHEMA:
-{
-  "synthesis": {
-    "layers": [{
-      "type": "oscillator" | "fm" | "noise" | "karplus-strong",
-      "gain": number (0-1),
-      "envelope": { "attack": number, "decay": number, "sustain": number (0-1), "release": number },
-      "filter": {
-        "type": "lowpass"|"highpass"|"bandpass"|"notch",
-        "frequency": number (20-20000 Hz),
-        "q": number (0.1-20),
-        "envelope": { "amount": number, "attack": number, "decay": number, "sustain": number (0-1), "release": number }
-      },
-      "saturation": { "type": "soft"|"hard"|"tube"|"tape", "drive": number (0-10), "mix": number (0-1) },
-      "oscillator": {
-        "waveform": "sine"|"square"|"sawtooth"|"triangle",
-        "frequency": number (20-20000 Hz),
-        "detune": number (-1200 to 1200 cents),
-        "unison": { "voices": number (1-8), "detune": number (cents spread), "spread": number (0-1 stereo width) },
-        "sub": { "level": number (0-1), "octave": -1 | -2, "waveform": "sine"|"square"|"triangle" }
-      },
-      "fm": { "carrier": number, "modulator": number, "modulationIndex": number (0-20) },
-      "noise": { "type": "white"|"pink"|"brown" },
-      "karplus": { "frequency": number (50-2000 Hz), "damping": number (0-1), "pluckLocation": number (0-1) }
-    }]
-  },
-  "envelope": { "attack": number (0.001-2 sec), "decay": number (0.01-5 sec), "sustain": number (0-1), "release": number (0.01-5 sec) },
-  "filter": {
-    "type": "lowpass"|"highpass"|"bandpass"|"notch"|"allpass"|"peaking",
-    "frequency": number (20-20000 Hz),
-    "q": number (0.0001-1000),
-    "gain": number (dB, for peaking),
-    "envelope": { "amount": number (Hz), "attack": number, "decay": number, "sustain": number (0-1), "release": number }
-  },
-  "lfo": {
-    "waveform": "sine"|"square"|"sawtooth"|"triangle"|"random",
-    "frequency": number (0.1-20 Hz),
-    "depth": number (0-1),
-    "target": "pitch"|"filter"|"amplitude"|"pan",
-    "delay": number (seconds before start),
-    "fade": number (seconds to fade in)
-  },
-  "effects": {
-    "distortion": { "type": "soft"|"hard"|"fuzz"|"bitcrush"|"waveshaper", "amount": number (0-1), "mix": number (0-1) },
-    "reverb": { "decay": number (0.5-10 sec), "damping": number (0-1), "mix": number (0-1) },
-    "delay": { "time": number (0.01-2 sec), "feedback": number (0-0.9), "mix": number (0-1) },
-    "compressor": { "threshold": number (-60 to 0 dB), "ratio": number (1-20), "attack": number, "release": number, "knee": number (dB) },
-    "gate": { "attack": number, "hold": number, "release": number }
-  },
-  "timing": { "duration": number (0.1-12 sec) },
-  "dynamics": { "velocity": number (0-1), "normalize": boolean },
-  "metadata": { "name": string, "category": string, "description": string, "tags": string[] }
-}
+${generateSchemaPrompt()}
 
 RULES:
 - Include layer-specific object (oscillator/fm/noise/karplus) matching the layer type
@@ -66,38 +16,41 @@ RULES:
 - Return raw JSON only, no markdown`;
 
 // System prompt for percussive sound batch generation (/ai-kit-generator page)
-const BATCH_SYSTEM_PROMPT = `You are a percussive sound designer. Return JSON: { "configs": [...] }
+const BATCH_SYSTEM_PROMPT = `You are an expert percussive sound designer for hardware samplers. Return JSON: { "configs": [...] }
 
 SCHEMA for each config:
-{
-  "synthesis": {
-    "layers": [{
-      "type": "oscillator" | "fm" | "noise",
-      "gain": number (0-1),
-      "envelope": { "attack": number, "decay": number, "sustain": number (0-1), "release": number },
-      "filter": { "type": "lowpass"|"highpass"|"bandpass"|"notch", "frequency": number, "q": number },
-      "saturation": { "type": "soft"|"hard"|"tube"|"tape", "drive": number (0-10), "mix": number (0-1) },
-      "oscillator": { "waveform": "sine"|"square"|"sawtooth"|"triangle", "frequency": number, "detune": number },
-      "fm": { "carrier": number, "modulator": number, "modulationIndex": number },
-      "noise": { "type": "white"|"pink"|"brown" }
-    }]
-  },
-  "envelope": { "attack": number, "decay": number, "sustain": number (0-1), "release": number },
-  "filter": { "type": "lowpass"|"highpass"|"bandpass"|"notch", "frequency": number, "q": number },
-  "effects": {
-    "distortion": { "type": "soft"|"hard"|"fuzz"|"bitcrush"|"waveshaper", "amount": number (0-1), "mix": number (0-1) },
-    "compressor": { "threshold": number (dB), "ratio": number, "attack": number, "release": number, "knee": number },
-    "gate": { "attack": number, "hold": number, "release": number }
-  },
-  "timing": { "duration": number (0.1-1 sec) },
-  "dynamics": { "velocity": number (0-1), "normalize": boolean },
-  "metadata": { "name": string, "category": string, "description": string, "tags": string[] }
-}
+${generateBatchSchemaPrompt()}
 
-GUIDELINES:
-- Match envelope to sound type: kicks/snares need instant attack; cymbals/textures can have longer decay
-- NO delay or reverb effects (causes bleed in samplers)
-- Return raw JSON only, no markdown`;
+CRITICAL SOUND DESIGN RULES:
+
+1. TRANSIENTS ARE EVERYTHING
+   - Attack: 0.001-0.005s for ALL percussive sounds (instant impact)
+   - Use filter envelopes with HIGH Q (5-15) and FAST decay (0.01-0.05s) for click/punch
+   - Filter envelope amount: 2000-8000 Hz sweep down for transient definition
+
+2. CATEGORY-SPECIFIC RECIPES:
+   KICK: sine/triangle 40-80Hz, duration 0.1-0.2s, filter sweep 3000-6000Hz for beater click, Q=8-12
+   SNARE: noise layer + sine 150-250Hz, bandpass body + highpass 3-6kHz for snap, duration 0.1-0.2s
+   HIHAT: white/pink noise + highpass 5-10kHz, very short 0.03-0.12s, Q=2-4 for shimmer
+   TOM: sine 60-200Hz depending on pitch, duration 0.1-0.25s, filter sweep for attack
+   PERC: FM or filtered noise, focused mid frequencies, short 0.05-0.15s
+   FX: creative freedom, up to 0.4s
+
+3. AVOID MUDDINESS:
+   - Keep layers frequency-separated (low osc + high noise, not overlapping)
+   - Highpass non-kick sounds at 80-150Hz to clear mud
+   - Short release times (0.01-0.08s) prevent overlap
+   - Zero sustain for all drums (sustain: 0)
+   - Limit to 1-2 layers per sound
+
+4. ADD PRESENCE AND PUNCH:
+   - Saturation (drive 3-7) on kicks/snares adds harmonics
+   - Distortion amount 0.2-0.5 for grit without harshness
+   - Compressor: SLOW attack (0.05-0.15s) preserves transients, fast release (0.05-0.1s), ratio 3-6
+
+5. NO delay or reverb (causes bleed)
+
+Return raw JSON only, no markdown`;
 
 // Extract JSON from text that may have extra content before/after
 function extractJSON(text: string): Record<string, unknown> {
@@ -634,6 +587,92 @@ async function batchGenerateWithGemini(ideas: SoundIdea[]): Promise<SoundConfig[
   return configs.filter((c: unknown) => c !== null && typeof c === 'object');
 }
 
+// Category-specific max durations for tight, punchy sounds
+const CATEGORY_MAX_DURATIONS: Record<string, number> = {
+  kick: 0.2,
+  snare: 0.18,
+  hihat: 0.12,
+  tom: 0.25,
+  perc: 0.15,
+  fx: 0.4,
+};
+
+// Enforce punchy parameters even if AI generates soft values
+function enforcePunchyDefaults(config: SoundConfig, category: string): void {
+  // Force very fast attack for all percussion
+  if (config.envelope.attack > 0.008) {
+    config.envelope.attack = 0.003;
+  }
+  
+  // Force zero sustain for all drums (except fx which can have some)
+  if (['kick', 'snare', 'hihat', 'tom', 'perc'].includes(category)) {
+    config.envelope.sustain = 0;
+  }
+  
+  // Ensure short release to prevent mud
+  const maxRelease = category === 'fx' ? 0.2 : 0.1;
+  if (config.envelope.release > maxRelease) {
+    config.envelope.release = maxRelease;
+  }
+  
+  // Ensure short decay for tight sounds
+  const maxDecay: Record<string, number> = {
+    kick: 0.15,
+    snare: 0.12,
+    hihat: 0.08,
+    tom: 0.2,
+    perc: 0.1,
+    fx: 0.3,
+  };
+  if (config.envelope.decay > (maxDecay[category] || 0.15)) {
+    config.envelope.decay = maxDecay[category] || 0.15;
+  }
+  
+  // Add transient click filter if missing for kicks/snares
+  if (['kick', 'snare', 'tom'].includes(category) && !config.filter?.envelope) {
+    config.filter = {
+      type: 'lowpass',
+      frequency: 300,
+      q: 10,
+      envelope: {
+        amount: 4000,
+        attack: 0.001,
+        decay: 0.03,
+        sustain: 0,
+        release: 0.02,
+      },
+    };
+  }
+  
+  // Fix compressor to preserve transients (slow attack)
+  if (config.effects.compressor) {
+    if (config.effects.compressor.attack < 0.03) {
+      config.effects.compressor.attack = 0.06;
+    }
+    // Ensure fast release for punch
+    if (config.effects.compressor.release > 0.15) {
+      config.effects.compressor.release = 0.08;
+    }
+  }
+  
+  // Remove reverb/delay that causes bleed
+  if (config.effects.reverb) {
+    delete config.effects.reverb;
+  }
+  if (config.effects.delay) {
+    delete config.effects.delay;
+  }
+  
+  // Ensure layers have sensible envelopes too
+  config.synthesis.layers.forEach(layer => {
+    if (layer.envelope) {
+      if (layer.envelope.attack > 0.01) layer.envelope.attack = 0.003;
+      if (layer.envelope.sustain > 0) layer.envelope.sustain = 0;
+      if (layer.envelope.release > maxRelease) layer.envelope.release = maxRelease * 0.8;
+    }
+  });
+}
+
 export async function generateBatchSoundConfigs(
   ideas: SoundIdea[],
   provider: AIProvider
@@ -647,17 +686,17 @@ export async function generateBatchSoundConfigs(
     ensureDefaults(config);
     
     // Sync metadata with ideas
+    const category = ideas[i].category;
     config.metadata.name = ideas[i].name;
-    config.metadata.category = ideas[i].category as SoundConfig['metadata']['category'];
+    config.metadata.category = category as SoundConfig['metadata']['category'];
     config.metadata.description = ideas[i].description;
     
-    // Clamp duration to pack constraints
-    config.timing.duration = Math.max(0.3, Math.min(config.timing.duration, 0.6));
+    // Category-aware duration clamping
+    const maxDur = CATEGORY_MAX_DURATIONS[category] || 0.2;
+    config.timing.duration = Math.max(0.05, Math.min(config.timing.duration, maxDur));
     
-    // Remove delay to prevent tail bleed between slices
-    if (config.effects.delay) {
-      delete config.effects.delay;
-    }
+    // Enforce punchy, clean sound design
+    enforcePunchyDefaults(config, category);
     
     validateConfig(config);
     return config;

@@ -434,7 +434,6 @@ describe('Property-Based Tests', () => {
                   karplus: fc.record({
                     frequency: validFloat(20, 2000),
                     damping: validFloat(0, 1),
-                    pluckLocation: validFloat(0, 1),
                   }),
                 })
               ),

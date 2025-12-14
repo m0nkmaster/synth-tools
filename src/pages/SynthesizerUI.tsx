@@ -5,12 +5,12 @@
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Collapse, useMediaQuery } from '@mui/material';
+import { Collapse, Container, Paper, Stack, useMediaQuery } from '@mui/material';
 import { JSONEditor } from '../components/JSONEditor';
 import { ValidationDisplay } from '../components/ValidationDisplay';
 import { useDefaultPreset } from '../hooks/useDefaultPreset';
 import { synthesizeSound } from '../audio/synthesizer';
-import { validateSoundConfigJSON, type ValidationError } from '../utils/validation';
+import { validateSoundConfigJSON, type ValidationResult } from '../utils/validation';
 import { generateSoundConfig, type AIProvider } from '../services/ai';
 import { useThemeMode } from '../context/ThemeContext';
 import { TE_COLORS } from '../theme';
@@ -98,7 +98,11 @@ interface MiniKnobProps {
 function MiniKnob({ value, min, max, onChange, label, color, logarithmic, disabled, size = 'small', TE }: MiniKnobProps) {
   const knobColor = color || TE.orange;
   const [dragging, setDragging] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [inputValue, setInputValue] = useState('');
   const dragStart = useRef({ y: 0, value: 0 });
+  const hasDragged = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const normalized = logarithmic
     ? Math.log(Math.max(min, value) / min) / Math.log(max / min)
@@ -114,8 +118,9 @@ function MiniKnob({ value, min, max, onChange, label, color, logarithmic, disabl
   const s = sizes[size];
 
   const handleStart = (clientY: number) => {
-    if (disabled) return;
+    if (disabled || editing) return;
     setDragging(true);
+    hasDragged.current = false;
     dragStart.current = { y: clientY, value };
   };
 
@@ -129,11 +134,31 @@ function MiniKnob({ value, min, max, onChange, label, color, logarithmic, disabl
     handleStart(e.touches[0].clientY);
   };
 
+  const handleInputSubmit = () => {
+    const parsed = parseFloat(inputValue);
+    if (!isNaN(parsed)) {
+      onChange(Math.max(min, Math.min(max, parsed)));
+    }
+    setEditing(false);
+  };
+
+  // Focus input when entering edit mode
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
   useEffect(() => {
     if (!dragging) return;
 
     const handleMove = (clientY: number) => {
       const delta = dragStart.current.y - clientY;
+      // Mark as dragged if moved more than 3 pixels
+      if (Math.abs(delta) > 3) {
+        hasDragged.current = true;
+      }
       const sensitivity = (max - min) / 100;
       let newVal: number;
       if (logarithmic) {
@@ -153,7 +178,14 @@ function MiniKnob({ value, min, max, onChange, label, color, logarithmic, disabl
       e.preventDefault();
       handleMove(e.touches[0].clientY);
     };
-    const up = () => setDragging(false);
+    const up = () => {
+      // If we didn't drag, treat as click and enter edit mode
+      if (!hasDragged.current) {
+        setEditing(true);
+        setInputValue(value.toString());
+      }
+      setDragging(false);
+    };
 
     window.addEventListener('mousemove', moveHandler);
     window.addEventListener('mouseup', up);
@@ -166,7 +198,7 @@ function MiniKnob({ value, min, max, onChange, label, color, logarithmic, disabl
       window.removeEventListener('touchmove', touchMoveHandler);
       window.removeEventListener('touchend', up);
     };
-  }, [dragging, min, max, onChange, logarithmic]);
+  }, [dragging, min, max, onChange, logarithmic, value]);
 
   const display = value >= 1000 ? `${(value/1000).toFixed(1)}k` : value >= 100 ? value.toFixed(0) : value >= 1 ? value.toFixed(1) : value.toFixed(2);
 
@@ -189,7 +221,42 @@ function MiniKnob({ value, min, max, onChange, label, color, logarithmic, disabl
         }} />
       </div>
       <span style={{ fontSize: s.labelSize, color: TE.grey, fontWeight: 700, letterSpacing: 0.3 }}>{label}</span>
-      <span style={{ fontSize: s.valueSize, color: TE.black, fontWeight: 700 }}>{display}</span>
+      {editing ? (
+        <input
+          ref={inputRef}
+          type="number"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onBlur={handleInputSubmit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleInputSubmit();
+            else if (e.key === 'Escape') setEditing(false);
+          }}
+          style={{
+            width: s.knob + 16,
+            fontSize: s.valueSize,
+            fontWeight: 700,
+            textAlign: 'center',
+            border: `1px solid ${knobColor}`,
+            borderRadius: 3,
+            padding: '1px 2px',
+            outline: 'none',
+            background: TE.surface,
+            color: TE.black,
+          }}
+          step="any"
+        />
+      ) : (
+        <span
+          style={{ fontSize: s.valueSize, color: TE.black, fontWeight: 700, cursor: 'pointer' }}
+          onClick={() => {
+            setEditing(true);
+            setInputValue(value.toString());
+          }}
+        >
+          {display}
+        </span>
+      )}
     </div>
   );
 }
@@ -599,7 +666,6 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               <Module label="STRING" color={cfg.color} isMobile={isMobile} TE={TE}>
                 <MiniKnob value={layer.karplus.frequency} min={20} max={20000} onChange={v => onUpdate({ ...layer, karplus: { ...layer.karplus!, frequency: v } })} label="FRQ" color={cfg.color} logarithmic size={knobSize} TE={TE} />
                 <MiniKnob value={layer.karplus.damping} min={0} max={1} onChange={v => onUpdate({ ...layer, karplus: { ...layer.karplus!, damping: v } })} label="DMP" color={cfg.color} size={knobSize} TE={TE} />
-                <MiniKnob value={layer.karplus.pluckLocation || 0.5} min={0} max={1} onChange={v => onUpdate({ ...layer, karplus: { ...layer.karplus!, pluckLocation: v } })} label="PLK" color={cfg.color} size={knobSize} TE={TE} />
               </Module>
               <Module label="ENVELOPE" color={TE.green} on={!!layer.envelope} onToggle={() => onUpdate({ ...layer, envelope: layer.envelope ? undefined : { attack: 0.001, decay: 0.1, sustain: 0.5, release: 0.5 } })} isMobile={isMobile} TE={TE}>
                 {layer.envelope && <>
@@ -740,8 +806,7 @@ export function SynthesizerUI() {
   const [playing, setPlaying] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-  const [validationWarnings, setValidationWarnings] = useState<ValidationError[]>([]);
+  const [validationResult, setValidationResult] = useState<ValidationResult>({ valid: true, errors: [] });
   const [showJSONEditor, setShowJSONEditor] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState(0);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
@@ -822,11 +887,10 @@ export function SynthesizerUI() {
   // JSON change handler
   const handleJSONChange = useCallback((newJsonValue: string) => {
     setJsonValue(newJsonValue);
-    const validationResult = validateSoundConfigJSON(newJsonValue);
-    setValidationErrors(validationResult.errors);
-    setValidationWarnings(validationResult.warnings);
+    const result = validateSoundConfigJSON(newJsonValue);
+    setValidationResult(result);
 
-    if (validationResult.valid && !isUpdatingFromUI.current) {
+    if (result.valid && !isUpdatingFromUI.current) {
       try {
         const parsedConfig = JSON.parse(newJsonValue) as SoundConfig;
         isUpdatingFromJSON.current = true;
@@ -926,281 +990,270 @@ export function SynthesizerUI() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', fontFamily: '"JetBrains Mono", "SF Mono", monospace', overflow: 'hidden', width: '100%' }}>
-      {/* HEADER */}
-      <header style={{
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        justifyContent: 'space-between',
-        alignItems: isMobile ? 'stretch' : 'center',
-        gap: isMobile ? 10 : 0,
-        padding: isMobile ? '12px 12px' : '10px 16px',
-        background: TE.headerGradient,
-        borderBottom: `1px solid ${TE.border}`,
-        backdropFilter: 'blur(10px)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <Container maxWidth="lg" sx={{ py: 2, px: 2 }}>
+      <Stack spacing={1.25}>
+        {/* HEADER + AI PROMPT + MIDI in single block */}
+        <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
+          {/* HEADER */}
           <div style={{
-            width: isMobile ? 36 : 28,
-            height: isMobile ? 36 : 28,
-            background: TE.orange,
-            borderRadius: 4,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontWeight: 900,
-            fontSize: isMobile ? 14 : 12,
-          }}>SE</div>
-          <div>
-            <div style={{ fontSize: isMobile ? 12 : 10, fontWeight: 700, color: TE.black, letterSpacing: 1 }}>SYNTH ENGINE</div>
-            <div style={{ fontSize: isMobile ? 10 : 8, color: TE.grey }}>full featured</div>
+            flexDirection: isMobile ? 'column' : 'row',
+            justifyContent: 'space-between',
+            alignItems: isMobile ? 'stretch' : 'center',
+            gap: isMobile ? 10 : 0,
+            padding: isMobile ? '12px' : '10px 16px',
+            borderBottom: `1px solid ${TE.border}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: isMobile ? 36 : 28,
+                height: isMobile ? 36 : 28,
+                background: TE.orange,
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontWeight: 900,
+                fontSize: isMobile ? 14 : 12,
+              }}>SE</div>
+              <div>
+                <div style={{ fontSize: isMobile ? 12 : 10, fontWeight: 700, color: TE.black, letterSpacing: 1 }}>SYNTH ENGINE</div>
+                <div style={{ fontSize: isMobile ? 10 : 8, color: TE.grey }}>make a sound or ask AI</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
+              <button
+                onClick={() => setShowJSONEditor(!showJSONEditor)}
+                style={{
+                  padding: isMobile ? '10px 14px' : '6px 10px',
+                  border: `1px solid ${showJSONEditor ? TE.orange : TE.border}`,
+                  borderRadius: 3,
+                  background: showJSONEditor ? `${TE.orange}20` : TE.panel,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: isMobile ? 11 : 9,
+                  fontWeight: 600,
+                  color: showJSONEditor ? TE.orange : TE.grey,
+                  minHeight: isMobile ? 44 : undefined,
+                }}
+              >
+                {'</>'}
+              </button>
+              <button
+                onClick={handlePlay}
+                disabled={playing}
+                style={{
+                  padding: isMobile ? '10px 28px' : '6px 24px',
+                  background: playing ? TE.surface : TE.orange,
+                  border: 'none',
+                  borderRadius: 3,
+                  color: playing ? TE.grey : '#fff',
+                  fontSize: isMobile ? 12 : 10,
+                  fontWeight: 800,
+                  cursor: playing ? 'not-allowed' : 'pointer',
+                  letterSpacing: 0.5,
+                  minHeight: isMobile ? 44 : undefined,
+                  flex: isMobile ? 1 : undefined,
+                }}
+              >
+                {playing ? '■ PLAYING' : '▶ PLAY'}
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                style={{
+                  padding: isMobile ? '10px 16px' : '6px 12px',
+                  background: TE.panel,
+                  border: `1px solid ${TE.green}`,
+                  borderRadius: 3,
+                  color: TE.green,
+                  fontSize: isMobile ? 11 : 9,
+                  fontWeight: 600,
+                  cursor: exporting ? 'not-allowed' : 'pointer',
+                  opacity: exporting ? 0.5 : 1,
+                  minHeight: isMobile ? 44 : undefined,
+                }}
+              >↓ EXPORT</button>
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
-          <button
-            onClick={() => setShowJSONEditor(!showJSONEditor)}
-            style={{
-              padding: isMobile ? '10px 14px' : '6px 10px',
-              border: `1px solid ${showJSONEditor ? TE.orange : TE.border}`,
-              borderRadius: 3,
-              background: showJSONEditor ? `${TE.orange}20` : TE.panel,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: isMobile ? 11 : 9,
-              fontWeight: 600,
-              color: showJSONEditor ? TE.orange : TE.grey,
-              minHeight: isMobile ? 44 : undefined,
-            }}
-          >
-            {'</>'}
-          </button>
-          <button
-            onClick={handlePlay}
-            disabled={playing}
-            style={{
-              padding: isMobile ? '10px 28px' : '6px 24px',
-              background: playing ? TE.surface : TE.orange,
-              border: 'none',
-              borderRadius: 3,
-              color: playing ? TE.grey : '#fff',
-              fontSize: isMobile ? 12 : 10,
-              fontWeight: 800,
-              cursor: playing ? 'not-allowed' : 'pointer',
-              letterSpacing: 0.5,
-              minHeight: isMobile ? 44 : undefined,
-              flex: isMobile ? 1 : undefined,
-            }}
-          >
-            {playing ? '■ PLAYING' : '▶ PLAY'}
-          </button>
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            style={{
-              padding: isMobile ? '10px 16px' : '6px 12px',
-              background: TE.panel,
-              border: `1px solid ${TE.green}`,
-              borderRadius: 3,
-              color: TE.green,
-              fontSize: isMobile ? 11 : 9,
-              fontWeight: 600,
-              cursor: exporting ? 'not-allowed' : 'pointer',
-              opacity: exporting ? 0.5 : 1,
-              minHeight: isMobile ? 44 : undefined,
-            }}
-          >↓ EXPORT</button>
-        </div>
-      </header>
-      
-      {/* AI PROMPT */}
-      <div style={{ 
-        padding: isMobile ? '12px 12px' : '10px 16px',
-        background: TE.surface,
-        borderBottom: `1px solid ${TE.border}`,
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? 8 : 10,
-        alignItems: 'center',
-      }}>
-        <select
-          value={provider}
-          onChange={e => setProvider(e.target.value as AIProvider)}
-          disabled={generating}
-          style={{
-            padding: isMobile ? '8px 10px' : '6px 8px',
-            background: TE.inputBg,
-            border: `1px solid ${TE.border}`,
-            borderRadius: 4,
-            color: TE.black,
-            fontSize: isMobile ? 11 : 9,
-            cursor: 'pointer',
-            minWidth: isMobile ? '100%' : 100,
-          }}
-        >
-          <option value="gemini">Gemini</option>
-          <option value="openai">OpenAI</option>
-        </select>
-        <input
-          type="text"
-          value={prompt}
-          onChange={e => setPrompt(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && !generating && handleGenerate()}
-          placeholder="Describe the sound you want to create..."
-          disabled={generating}
-          style={{
-            flex: 1,
-            padding: isMobile ? '10px 12px' : '6px 10px',
-            background: TE.inputBg,
-            border: `1px solid ${TE.border}`,
-            borderRadius: 4,
-            color: TE.black,
-            fontSize: isMobile ? 12 : 10,
-            width: isMobile ? '100%' : 'auto',
-            minWidth: 0,
-          }}
-        />
-        <button
-          onClick={handleGenerate}
-          disabled={generating || !prompt.trim()}
-          style={{
-            padding: isMobile ? '10px 16px' : '6px 12px',
-            background: generating ? TE.surface : TE.pink,
-            border: 'none',
-            borderRadius: 4,
-            color: generating ? TE.grey : '#fff',
-            fontSize: isMobile ? 11 : 9,
-            fontWeight: 600,
-            cursor: generating || !prompt.trim() ? 'not-allowed' : 'pointer',
-            width: isMobile ? '100%' : 'auto',
-            minHeight: isMobile ? 38 : undefined,
-            whiteSpace: 'nowrap',
-            boxShadow: generating ? 'none' : `0 2px 8px ${TE.pink}40`,
-            transition: 'all 0.2s ease',
-          }}
-        >
-          {generating ? 'GENERATING...' : '✨ GENERATE'}
-        </button>
-      </div>
-
-      {/* MIDI PANEL */}
-      <div style={{
-        padding: isMobile ? '10px 12px' : '8px 16px',
-        background: TE.panelAlt,
-        borderBottom: `1px solid ${TE.border}`,
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? 8 : 16,
-        alignItems: isMobile ? 'stretch' : 'center',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: midiActivity ? TE.green : midi.enabled ? TE.yellow : TE.grey,
-            boxShadow: midiActivity ? `0 0 8px ${TE.green}` : 'none',
-            transition: 'all 0.1s ease',
-          }} />
-          <span style={{ fontSize: isMobile ? 10 : 9, fontWeight: 700, color: TE.grey, letterSpacing: 0.5 }}>MIDI</span>
-        </div>
-        
-        {midi.supported ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, flex: 1 }}>
+          
+          {/* AI PROMPT */}
+          <div style={{ 
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? 8 : 10,
+            alignItems: 'center',
+            padding: isMobile ? '12px' : '10px 16px',
+            borderBottom: `1px solid ${TE.border}`,
+          }}>
             <select
-              value={midi.selectedDeviceId || ''}
-              onChange={(e) => midi.selectDevice(e.target.value || null)}
+              value={provider}
+              onChange={e => setProvider(e.target.value as AIProvider)}
+              disabled={generating}
               style={{
-                padding: isMobile ? '8px 10px' : '5px 8px',
+                padding: isMobile ? '8px 10px' : '6px 8px',
                 background: TE.inputBg,
-                border: `1px solid ${midi.selectedDeviceId ? TE.green : TE.border}`,
+                border: `1px solid ${TE.border}`,
                 borderRadius: 4,
                 color: TE.black,
                 fontSize: isMobile ? 11 : 9,
                 cursor: 'pointer',
-                flex: isMobile ? 1 : 'none',
-                minWidth: 140,
+                minWidth: isMobile ? '100%' : 100,
               }}
             >
-              <option value="">No MIDI Device</option>
-              {midi.devices.map((device) => (
-                <option key={device.id} value={device.id}>
-                  {device.name}
-                </option>
-              ))}
+              <option value="gemini">Gemini</option>
+              <option value="openai">OpenAI</option>
             </select>
-            
-            {midi.activeNotes.size > 0 && (
-              <div style={{
-                display: 'flex',
-                gap: 4,
-                flexWrap: 'wrap',
-              }}>
-                {Array.from(midi.activeNotes).slice(0, 8).map((note) => (
-                  <span
-                    key={note}
-                    style={{
-                      padding: '2px 6px',
-                      background: TE.green,
-                      borderRadius: 3,
-                      fontSize: isMobile ? 10 : 8,
-                      fontWeight: 700,
-                      color: '#fff',
-                    }}
-                  >
-                    {midiNoteToName(note)}
-                  </span>
-                ))}
+            <input
+              type="text"
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !generating && handleGenerate()}
+              placeholder="Describe the sound you want to create..."
+              disabled={generating}
+              style={{
+                flex: 1,
+                padding: isMobile ? '10px 12px' : '6px 10px',
+                background: TE.inputBg,
+                border: `1px solid ${TE.border}`,
+                borderRadius: 4,
+                color: TE.black,
+                fontSize: isMobile ? 12 : 10,
+                width: isMobile ? '100%' : 'auto',
+                minWidth: 0,
+              }}
+            />
+            <button
+              onClick={handleGenerate}
+              disabled={generating || !prompt.trim()}
+              style={{
+                padding: isMobile ? '10px 16px' : '6px 12px',
+                background: generating ? TE.surface : TE.pink,
+                border: 'none',
+                borderRadius: 4,
+                color: generating ? TE.grey : '#fff',
+                fontSize: isMobile ? 11 : 9,
+                fontWeight: 600,
+                cursor: generating || !prompt.trim() ? 'not-allowed' : 'pointer',
+                width: isMobile ? '100%' : 'auto',
+                minHeight: isMobile ? 38 : undefined,
+                whiteSpace: 'nowrap',
+                boxShadow: generating ? 'none' : `0 2px 8px ${TE.pink}40`,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {generating ? 'GENERATING...' : '✨ GENERATE'}
+            </button>
+          </div>
+
+          {/* MIDI PANEL - only show when connected */}
+          {midi.enabled && (
+            <div style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: isMobile ? 8 : 16,
+              alignItems: isMobile ? 'stretch' : 'center',
+              padding: isMobile ? '10px 12px' : '8px 16px',
+              borderTop: `1px solid ${TE.border}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: midiActivity ? TE.green : TE.yellow,
+                  boxShadow: midiActivity ? `0 0 8px ${TE.green}` : 'none',
+                  transition: 'all 0.1s ease',
+                }} />
+                <span style={{ fontSize: isMobile ? 10 : 9, fontWeight: 700, color: TE.grey, letterSpacing: 0.5 }}>MIDI</span>
               </div>
-            )}
-            
-            {midi.lastNote && midi.activeNotes.size === 0 && (
-              <span style={{ fontSize: isMobile ? 10 : 8, color: TE.grey }}>
-                Last: {midiNoteToName(midi.lastNote.note)}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span style={{ fontSize: isMobile ? 10 : 9, color: TE.grey }}>
-            MIDI not supported in this browser
-          </span>
-        )}
-        
-        {midi.error && (
-          <span style={{ fontSize: isMobile ? 10 : 9, color: TE.errorText }}>
-            {midi.error}
-          </span>
-        )}
-      </div>
-
-      {error && <div style={{ padding: '8px 16px', background: TE.errorBg, borderBottom: `1px solid ${TE.errorBorder}`, color: TE.errorText, fontSize: 10, fontWeight: 600 }}>{error}</div>}
-
-      {/* JSON EDITOR */}
-      <Collapse in={showJSONEditor}>
-        <div style={{ background: TE.panelAlt, borderBottom: `1px solid ${TE.border}`, padding: 16 }}>
-          <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-            <div style={{ fontSize: 8, color: TE.grey, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>JSON CONFIGURATION</div>
-            <ValidationDisplay errors={validationErrors} warnings={validationWarnings} />
-            <div style={{ marginTop: validationErrors.length > 0 || validationWarnings.length > 0 ? 8 : 0 }}>
-              <JSONEditor value={jsonValue} onChange={handleJSONChange} height="300px" />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, flex: 1 }}>
+                <select
+                  value={midi.selectedDeviceId || ''}
+                  onChange={(e) => midi.selectDevice(e.target.value || null)}
+                  style={{
+                    padding: isMobile ? '8px 10px' : '5px 8px',
+                    background: TE.inputBg,
+                    border: `1px solid ${TE.green}`,
+                    borderRadius: 4,
+                    color: TE.black,
+                    fontSize: isMobile ? 11 : 9,
+                    cursor: 'pointer',
+                    flex: isMobile ? 1 : 'none',
+                    minWidth: 140,
+                  }}
+                >
+                  <option value="">No MIDI Device</option>
+                  {midi.devices.map((device) => (
+                    <option key={device.id} value={device.id}>
+                      {device.name}
+                    </option>
+                  ))}
+                </select>
+                
+                {midi.activeNotes.size > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    gap: 4,
+                    flexWrap: 'wrap',
+                  }}>
+                    {Array.from(midi.activeNotes).slice(0, 8).map((note) => (
+                      <span
+                        key={note}
+                        style={{
+                          padding: '2px 6px',
+                          background: TE.green,
+                          borderRadius: 3,
+                          fontSize: isMobile ? 10 : 8,
+                          fontWeight: 700,
+                          color: '#fff',
+                        }}
+                      >
+                        {midiNoteToName(note)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                {midi.lastNote && midi.activeNotes.size === 0 && (
+                  <span style={{ fontSize: isMobile ? 10 : 8, color: TE.grey }}>
+                    Last: {midiNoteToName(midi.lastNote.note)}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      </Collapse>
+          )}
 
-      {/* MAIN */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isTablet ? '1fr' : '1fr 280px',
-        gap: isMobile ? 10 : 12,
-        padding: isMobile ? 10 : 12,
-        maxWidth: 1000,
-        margin: '0 auto',
-        overflow: 'hidden',
-        boxSizing: 'border-box',
-      }}>
+          {/* JSON EDITOR - inside same block */}
+          <Collapse in={showJSONEditor}>
+            <div style={{ padding: isMobile ? 12 : 16, borderTop: `1px solid ${TE.border}` }}>
+              <div style={{ fontSize: 8, color: TE.grey, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>JSON CONFIGURATION</div>
+              <ValidationDisplay result={validationResult} />
+              <div style={{ marginTop: validationResult.errors.length > 0 ? 8 : 0 }}>
+                <JSONEditor value={jsonValue} onChange={handleJSONChange} height="300px" />
+              </div>
+            </div>
+          </Collapse>
+        </Paper>
+
+        {error && (
+          <Paper variant="outlined" sx={{ p: 2, bgcolor: TE.errorBg, borderColor: TE.errorBorder }}>
+            <span style={{ color: TE.errorText, fontSize: 10, fontWeight: 600 }}>{error}</span>
+          </Paper>
+        )}
+
+        {/* MAIN */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isTablet ? '1fr' : '1fr 280px',
+          gap: isMobile ? 10 : 12,
+          overflow: 'hidden',
+          boxSizing: 'border-box',
+        }}>
         {/* LEFT */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 10, minWidth: 0, overflow: 'hidden' }}>
           {/* WAVEFORM */}
@@ -1396,6 +1449,7 @@ export function SynthesizerUI() {
           </Section>
         </div>
       </div>
-    </div>
+      </Stack>
+    </Container>
   );
 }

@@ -209,7 +209,7 @@ function createNoiseLayer(
 
 function createKarplusStrongLayer(
   ctx: AnyAudioContext,
-  config: { frequency: number; damping: number; pluckLocation?: number },
+  config: { frequency: number; damping: number },
   frequency: number,
   startTime: number,
   sources: AudioScheduledSourceNode[]
@@ -322,26 +322,89 @@ export function createDistortion(
   const input = ctx.createGain();
   const output = ctx.createGain();
   
+  const amount = safe(config.amount, 0.5);
+  const mix = safe(config.mix, 0.5);
+  const type = config.type || 'soft';
+  
+  // Bitcrush uses sample rate reduction, others use waveshaping
+  if (type === 'bitcrush') {
+    // Bitcrusher: reduce bit depth via quantization
+    // amount 0-1 maps to 16 bits down to 2 bits
+    const bits = Math.max(2, Math.round(16 - amount * 14));
+    const levels = Math.pow(2, bits);
+    
+    const shaper = ctx.createWaveShaper();
+    const curveSize = 65536; // Higher resolution for stair-step effect
+    const curve = new Float32Array(curveSize);
+    
+    for (let i = 0; i < curveSize; i++) {
+      const x = (i / (curveSize - 1)) * 2 - 1; // -1 to 1
+      // Quantize to discrete levels
+      curve[i] = Math.round(x * levels) / levels;
+    }
+    shaper.curve = curve;
+    shaper.oversample = 'none'; // No oversampling for that crunchy sound
+    
+    const dryGain = ctx.createGain();
+    const wetGain = ctx.createGain();
+    dryGain.gain.value = 1 - mix;
+    wetGain.gain.value = mix;
+    
+    input.connect(dryGain);
+    dryGain.connect(output);
+    input.connect(shaper);
+    shaper.connect(wetGain);
+    wetGain.connect(output);
+    
+    return { input, output };
+  }
+  
+  // Waveshaping distortion types
   const shaper = ctx.createWaveShaper();
   const curveSize = 256;
   const curve = new Float32Array(curveSize);
-  const amount = safe(config.amount, 0.5) * 100;
+  const drive = amount * 100;
   
   for (let i = 0; i < curveSize; i++) {
     const x = (i - curveSize / 2) / (curveSize / 2);
-    curve[i] = Math.tanh(x * amount);
+    let y: number;
+    
+    switch (type) {
+      case 'hard':
+        // Hard clipping
+        y = Math.max(-1, Math.min(1, x * (1 + drive)));
+        break;
+      case 'fuzz':
+        // Asymmetric fuzz with octave-up harmonics
+        // Inspired by classic fuzz pedals
+        y = x >= 0
+          ? Math.tanh(x * drive * 2) * 0.9
+          : Math.tanh(x * drive * 0.8) * -0.7 - 0.1 * Math.sin(x * drive * Math.PI);
+        break;
+      case 'waveshaper': {
+        // Chebyshev polynomial for rich harmonics
+        const k = drive / 50;
+        y = (1 + k) * x / (1 + k * Math.abs(x));
+        break;
+      }
+      case 'soft':
+      default:
+        // Soft clipping (tanh)
+        y = Math.tanh(x * drive);
+        break;
+    }
+    
+    curve[i] = y;
   }
   shaper.curve = curve;
   
   const dryGain = ctx.createGain();
   const wetGain = ctx.createGain();
-  const mix = safe(config.mix, 0.5);
   dryGain.gain.value = 1 - mix;
   wetGain.gain.value = mix;
   
   input.connect(dryGain);
   dryGain.connect(output);
-  
   input.connect(shaper);
   shaper.connect(wetGain);
   wetGain.connect(output);

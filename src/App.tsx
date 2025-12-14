@@ -163,7 +163,7 @@ function AppContent() {
                 Analyzer
               </Button>
               <Button onClick={() => navigate('/usb-browser')} sx={navButtonStyle('/usb-browser')}>
-                USB
+                OP-Z USB
               </Button>
               <Button onClick={() => navigate('/ai-kit-generator')} sx={navButtonStyle('/ai-kit-generator')}>
                 AI Kit
