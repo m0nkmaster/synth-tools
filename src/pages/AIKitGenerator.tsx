@@ -4,28 +4,30 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Container,
+  Grid,
+  LinearProgress,
+  MenuItem,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import StopIcon from '@mui/icons-material/Stop';
 import { generateSoundConfig, type AIProvider } from '../services/ai';
 import { synthesizeSound } from '../audio/synthesizer';
 import { buildDrumPack } from '../audio/pack';
 import type { SoundConfig } from '../types/soundConfig';
 import type { Slice } from '../types';
 import { OPZ } from '../config';
-
-// Design tokens
-const TE = {
-  bg: '#0a0a0f',
-  surface: '#14141f',
-  panel: '#1a1a2a',
-  accent: '#ff5500',
-  accentDim: '#ff550040',
-  cyan: '#00d4ff',
-  green: '#00ff88',
-  pink: '#ff3399',
-  yellow: '#ffd500',
-  text: '#ffffff',
-  textDim: '#888899',
-  border: '#2a2a3a',
-};
 
 type GenerationPhase = 'idle' | 'planning' | 'generating' | 'synthesizing' | 'building' | 'complete' | 'error';
 
@@ -79,6 +81,25 @@ Example for "80s kicks":
 
 REMEMBER: These are drum HITS, not sustained sounds. Every sound must start INSTANTLY with zero silence at the beginning.`;
 
+const PHASE_LABELS: Record<GenerationPhase, string> = {
+  idle: '',
+  planning: 'Planning kit...',
+  generating: 'Generating configs...',
+  synthesizing: 'Synthesizing sounds...',
+  building: 'Building pack...',
+  complete: 'Complete',
+  error: 'Error',
+};
+
+const CATEGORY_COLORS: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info'> = {
+  kick: 'error',
+  snare: 'warning',
+  hihat: 'info',
+  tom: 'secondary',
+  perc: 'success',
+  fx: 'primary',
+};
+
 export default function AIKitGenerator() {
   const [prompt, setPrompt] = useState('');
   const [provider, setProvider] = useState<AIProvider>('gemini');
@@ -93,25 +114,20 @@ export default function AIKitGenerator() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const abortRef = useRef(false);
 
-  // Play a single sound
   const playSound = useCallback(async (buffer: AudioBuffer) => {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new AudioContext();
     }
     const ctx = audioCtxRef.current;
-    
-    // Resume context if suspended (required by browser autoplay policy)
     if (ctx.state === 'suspended') {
       await ctx.resume();
     }
-    
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);
     source.start();
   }, []);
 
-  // Generate kit ideas from prompt
   const planKit = async (userPrompt: string): Promise<{ kitName: string; sounds: SoundIdea[] }> => {
     const apiKey = provider === 'openai' 
       ? import.meta.env.VITE_OPENAI_KEY 
@@ -134,8 +150,8 @@ export default function AIKitGenerator() {
       });
       
       let text: string | undefined;
-      if (typeof (response as any).text === 'function') {
-        text = (response as any).text();
+      if (typeof (response as unknown as { text: () => string }).text === 'function') {
+        text = (response as unknown as { text: () => string }).text();
       } else if (typeof response.text === 'string') {
         text = response.text;
       } else if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -166,31 +182,26 @@ export default function AIKitGenerator() {
       }
       
       const data = await response.json();
-      const outputText = data.output?.find((item: any) => item.type === 'message')?.content?.find((c: any) => c.type === 'output_text')?.text;
+      type OutputItem = { type: string; content?: { type: string; text?: string }[] };
+      const outputText = data.output?.find((item: OutputItem) => item.type === 'message')
+        ?.content?.find((c: { type: string; text?: string }) => c.type === 'output_text')?.text;
       if (!outputText) throw new Error('No response from OpenAI');
       const parsed = JSON.parse(outputText);
       return { kitName: parsed.kitName, sounds: parsed.sounds.slice(0, 24) };
     }
   };
 
-  // Generate config for a single sound
-  // Let the AI decide naturally - we use actual resulting audio length for slices
   const generateConfig = async (idea: SoundIdea): Promise<SoundConfig> => {
-    const prompt = `Create a ${idea.category} drum sound: "${idea.name}" - ${idea.description}. 
+    const configPrompt = `Create a ${idea.category} drum sound: "${idea.name}" - ${idea.description}. 
 Make it LOUD, punchy, with instant attack (no silence at start). Duration should be 0.3-0.6 seconds.`;
     
-    const config = await generateSoundConfig(prompt, provider);
+    const config = await generateSoundConfig(configPrompt, provider);
     config.metadata.name = idea.name;
-    config.metadata.category = idea.category as any;
+    config.metadata.category = idea.category as SoundConfig['metadata']['category'];
     config.metadata.description = idea.description;
-    
-    // Enforce instant attack
     config.envelope.attack = Math.min(config.envelope.attack, 0.001);
-    
-    // Enforce minimum duration (0.3s) so sounds have proper tail
     config.timing.duration = Math.max(0.3, Math.min(config.timing.duration, 0.6));
     
-    // Ensure envelope fits within duration
     const envTotal = config.envelope.attack + config.envelope.decay + config.envelope.release;
     if (envTotal > config.timing.duration) {
       const scale = config.timing.duration / envTotal;
@@ -198,11 +209,9 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
       config.envelope.release *= scale;
     }
     
-    // Ensure loud output
     config.dynamics.velocity = 1.0;
     config.dynamics.normalize = true;
     
-    // Remove delay to avoid timing issues
     if (config.effects.delay) {
       delete config.effects.delay;
     }
@@ -210,7 +219,6 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
     return config;
   };
 
-  // Main generation flow
   const generate = async () => {
     if (!prompt.trim()) return;
     
@@ -222,11 +230,9 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
     setSounds([]);
     
     try {
-      // Phase 1: Plan the kit
       const plan = await planKit(prompt);
       setKitName(plan.kitName);
       
-      // Initialize sound list
       const initialSounds: GeneratedSound[] = plan.sounds.map(idea => ({
         idea,
         config: null,
@@ -239,7 +245,6 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
       if (abortRef.current) return;
       setPhase('generating');
       
-      // Phase 2: Generate configs in batches of 4 (to avoid rate limits)
       const BATCH_SIZE = 4;
       for (let i = 0; i < initialSounds.length; i += BATCH_SIZE) {
         if (abortRef.current) return;
@@ -273,7 +278,6 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
       if (abortRef.current) return;
       setPhase('synthesizing');
       
-      // Phase 3: Synthesize all sounds
       const currentSounds = await new Promise<GeneratedSound[]>(resolve => {
         setSounds(prev => {
           resolve(prev);
@@ -304,7 +308,6 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
       if (abortRef.current) return;
       setPhase('building');
       
-      // Phase 4: Build the pack
       const finalSounds = await new Promise<GeneratedSound[]>(resolve => {
         setSounds(prev => {
           resolve(prev);
@@ -328,13 +331,11 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
     }
   };
 
-  // Convert AudioBuffer to WAV File for use with buildDrumPack
   const audioBufferToWavFile = (buffer: AudioBuffer, name: string): File => {
-    const numChannels = 1; // Force mono
+    const numChannels = 1;
     const sampleRate = buffer.sampleRate;
     const bitsPerSample = 16;
     
-    // Convert stereo to mono if needed
     let rawMono: Float32Array;
     if (buffer.numberOfChannels === 1) {
       rawMono = buffer.getChannelData(0);
@@ -347,27 +348,19 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
       }
     }
     
-    // Only trim leading silence (keep full tail for natural decay)
-    // Use a more generous threshold to catch the actual sound start
-    const silenceThreshold = 0.01; // 1% of full scale
+    const silenceThreshold = 0.01;
     let startSample = 0;
     for (let i = 0; i < rawMono.length; i++) {
       if (Math.abs(rawMono[i]) > silenceThreshold) {
-        // Back up a tiny bit to catch the attack transient
         startSample = Math.max(0, i - 10);
         break;
       }
     }
     
-    // Keep the full tail - don't trim trailing silence
-    // The natural decay is part of the sound
     const endSample = rawMono.length;
-    
-    // Extract audio (only trimming leading silence)
     const mono = rawMono.slice(startSample, endSample);
     const numFrames = mono.length;
     
-    // ALWAYS normalize to ensure maximum volume
     let maxPeak = 0;
     for (let i = 0; i < mono.length; i++) {
       maxPeak = Math.max(maxPeak, Math.abs(mono[i]));
@@ -379,7 +372,6 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
       }
     }
     
-    // Build WAV file
     const bytesPerSample = bitsPerSample / 8;
     const dataSize = numFrames * numChannels * bytesPerSample;
     const wavSize = 44 + dataSize;
@@ -387,26 +379,26 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
     const wavBuffer = new ArrayBuffer(wavSize);
     const view = new DataView(wavBuffer);
     
-    // RIFF header
+    const writeString = (v: DataView, offset: number, str: string) => {
+      for (let i = 0; i < str.length; i++) {
+        v.setUint8(offset + i, str.charCodeAt(i));
+      }
+    };
+    
     writeString(view, 0, 'RIFF');
     view.setUint32(4, wavSize - 8, true);
     writeString(view, 8, 'WAVE');
-    
-    // fmt chunk
     writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true); // chunk size
-    view.setUint16(20, 1, true); // PCM format
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
     view.setUint16(22, numChannels, true);
     view.setUint32(24, sampleRate, true);
     view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
     view.setUint16(32, numChannels * bytesPerSample, true);
     view.setUint16(34, bitsPerSample, true);
-    
-    // data chunk
     writeString(view, 36, 'data');
     view.setUint32(40, dataSize, true);
     
-    // Audio data
     let offset = 44;
     for (let i = 0; i < numFrames; i++) {
       const sample = Math.max(-1, Math.min(1, mono[i]));
@@ -416,26 +408,14 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
     
     return new File([wavBuffer], `${name}.wav`, { type: 'audio/wav' });
   };
-  
-  const writeString = (view: DataView, offset: number, str: string) => {
-    for (let i = 0; i < str.length; i++) {
-      view.setUint8(offset + i, str.charCodeAt(i));
-    }
-  };
 
-  // Get actual duration from WAV file (16-bit mono at 44100 Hz)
   const getWavDuration = (file: File): number => {
-    // WAV: 44-byte header + audio data
-    // 16-bit mono: 2 bytes per sample, 44100 samples per second
     const dataBytes = file.size - 44;
     const frames = dataBytes / 2;
     return frames / 44100;
   };
 
-  // Build the OP-Z pack from audio buffers using the proven buildDrumPack function
-  // Fits as many sounds as possible within 12 seconds (max 24 slices)
   const buildPack = async (buffers: AudioBuffer[], name: string): Promise<{ blob: Blob; sliceCount: number; totalDuration: number }> => {
-    // Convert AudioBuffers to WAV files, fitting as many as possible in 12 seconds
     const slices: Slice[] = [];
     let totalDuration = 0;
     const maxDuration = OPZ.MAX_DURATION_SECONDS;
@@ -445,13 +425,9 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
       const sound = sounds[i];
       const soundName = sound?.idea.name || `Sound ${i + 1}`;
       const file = audioBufferToWavFile(buffer, soundName);
-      
-      // Get ACTUAL duration from the WAV file (after trimming)
       const sliceDuration = getWavDuration(file);
       
-      // Check if adding this slice would exceed max duration
       if (totalDuration + sliceDuration > maxDuration && slices.length > 0) {
-        console.log(`[buildPack] Stopping at ${slices.length} slices (would exceed ${maxDuration}s)`);
         break;
       }
       
@@ -466,8 +442,6 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
       totalDuration += sliceDuration;
     }
     
-    console.log(`[buildPack] Using ${slices.length} slices, ${totalDuration.toFixed(2)}s total`);
-    
     const blob = await buildDrumPack(slices, {
       maxDuration: OPZ.MAX_DURATION_SECONDS,
       format: 'aifc',
@@ -476,7 +450,7 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
         octave: 0,
         drumVersion: 2,
         pitch: new Array(OPZ.MAX_SLICES).fill(0),
-        playmode: new Array(OPZ.MAX_SLICES).fill(12288), // Play Out - sample plays to completion
+        playmode: new Array(OPZ.MAX_SLICES).fill(12288),
         reverse: new Array(OPZ.MAX_SLICES).fill(8192),
         volume: new Array(OPZ.MAX_SLICES).fill(8192),
       },
@@ -485,7 +459,6 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
     return { blob, sliceCount: slices.length, totalDuration };
   };
 
-  // Download the pack
   const download = () => {
     if (!finalBlob) return;
     const url = URL.createObjectURL(finalBlob);
@@ -496,354 +469,207 @@ Make it LOUD, punchy, with instant attack (no silence at start). Duration should
     URL.revokeObjectURL(url);
   };
 
-  // Cancel generation
   const cancel = () => {
     abortRef.current = true;
     setPhase('idle');
   };
 
   const isGenerating = phase !== 'idle' && phase !== 'complete' && phase !== 'error';
+  const readyCount = sounds.filter(s => s.status === 'ready').length;
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: TE.bg,
-      fontFamily: '"JetBrains Mono", "SF Mono", Monaco, monospace',
-      color: TE.text,
-    }}>
-      {/* Header */}
-      <header style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '16px 24px',
-        borderBottom: `1px solid ${TE.border}`,
-        background: TE.surface,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 40, height: 40,
-            background: `linear-gradient(135deg, ${TE.accent}, ${TE.pink})`,
-            borderRadius: 8,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 18,
-            fontWeight: 800,
-          }}>AI</div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>AI KIT GENERATOR</div>
-            <div style={{ fontSize: 11, color: TE.textDim }}>OP-Z Drum Pack Builder</div>
-          </div>
-        </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <select
-            value={provider}
-            onChange={e => setProvider(e.target.value as AIProvider)}
-            disabled={isGenerating}
-            style={{
-              padding: '8px 12px',
-              background: TE.panel,
-              border: `1px solid ${TE.border}`,
-              borderRadius: 4,
-              color: TE.text,
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
-          >
-            <option value="gemini">Gemini</option>
-            <option value="openai">OpenAI</option>
-          </select>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
+    <Container maxWidth="lg" sx={{ py: 2, px: 2 }}>
+      <Stack spacing={2}>
         {/* Input Section */}
-        <div style={{
-          background: TE.panel,
-          borderRadius: 12,
-          padding: 24,
-          marginBottom: 24,
-          border: `1px solid ${TE.border}`,
-        }}>
-          <label style={{ 
-            display: 'block', 
-            fontSize: 11, 
-            color: TE.textDim, 
-            marginBottom: 8,
-            letterSpacing: 1,
-          }}>
-            DESCRIBE YOUR DRUM KIT
-          </label>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <input
-              type="text"
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, mb: 1.5 }}>
+            Describe Your Drum Kit
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+            <TextField
+              select
+              size="small"
+              value={provider}
+              onChange={e => setProvider(e.target.value as AIProvider)}
+              disabled={isGenerating}
+              sx={{ minWidth: 100 }}
+            >
+              <MenuItem value="gemini">Gemini</MenuItem>
+              <MenuItem value="openai">OpenAI</MenuItem>
+            </TextField>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="e.g., 80s inspired kick drums, industrial metal percussion, lo-fi hip hop kit..."
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !isGenerating && generate()}
-              placeholder="e.g., 80s inspired kick drums, industrial metal percussion, lo-fi hip hop kit..."
               disabled={isGenerating}
-              style={{
-                flex: 1,
-                padding: '14px 18px',
-                background: TE.surface,
-                border: `2px solid ${TE.border}`,
-                borderRadius: 8,
-                color: TE.text,
-                fontSize: 14,
-                outline: 'none',
-                transition: 'border-color 0.2s',
-              }}
             />
             {isGenerating ? (
-              <button
+              <Button
+                variant="contained"
+                color="error"
                 onClick={cancel}
-                style={{
-                  padding: '14px 28px',
-                  background: TE.pink,
-                  border: 'none',
-                  borderRadius: 8,
-                  color: '#fff',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  letterSpacing: 1,
-                }}
+                startIcon={<StopIcon />}
+                sx={{ minWidth: 120 }}
               >
-                CANCEL
-              </button>
+                Cancel
+              </Button>
             ) : (
-              <button
+              <Button
+                variant="contained"
                 onClick={generate}
                 disabled={!prompt.trim()}
-                style={{
-                  padding: '14px 28px',
-                  background: prompt.trim() ? TE.accent : TE.border,
-                  border: 'none',
-                  borderRadius: 8,
-                  color: '#fff',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: prompt.trim() ? 'pointer' : 'not-allowed',
-                  letterSpacing: 1,
-                }}
+                startIcon={<AutoAwesomeIcon />}
+                sx={{ minWidth: 120 }}
               >
-                GENERATE
-              </button>
+                Generate
+              </Button>
             )}
-          </div>
-        </div>
+          </Stack>
+        </Paper>
 
         {/* Progress */}
         {isGenerating && (
-          <div style={{
-            background: TE.panel,
-            borderRadius: 12,
-            padding: 24,
-            marginBottom: 24,
-            border: `1px solid ${TE.border}`,
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              marginBottom: 12,
-            }}>
-              <span style={{ fontSize: 12, color: TE.textDim, letterSpacing: 1 }}>
-                {phase === 'planning' && '🧠 PLANNING KIT...'}
-                {phase === 'generating' && '⚙️ GENERATING CONFIGS...'}
-                {phase === 'synthesizing' && '🔊 SYNTHESIZING SOUNDS...'}
-                {phase === 'building' && '📦 BUILDING PACK...'}
-              </span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: TE.cyan }}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                {PHASE_LABELS[phase]}
+              </Typography>
+              <Typography variant="body2" fontWeight={700} color="primary">
                 {progress.current} / {progress.total}
-              </span>
-            </div>
-            <div style={{
-              height: 6,
-              background: TE.surface,
-              borderRadius: 3,
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${(progress.current / progress.total) * 100}%`,
-                background: `linear-gradient(90deg, ${TE.accent}, ${TE.cyan})`,
-                borderRadius: 3,
-                transition: 'width 0.3s',
-              }} />
-            </div>
-          </div>
+              </Typography>
+            </Stack>
+            <LinearProgress variant="determinate" value={(progress.current / progress.total) * 100} />
+          </Paper>
         )}
 
         {/* Error */}
         {error && (
-          <div style={{
-            background: `${TE.pink}20`,
-            border: `1px solid ${TE.pink}`,
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 24,
-            color: TE.pink,
-            fontSize: 13,
-          }}>
-            ⚠️ {error}
-          </div>
+          <Alert severity="error">{error}</Alert>
         )}
 
         {/* Complete */}
         {phase === 'complete' && finalBlob && (
-          <div style={{
-            background: `${TE.green}10`,
-            border: `1px solid ${TE.green}40`,
-            borderRadius: 12,
-            padding: 24,
-            marginBottom: 24,
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: TE.green, marginBottom: 8 }}>
-              {kitName || 'AI Kit'}
-            </div>
-            {packInfo ? (
+          <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="h5" color="success.main" fontWeight={700} sx={{ mb: 1 }}>
+              ✓ {kitName || 'AI Kit'}
+            </Typography>
+            {packInfo && (
               <>
-                <div style={{ fontSize: 14, color: TE.text, marginBottom: 8 }}>
-                  {packInfo.sliceCount} of {sounds.filter(s => s.status === 'ready').length} sounds included
-                </div>
-                <div style={{ fontSize: 13, color: TE.textDim, marginBottom: 16 }}>
+                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                  {packInfo.sliceCount} of {readyCount} sounds included
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
                   {packInfo.totalDuration.toFixed(1)}s total • Ready for OP-Z
-                </div>
-                {packInfo.sliceCount < sounds.filter(s => s.status === 'ready').length && (
-                  <div style={{ fontSize: 12, color: TE.yellow, marginBottom: 16 }}>
-                    Some sounds didn't fit (12s limit)
-                  </div>
+                </Typography>
+                {packInfo.sliceCount < readyCount && (
+                  <Alert severity="warning" sx={{ mb: 2, justifyContent: 'center' }}>
+                    Some sounds did not fit (12s limit)
+                  </Alert>
                 )}
               </>
-            ) : (
-              <div style={{ fontSize: 13, color: TE.textDim, marginBottom: 16 }}>
-                Ready for OP-Z
-              </div>
             )}
-            <button
+            <Button
+              variant="contained"
+              color="success"
               onClick={download}
-              style={{
-                padding: '14px 32px',
-                background: TE.green,
-                border: 'none',
-                borderRadius: 8,
-                color: '#000',
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: 'pointer',
-                letterSpacing: 1,
-              }}
+              startIcon={<DownloadIcon />}
+              size="large"
             >
-              ⬇ DOWNLOAD .AIF
-            </button>
-          </div>
+              Download .AIF
+            </Button>
+          </Paper>
         )}
 
         {/* Sound Grid */}
         {sounds.length > 0 && (
-          <div style={{
-            background: TE.panel,
-            borderRadius: 12,
-            padding: 16,
-            border: `1px solid ${TE.border}`,
-          }}>
-            <div style={{ 
-              fontSize: 11, 
-              color: TE.textDim, 
-              marginBottom: 12,
-              letterSpacing: 1,
-            }}>
-              SOUNDS ({sounds.filter(s => s.status === 'ready').length}/{sounds.length})
-            </div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-              gap: 8,
-            }}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+              <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
+                Sounds
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {readyCount}/{sounds.length}
+              </Typography>
+            </Stack>
+            <Grid container spacing={1}>
               {sounds.map((sound, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => sound.buffer && playSound(sound.buffer)}
-                  style={{
-                    padding: 12,
-                    background: sound.status === 'ready' 
-                      ? `${TE.green}10` 
-                      : sound.status === 'error' 
-                        ? `${TE.pink}10`
-                        : TE.surface,
-                    border: `1px solid ${
-                      sound.status === 'ready' 
-                        ? `${TE.green}40` 
+                <Grid item xs={6} sm={4} md={3} lg={2} key={idx}>
+                  <Paper
+                    variant="outlined"
+                    onClick={() => sound.buffer && playSound(sound.buffer)}
+                    sx={{
+                      p: 1.5,
+                      cursor: sound.buffer ? 'pointer' : 'default',
+                      transition: 'all 0.2s',
+                      borderColor: sound.status === 'ready' 
+                        ? 'success.main' 
                         : sound.status === 'error' 
-                          ? `${TE.pink}40`
-                          : TE.border
-                    }`,
-                    borderRadius: 8,
-                    cursor: sound.buffer ? 'pointer' : 'default',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    marginBottom: 4,
-                  }}>
-                    <span style={{ 
-                      fontSize: 9, 
-                      color: TE.textDim,
-                      textTransform: 'uppercase',
-                    }}>
-                      {sound.idea.category}
-                    </span>
-                    <span style={{ fontSize: 10 }}>
-                      {sound.status === 'pending' && '⏳'}
-                      {sound.status === 'configuring' && '⚙️'}
-                      {sound.status === 'synthesizing' && '🔊'}
-                      {sound.status === 'ready' && '▶'}
-                      {sound.status === 'error' && '❌'}
-                    </span>
-                  </div>
-                  <div style={{ 
-                    fontSize: 12, 
-                    fontWeight: 600,
-                    color: sound.status === 'error' ? TE.pink : TE.text,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}>
-                    {sound.idea.name}
-                  </div>
-                </div>
+                          ? 'error.main' 
+                          : 'divider',
+                      bgcolor: sound.status === 'ready'
+                        ? 'success.main'
+                        : sound.status === 'error'
+                          ? 'error.main'
+                          : 'transparent',
+                      '& *': {
+                        color: (sound.status === 'ready' || sound.status === 'error') ? '#fff !important' : undefined,
+                      },
+                      '&:hover': sound.buffer ? {
+                        borderColor: 'primary.main',
+                        transform: 'scale(1.02)',
+                      } : {},
+                    }}
+                  >
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+                      <Chip 
+                        label={sound.idea.category} 
+                        size="small" 
+                        color={CATEGORY_COLORS[sound.idea.category] || 'default'}
+                        sx={{ 
+                          height: 16, 
+                          fontSize: 8,
+                          '& .MuiChip-label': { px: 0.75 },
+                        }}
+                      />
+                      <Box sx={{ fontSize: 12 }}>
+                        {sound.status === 'pending' && '⏳'}
+                        {sound.status === 'configuring' && '⚙️'}
+                        {sound.status === 'synthesizing' && '🔊'}
+                        {sound.status === 'ready' && <PlayArrowIcon sx={{ fontSize: 14 }} />}
+                        {sound.status === 'error' && '❌'}
+                      </Box>
+                    </Stack>
+                    <Typography 
+                      variant="body2" 
+                      fontWeight={600}
+                      noWrap
+                      title={sound.idea.name}
+                    >
+                      {sound.idea.name}
+                    </Typography>
+                  </Paper>
+                </Grid>
               ))}
-            </div>
-          </div>
+            </Grid>
+          </Paper>
         )}
 
         {/* Empty State */}
         {phase === 'idle' && sounds.length === 0 && (
-          <div style={{
-            textAlign: 'center',
-            padding: '60px 20px',
-            color: TE.textDim,
-          }}>
-            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>🥁</div>
-            <div style={{ fontSize: 14, marginBottom: 8 }}>
+          <Paper variant="outlined" sx={{ p: 6, textAlign: 'center' }}>
+            <Typography variant="h2" sx={{ mb: 2, opacity: 0.5 }}>🥁</Typography>
+            <Typography variant="body1" sx={{ mb: 1 }}>
               Enter a prompt above to generate a complete drum kit
-            </div>
-            <div style={{ fontSize: 12 }}>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
               24 unique sounds • OP-Z compatible • AI-powered synthesis
-            </div>
-          </div>
+            </Typography>
+          </Paper>
         )}
-      </div>
-    </div>
+      </Stack>
+    </Container>
   );
 }
-

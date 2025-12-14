@@ -16,7 +16,8 @@ import {
   Slider,
   Stack,
   TextField,
-  Typography
+  Typography,
+  useTheme,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -31,9 +32,13 @@ import type { Slice, DrumMetadata } from '../types';
 import { buildDrumPack } from '../audio/pack';
 import { semitonesToPitchParam } from '../audio/pitch';
 import { MAX_SLICES, MAX_DURATION_SECONDS, MAX_SLICE_DURATION_SECONDS } from '../constants';
+import { TE_COLORS } from '../theme';
 
-function WaveformPreview({ slice, height = 24, width = 24 }: { slice: Slice; height?: number; width?: number }) {
+function WaveformPreview({ slice, height = 24, width = 24, isDark = false }: { slice: Slice; height?: number; width?: number; isDark?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const bgColor = isDark ? TE_COLORS.dark.surface : TE_COLORS.light.panel;
+  const waveColor = TE_COLORS.orange;
+  const borderColor = isDark ? TE_COLORS.dark.border : TE_COLORS.light.border;
 
   useEffect(() => {
     let cancelled = false;
@@ -57,9 +62,9 @@ function WaveformPreview({ slice, height = 24, width = 24 }: { slice: Slice; hei
         const buckets = Math.floor(w / 2);
         const samplesPerBucket = Math.max(1, Math.floor(data.length / buckets));
         const mid = h / 2;
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = '#ff6b35';
+        ctx.fillStyle = waveColor;
         const barWidth = 1;
         for (let b = 0; b < buckets; b++) {
           const start = b * samplesPerBucket;
@@ -86,9 +91,9 @@ function WaveformPreview({ slice, height = 24, width = 24 }: { slice: Slice; hei
       cancelled = true;
       ac.close().catch(() => { });
     };
-  }, [slice, height, width]);
+  }, [slice, height, width, bgColor, waveColor]);
 
-  return <canvas ref={canvasRef} style={{ width, height, border: '1px solid #d0d0d0', borderRadius: 2 }} />;
+  return <canvas ref={canvasRef} style={{ width, height, border: `1px solid ${borderColor}`, borderRadius: 2 }} />;
 }
 
 function SliceList({
@@ -98,7 +103,8 @@ function SliceList({
   onMetaChange,
   onPlay,
   playingId,
-  onSemitonesChange
+  onSemitonesChange,
+  isDark
 }: {
   slices: Slice[];
   onRemove: (id: string) => void;
@@ -107,9 +113,11 @@ function SliceList({
   onPlay: (slice: Slice, semitones?: number, volume?: number) => void;
   playingId: string | null;
   onSemitonesChange: (id: string, semitones: number) => void;
+  isDark: boolean;
 }) {
   const [volumeModal, setVolumeModal] = useState<{ idx: number; value: number } | null>(null);
   const [pitchModal, setPitchModal] = useState<{ id: string; idx: number; value: number } | null>(null);
+  const railColor = isDark ? `${TE_COLORS.orange}40` : '#ffcab8';
 
   if (!slices.length) {
     return (
@@ -122,10 +130,10 @@ function SliceList({
   return (
     <Stack spacing={1}>
       {slices.map((slice, idx) => (
-        <Paper key={slice.id} variant="outlined" sx={{ p: 1.5, bgcolor: '#fff', transition: 'all 0.2s', '&:hover': { borderColor: '#ff6b35' } }}>
+        <Paper key={slice.id} variant="outlined" sx={{ p: 1.5, transition: 'all 0.2s', '&:hover': { borderColor: 'primary.main' } }}>
           <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
             <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
-              <WaveformPreview slice={slice} height={32} width={48} />
+              <WaveformPreview slice={slice} height={32} width={48} isDark={isDark} />
               <Typography variant="body2" noWrap title={slice.name} sx={{ minWidth: 0, maxWidth: 180 }}>
                 {slice.name}
               </Typography>
@@ -171,7 +179,7 @@ function SliceList({
               }}
               min={0}
               max={16383}
-              sx={{ height: 200, '& .MuiSlider-thumb': { color: '#ff6b35' }, '& .MuiSlider-track': { color: '#ff6b35' }, '& .MuiSlider-rail': { color: '#ffcab8' } }}
+              sx={{ height: 200, '& .MuiSlider-thumb': { color: 'primary.main' }, '& .MuiSlider-track': { color: 'primary.main' }, '& .MuiSlider-rail': { color: railColor } }}
             />
           </Stack>
         </DialogContent>
@@ -210,7 +218,7 @@ function SliceList({
               max={12}
               step={0.1}
               marks={[{ value: -12, label: '-12' }, { value: 0, label: '0' }, { value: 12, label: '+12' }]}
-              sx={{ height: 200, '& .MuiSlider-thumb': { color: '#ff6b35' }, '& .MuiSlider-track': { color: '#ff6b35' }, '& .MuiSlider-rail': { color: '#ffcab8' } }}
+              sx={{ height: 200, '& .MuiSlider-thumb': { color: 'primary.main' }, '& .MuiSlider-track': { color: 'primary.main' }, '& .MuiSlider-rail': { color: railColor } }}
             />
           </Stack>
         </DialogContent>
@@ -220,6 +228,8 @@ function SliceList({
 }
 
 export function DrumCreator() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const {
     slices,
     addFiles,
@@ -371,9 +381,8 @@ export function DrumCreator() {
                     textAlign: 'center',
                     borderStyle: 'dashed',
                     cursor: 'pointer',
-                    bgcolor: '#fff',
                     transition: 'all 0.2s',
-                    '&:hover': { borderColor: '#ff6b35', bgcolor: '#fffaf8' }
+                    '&:hover': { borderColor: 'primary.main', bgcolor: isDark ? `${TE_COLORS.orange}10` : `${TE_COLORS.orange}08` }
                   }}
                   onClick={handleSelectFiles}
                 >
@@ -447,6 +456,7 @@ export function DrumCreator() {
                   onPlay={handlePlay}
                   playingId={playingId}
                   onSemitonesChange={handleSemitonesChange}
+                  isDark={isDark}
                 />
 
                 {(isProcessing || isExporting) && (

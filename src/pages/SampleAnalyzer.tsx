@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Container, Paper, Stack, Typography, Box } from '@mui/material';
+import { Alert, Button, Container, Paper, Stack, Typography, Box, useTheme } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { parseAiff } from '../audio/aiff';
 import { decodePositions } from '../utils/opz';
 import { ensureFFmpeg } from '../audio/ffmpeg';
+import { TE_COLORS } from '../theme';
 
 type ParsedMetadata = {
   name: string;
@@ -18,6 +19,8 @@ type ParsedMetadata = {
 };
 
 export function SampleAnalyzer() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<ParsedMetadata | null>(null);
@@ -113,6 +116,11 @@ export function SampleAnalyzer() {
     source.onended = () => ac.close();
   };
 
+  // Theme-aware canvas colors
+  const canvasBgColor = isDark ? TE_COLORS.dark.surface : TE_COLORS.light.panel;
+  const waveColor = TE_COLORS.orange;
+  const strokeColor = isDark ? TE_COLORS.dark.text : TE_COLORS.light.text;
+
   useEffect(() => {
     if (!audioBuffer || !canvasRef.current || !metadata) return;
     
@@ -129,10 +137,10 @@ export function SampleAnalyzer() {
     // Scale factor to map audio buffer samples to original frame positions
     const bufferToFrameScale = frameCount / data.length;
     
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = canvasBgColor;
     ctx.fillRect(0, 0, w, h);
     
-    ctx.fillStyle = '#ff6b35';
+    ctx.fillStyle = waveColor;
     const mid = h / 2;
     const samplesPerPixel = frameCount / w; // Use frameCount for consistent scaling
     for (let x = 0; x < w; x++) {
@@ -153,7 +161,7 @@ export function SampleAnalyzer() {
     }
     
     // Draw slice boundaries
-    ctx.strokeStyle = '#000';
+    ctx.strokeStyle = strokeColor;
     ctx.lineWidth = 1;
     for (let i = 0; i < metadata.start.length; i++) {
       if (metadata.start[i] === 0 && metadata.end[i] === 0) continue;
@@ -194,7 +202,7 @@ export function SampleAnalyzer() {
     
     canvas.addEventListener('click', handleClick);
     return () => canvas.removeEventListener('click', handleClick);
-  }, [audioBuffer, metadata, originalNumFrames]);
+  }, [audioBuffer, metadata, originalNumFrames, canvasBgColor, waveColor, strokeColor]);
 
   return (
     <Container maxWidth="lg" sx={{ py: 2, px: 2 }}>
@@ -244,7 +252,7 @@ export function SampleAnalyzer() {
                   const end = metadata.end[idx];
                   if (start === 0 && end === 0) return null;
                   return (
-                    <Paper key={idx} variant="outlined" sx={{ p: 1.5, bgcolor: '#fafafa' }}>
+                    <Paper key={idx} variant="outlined" sx={{ p: 1.5 }}>
                       <Stack direction="row" spacing={2}>
                         <Typography variant="body2" sx={{ minWidth: 60 }}><strong>#{idx + 1}</strong></Typography>
                         <Typography variant="body2">Start: {start}</Typography>
