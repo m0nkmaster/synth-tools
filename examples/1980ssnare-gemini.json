@@ -1,0 +1,148 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.8,
+        "oscillator": {
+          "waveform": "triangle",
+          "frequency": 185,
+          "detune": 0,
+          "unison": {
+            "voices": 1,
+            "detune": 0,
+            "spread": 0
+          },
+          "sub": {
+            "level": 0,
+            "octave": -1,
+            "waveform": "sine"
+          }
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 250,
+          "q": 1,
+          "envelope": {
+            "amount": 800,
+            "attack": 0.001,
+            "decay": 0.1,
+            "sustain": 0,
+            "release": 0.1
+          }
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.18,
+          "sustain": 0,
+          "release": 0.05
+        }
+      },
+      {
+        "type": "noise",
+        "gain": 0.65,
+        "noise": {
+          "type": "white"
+        },
+        "filter": {
+          "type": "bandpass",
+          "frequency": 3500,
+          "q": 0.8,
+          "envelope": {
+            "amount": 0,
+            "attack": 0,
+            "decay": 0,
+            "sustain": 0,
+            "release": 0
+          }
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.28,
+          "sustain": 0,
+          "release": 0.1
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.000998003992015968,
+    "decay": 0.3992015968063872,
+    "sustain": 0,
+    "release": 0.0998003992015968
+  },
+  "filter": {
+    "type": "peaking",
+    "frequency": 200,
+    "q": 1,
+    "gain": 3,
+    "envelope": {
+      "amount": 0,
+      "attack": 0.01,
+      "decay": 0.2,
+      "sustain": 0,
+      "release": 0.1
+    }
+  },
+  "lfo": {
+    "waveform": "sine",
+    "frequency": 0,
+    "depth": 0,
+    "target": "amplitude",
+    "delay": 0,
+    "fade": 0
+  },
+  "effects": {
+    "reverb": {
+      "decay": 2,
+      "damping": 0.2,
+      "mix": 0.45
+    },
+    "delay": {
+      "time": 0,
+      "feedback": 0,
+      "mix": 0
+    },
+    "distortion": {
+      "type": "bitcrush",
+      "amount": 0.3,
+      "mix": 0.2
+    },
+    "compressor": {
+      "threshold": -18,
+      "ratio": 6,
+      "attack": 0.005,
+      "release": 0.1,
+      "knee": 10
+    },
+    "gate": {
+      "attack": 0.001,
+      "hold": 0.15,
+      "release": 0.05
+    }
+  },
+  "spatial": {
+    "pan": 0,
+    "width": 0.2
+  },
+  "timing": {
+    "duration": 0.5
+  },
+  "dynamics": {
+    "velocity": 1,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "1980s Gated Snare",
+    "category": "snare",
+    "description": "Classic 80s power snare featuring a punchy triangle body, white noise snap, and the signature non-linear gated reverb tail.",
+    "tags": [
+      "snare",
+      "80s",
+      "gated",
+      "retro",
+      "drum",
+      "synthwave"
+    ]
+  }
+}

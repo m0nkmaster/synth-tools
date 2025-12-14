@@ -3,89 +3,49 @@ import type { SoundConfig } from '../types/soundConfig';
 
 export type AIProvider = 'openai' | 'gemini';
 
-const SYSTEM_PROMPT = `Expert audio synthesis. Create any sound (drums, bass, leads, pads, FX, etc.) using LAYERED synthesis. Return valid JSON.
+const SYSTEM_PROMPT = `You are an expert audio synthesizer. Create sounds using layered synthesis. Return valid JSON only.
 
-JSON schema:
+SYNTHESIS TYPES (each layer uses ONE type):
+- "oscillator": Basic waveforms (sine, square, sawtooth, triangle) with optional unison and sub oscillator
+- "fm": FM synthesis with carrier/modulator ratio and modulation index (higher = more harmonics)
+- "noise": White, pink, or brown noise
+- "karplus-strong": Physical modeling of plucked strings (guitar, harp) - NOT for piano/struck strings
+
+JSON SCHEMA:
 {
   "synthesis": { "layers": [
     {
-      "type": "noise"|"oscillator"|"fm"|"karplus-strong", 
-      "gain": 0.7, 
-      "noise": {"type": "white"|"pink"|"brown"}, 
-      "oscillator": {
-        "waveform": "sine"|"square"|"sawtooth"|"triangle", 
-        "frequency": 200, 
-        "detune": 0,
-        "unison": {"voices": 1, "detune": 0, "spread": 0},
-        "sub": {"level": 0.5, "octave": -1, "waveform": "sine"}
-      }, 
-      "fm": {"carrier": 200, "modulator": 400, "modulationIndex": 30},
+      "type": "oscillator"|"fm"|"noise"|"karplus-strong",
+      "gain": 0.7,
+      "oscillator": {"waveform": "sine"|"square"|"sawtooth"|"triangle", "frequency": 440, "detune": 0, "unison": {"voices": 1, "detune": 0, "spread": 0}, "sub": {"level": 0.5, "octave": -1, "waveform": "sine"}},
+      "fm": {"carrier": 440, "modulator": 880, "modulationIndex": 5},
+      "noise": {"type": "white"|"pink"|"brown"},
       "karplus": {"frequency": 440, "damping": 0.5, "pluckLocation": 0.5},
       "filter": {"type": "lowpass"|"highpass"|"bandpass"|"notch", "frequency": 2000, "q": 2, "envelope": {"amount": 2000, "attack": 0.01, "decay": 0.2, "sustain": 0, "release": 0.1}},
       "saturation": {"type": "soft"|"hard"|"tube"|"tape", "drive": 5, "mix": 0.5},
       "envelope": {"attack": 0.001, "decay": 0.2, "sustain": 0.1, "release": 0.3}
     }
   ]},
-  "envelope": { "attack": 0.001, "decay": 0.2, "sustain": 0.1, "release": 0.3 },
-  "filter": { "type": "lowpass"|"highpass"|"bandpass"|"notch"|"allpass"|"peaking", "frequency": 2000, "q": 2, "gain": 0, "envelope": {"amount": 2000, "attack": 0.01, "decay": 0.2, "sustain": 0, "release": 0.1} },
-  "lfo": { "waveform": "sine"|"square"|"triangle"|"sawtooth"|"random", "frequency": 4, "depth": 0.7, "target": "filter"|"amplitude"|"pan"|"pitch", "delay": 0, "fade": 0 },
-  "effects": { 
-    "reverb": {"decay": 1.5, "damping": 0.5, "mix": 0.4}, 
-    "delay": {"time": 0.5, "feedback": 0.6, "mix": 0.5}, 
+  "envelope": {"attack": 0.001, "decay": 0.2, "sustain": 0.1, "release": 0.3},
+  "filter": {"type": "lowpass"|"highpass"|"bandpass"|"notch"|"allpass"|"peaking", "frequency": 2000, "q": 2, "gain": 0, "envelope": {"amount": 2000, "attack": 0.01, "decay": 0.2, "sustain": 0, "release": 0.1}},
+  "lfo": {"waveform": "sine"|"square"|"triangle"|"sawtooth"|"random", "frequency": 4, "depth": 0.7, "target": "filter"|"amplitude"|"pan", "delay": 0, "fade": 0},
+  "effects": {
+    "reverb": {"decay": 1.5, "damping": 0.5, "mix": 0.4},
+    "delay": {"time": 0.5, "feedback": 0.4, "mix": 0.5},
     "distortion": {"type": "soft"|"hard"|"fuzz"|"bitcrush"|"waveshaper", "amount": 0.5, "mix": 0.5},
     "compressor": {"threshold": -24, "ratio": 4, "attack": 0.003, "release": 0.25, "knee": 30},
     "gate": {"attack": 0.001, "hold": 0.2, "release": 0.05}
   },
-  "spatial": { "pan": 0, "width": 1 },
-  "timing": { "duration": 1.5 },
-  "dynamics": { "velocity": 0.9, "normalize": true },
-  "metadata": { "name": "Sound", "category": "kick"|"snare"|"hihat"|"tom"|"perc"|"bass"|"lead"|"pad"|"fx"|"other", "description": "", "tags": [] }
+  "spatial": {"pan": 0, "width": 1},
+  "timing": {"duration": 1.5},
+  "dynamics": {"velocity": 0.9, "normalize": true},
+  "metadata": {"name": "Sound", "category": "kick"|"snare"|"hihat"|"tom"|"perc"|"bass"|"lead"|"pad"|"fx"|"other", "description": "", "tags": []}
 }
 
-SOUND DESIGN RULES:
-DRUMS:
-- Kicks: 40-80Hz sine + sub octave, attack <2ms, decay 50-100ms, no sustain
-- Snares: 180-250Hz tone + white noise (bandpass 2-4kHz), decay 150-250ms
-- Hats: white/pink noise highpass >8kHz, very short decay <100ms
-- Toms: 80-200Hz sine, medium decay 200-400ms
-- Percussion: Try karplus-strong type with frequency 200-800Hz, damping 0.2-0.8
-
-BASS:
-- Sub: 40-80Hz sine/triangle, long sustain
-- Mid: 80-250Hz saw/square, add filter envelope
-- Plucked: karplus-strong type with frequency 80-200Hz, damping 0.3-0.5
-
-LEADS/PADS:
-- Leads: saw/square 200-2000Hz, unison 3-5 voices, filter sweep
-- Pads: multiple detuned saws, slow attack >100ms, reverb
-- Strings: karplus-strong with frequency 150-600Hz, low damping (0.1-0.2)
-
-EFFECTS PROCESSING:
-- Huge/massive/long delay: time 0.5-1.0s, feedback 0.4-0.5, mix 0.5-0.7
-- Short/slapback delay: time 0.08-0.15s, feedback 0.2-0.3, mix 0.3-0.5
-- Saturation: Use layer saturation with drive 2-8, mix 0.3-0.8 for harmonic richness
-- Gated reverb: Use reverb with decay 1.0-2.0s + gate with hold 0.1-0.3s
-- Compression: threshold -24dB, ratio 4:1 for punch, 12:1 for limiting
-
-ADVANCED TECHNIQUES:
-- Layer multiple synthesis types (e.g., FM + noise for complex percussion)
-- Use LFO on pan (target: "pan") for stereo movement
-- Combine karplus-strong with filters for plucked/string sounds
-- CRITICAL: feedback MUST be ≤0.5 to prevent infinite echo
-
-EXAMPLES:
-Kick: {"synthesis":{"layers":[{"type":"oscillator","gain":0.8,"oscillator":{"waveform":"sine","frequency":60,"detune":0}},{"type":"oscillator","gain":0.3,"oscillator":{"waveform":"sine","frequency":30,"detune":0}}]},"envelope":{"attack":0.001,"decay":0.05,"sustain":0,"release":0.1}}
-
-Snare: {"synthesis":{"layers":[{"type":"noise","gain":0.6,"noise":{"type":"white"},"filter":{"type":"bandpass","frequency":3000,"q":2}},{"type":"oscillator","gain":0.5,"oscillator":{"waveform":"sine","frequency":180,"detune":0}}]},"envelope":{"attack":0.001,"decay":0.15,"sustain":0,"release":0.2}}
-
-Plucked: {"synthesis":{"layers":[{"type":"karplus-strong","gain":0.9,"karplus":{"frequency":220,"damping":0.4}}]},"envelope":{"attack":0.001,"decay":0.3,"sustain":0,"release":0.1},"effects":{"reverb":{"decay":0.8,"damping":0.5,"mix":0.3}}}
-
-String: {"synthesis":{"layers":[{"type":"karplus-strong","gain":1.0,"karplus":{"frequency":440,"damping":0.1}}]},"envelope":{"attack":0.02,"decay":0.1,"sustain":0.6,"release":0.5},"effects":{"reverb":{"decay":1.5,"damping":0.3,"mix":0.4}}}`;
+IMPORTANT: Only include fields for the layer type you choose. For "fm" type, only include "fm" config. For "oscillator" type, only include "oscillator" config. Delay feedback must be ≤0.5.`;
 
 const ITERATION_CONTEXT = `
-When modifying existing config, apply MINIMAL changes to achieve the request. Return complete config with only necessary modifications.
-For LFO requests: "crazy/extreme/super fast" = frequency 15-30 Hz + depth 0.8-1.0, "wobble/wub" = frequency 8-15 Hz + depth 0.7-1.0.
-For delay requests: "huge/massive/long" = time 0.5-1.0s + feedback 0.4-0.5 + mix 0.5-0.7, "short/slapback" = time 0.08-0.15s + feedback 0.2-0.3. CRITICAL: feedback MUST be ≤0.5.`;
+The previous config is shown above. Apply the user's requested changes and return the complete updated config.`;
 
 function validateConfig(config: SoundConfig): void {
   config.synthesis.layers.forEach(layer => {

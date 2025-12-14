@@ -1,0 +1,138 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.5,
+        "oscillator": {
+          "waveform": "sawtooth",
+          "frequency": 440,
+          "detune": 0,
+          "unison": {
+            "voices": 2,
+            "detune": 0.05,
+            "spread": 0.2
+          }
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 600,
+          "q": 0.8,
+          "envelope": {
+            "amount": 3500,
+            "attack": 0,
+            "decay": 0.3,
+            "sustain": 0,
+            "release": 0.1
+          }
+        },
+        "envelope": {
+          "attack": 0.002,
+          "decay": 2.5,
+          "sustain": 0,
+          "release": 0.5
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.6,
+        "oscillator": {
+          "waveform": "triangle",
+          "frequency": 440,
+          "detune": 0,
+          "unison": {
+            "voices": 1,
+            "detune": 0,
+            "spread": 0
+          }
+        },
+        "envelope": {
+          "attack": 0.002,
+          "decay": 3,
+          "sustain": 0,
+          "release": 0.6
+        }
+      },
+      {
+        "type": "noise",
+        "gain": 0.1,
+        "noise": {
+          "type": "pink"
+        },
+        "filter": {
+          "type": "bandpass",
+          "frequency": 2000,
+          "q": 1,
+          "envelope": {
+            "amount": 0,
+            "attack": 0,
+            "decay": 0,
+            "sustain": 0,
+            "release": 0
+          }
+        },
+        "envelope": {
+          "attack": 0,
+          "decay": 0.05,
+          "sustain": 0,
+          "release": 0.01
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.00138811771238201,
+    "decay": 2.082176568573015,
+    "sustain": 0,
+    "release": 0.416435313714603
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 12000,
+    "q": 0.5,
+    "gain": 0,
+    "envelope": {
+      "amount": 0,
+      "attack": 0,
+      "decay": 0,
+      "sustain": 0,
+      "release": 0
+    }
+  },
+  "effects": {
+    "reverb": {
+      "decay": 2,
+      "damping": 0.4,
+      "mix": 0.35
+    },
+    "compressor": {
+      "threshold": -18,
+      "ratio": 3,
+      "attack": 0.005,
+      "release": 0.2,
+      "knee": 10
+    }
+  },
+  "spatial": {
+    "pan": 0,
+    "width": 0.7
+  },
+  "timing": {
+    "duration": 2.5
+  },
+  "dynamics": {
+    "velocity": 0.85,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Grand Piano",
+    "category": "other",
+    "description": "A rich, multi-layered acoustic piano simulation using filtered sawtooths for brightness, triangle for body, and a noise burst for the hammer strike.",
+    "tags": [
+      "piano",
+      "acoustic",
+      "keys",
+      "classical"
+    ]
+  }
+}

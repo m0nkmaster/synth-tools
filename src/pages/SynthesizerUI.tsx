@@ -798,10 +798,6 @@ export function SynthesizerUI() {
   const toggleSize = isMobile ? 'large' : isTablet ? 'medium' : 'small';
   const btnSize = isMobile ? 'medium' : 'small';
 
-  // Dynamics state
-  const [velocity, setVelocity] = useState(config.dynamics?.velocity ?? 0.8);
-  const [normalize, setNormalize] = useState(config.dynamics?.normalize ?? true);
-
   // Initialize JSON value from config
   useEffect(() => {
     setJsonValue(JSON.stringify(config, null, 2));
@@ -869,6 +865,7 @@ export function SynthesizerUI() {
   const updateLFO = (lfo: SoundConfig['lfo']) => setConfig({ ...config, lfo });
   const updateEffects = (effects: SoundConfig['effects']) => setConfig({ ...config, effects });
   const updateDuration = (duration: number) => setConfig({ ...config, timing: { ...config.timing, duration } });
+  const updateDynamics = (dynamics: Partial<SoundConfig['dynamics']>) => setConfig({ ...config, dynamics: { ...config.dynamics, ...dynamics } });
 
   // Generate sound from AI prompt
   const handleGenerate = async () => {
@@ -1350,10 +1347,10 @@ export function SynthesizerUI() {
           <div style={{ background: TE.panel, borderRadius: 6, padding: isMobile ? 12 : 10, border: `1px solid ${TE.border}` }}>
             <span style={{ fontSize: isMobile ? 10 : 8, color: TE.grey, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: isMobile ? 12 : 8 }}>DYNAMICS</span>
             <div style={{ display: 'flex', gap: isMobile ? 16 : 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <MiniKnob value={velocity} min={0} max={1} onChange={setVelocity} label="VELOCITY" color={TE.orange} size={knobSize} TE={TE} />
+              <MiniKnob value={config.dynamics?.velocity ?? 0.8} min={0} max={1} onChange={(v) => updateDynamics({ velocity: v })} label="VELOCITY" color={TE.orange} size={knobSize} TE={TE} />
               <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 4 }}>
                 <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>NORM</span>
-                <Toggle on={normalize} onChange={() => setNormalize(!normalize)} color={TE.orange} size={toggleSize} TE={TE} />
+                <Toggle on={config.dynamics?.normalize ?? true} onChange={() => updateDynamics({ normalize: !config.dynamics?.normalize })} color={TE.orange} size={toggleSize} TE={TE} />
               </div>
             </div>
           </div>
