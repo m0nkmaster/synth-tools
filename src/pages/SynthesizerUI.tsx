@@ -516,10 +516,11 @@ interface LayerPanelProps {
   isTablet?: boolean;
   knobSize?: 'small' | 'medium' | 'large';
   btnSize?: 'small' | 'medium' | 'large';
+  toggleSize?: 'small' | 'medium' | 'large';
   TE: ReturnType<typeof createThemeTokens>;
 }
 
-function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canRemove, isMobile = false, isTablet = false, knobSize = 'small', btnSize = 'small', TE }: LayerPanelProps) {
+function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canRemove, isMobile = false, isTablet = false, knobSize = 'small', btnSize = 'small', toggleSize = 'small', TE }: LayerPanelProps) {
   const LAYER_CFG: Record<string, { icon: string; color: string; label: string }> = {
     oscillator: { icon: '◐', color: TE.orange, label: 'OSC' },
     noise: { icon: '▒', color: TE.pink, label: 'NSE' },
@@ -598,6 +599,13 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               <Module label="SUB" color={TE.pink} on={!!layer.oscillator.sub} onToggle={() => updateOsc({ sub: layer.oscillator!.sub ? undefined : { level: 0.5, octave: -1, waveform: 'sine' } })} isMobile={isMobile} TE={TE}>
                 {layer.oscillator.sub && <>
                   <MiniKnob value={layer.oscillator.sub.level} min={0} max={1} onChange={v => updateOsc({ sub: { ...layer.oscillator!.sub!, level: v } })} label="LVL" color={TE.pink} size={knobSize} TE={TE} />
+                  <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
+                    {(['sine', 'square', 'triangle'] as const).map(wf => (
+                      <Btn key={wf} active={(layer.oscillator!.sub!.waveform || 'sine') === wf} onClick={() => updateOsc({ sub: { ...layer.oscillator!.sub!, waveform: wf } })} color={TE.pink} small size={btnSize} TE={TE}>
+                        {wf === 'sine' ? '∿' : wf === 'square' ? '⊓' : '△'}
+                      </Btn>
+                    ))}
+                  </div>
                   <div style={{ display: 'flex', gap: isMobile ? 6 : 2 }}>
                     <Btn active={layer.oscillator.sub.octave === -1} onClick={() => updateOsc({ sub: { ...layer.oscillator!.sub!, octave: -1 } })} color={TE.pink} small size={btnSize} TE={TE}>-1</Btn>
                     <Btn active={layer.oscillator.sub.octave === -2} onClick={() => updateOsc({ sub: { ...layer.oscillator!.sub!, octave: -2 } })} color={TE.pink} small size={btnSize} TE={TE}>-2</Btn>
@@ -614,13 +622,24 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               </Module>
               <Module label="FILTER" color={TE.cyan} on={!!layer.filter} onToggle={() => onUpdate({ ...layer, filter: layer.filter ? undefined : { type: 'lowpass', frequency: 2000, q: 1 } })} isMobile={isMobile} TE={TE}>
                 {layer.filter && <>
-                  <div style={{ display: 'flex', gap: isMobile ? 6 : 2 }}>
-                    {['lowpass', 'highpass', 'bandpass'].map(t => (
+                  <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
+                    {['lowpass', 'highpass', 'bandpass', 'notch'].map(t => (
                       <Btn key={t} active={layer.filter!.type === t} onClick={() => onUpdate({ ...layer, filter: { ...layer.filter!, type: t as any } })} color={TE.cyan} small size={btnSize} TE={TE}>{t.slice(0, 2).toUpperCase()}</Btn>
                     ))}
                   </div>
                   <MiniKnob value={layer.filter.frequency} min={20} max={20000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, frequency: v } })} label="FRQ" color={TE.cyan} logarithmic size={knobSize} TE={TE} />
                   <MiniKnob value={layer.filter.q} min={0.1} max={20} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, q: v } })} label="Q" color={TE.cyan} size={knobSize} TE={TE} />
+                  <div style={{ display: 'flex', gap: isMobile ? 10 : 6, alignItems: 'center', flexWrap: 'wrap', marginTop: isMobile ? 8 : 4 }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>ENV</span>
+                    <Toggle on={!!layer.filter.envelope} onChange={() => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: layer.filter!.envelope ? undefined : { amount: 2000, attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 } } })} color={TE.cyan} size={toggleSize} TE={TE} />
+                    {layer.filter.envelope && <>
+                      <MiniKnob value={layer.filter.envelope.amount} min={-10000} max={10000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, amount: v } } })} label="AMT" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, sustain: v } } })} label="S" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
+                    </>}
+                  </div>
                 </>}
               </Module>
               <Module label="SATURATION" color={TE.yellow} on={!!layer.saturation} onToggle={() => onUpdate({ ...layer, saturation: layer.saturation ? undefined : { type: 'soft', drive: 2, mix: 0.5 } })} isMobile={isMobile} TE={TE}>
@@ -654,8 +673,24 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               </Module>
               <Module label="FILTER" color={TE.cyan} on={!!layer.filter} onToggle={() => onUpdate({ ...layer, filter: layer.filter ? undefined : { type: 'lowpass', frequency: 2000, q: 1 } })} isMobile={isMobile} TE={TE}>
                 {layer.filter && <>
+                  <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
+                    {['lowpass', 'highpass', 'bandpass', 'notch'].map(t => (
+                      <Btn key={t} active={layer.filter!.type === t} onClick={() => onUpdate({ ...layer, filter: { ...layer.filter!, type: t as any } })} color={TE.cyan} small size={btnSize} TE={TE}>{t.slice(0, 2).toUpperCase()}</Btn>
+                    ))}
+                  </div>
                   <MiniKnob value={layer.filter.frequency} min={20} max={20000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, frequency: v } })} label="FRQ" color={TE.cyan} logarithmic size={knobSize} TE={TE} />
                   <MiniKnob value={layer.filter.q} min={0.1} max={20} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, q: v } })} label="Q" color={TE.cyan} size={knobSize} TE={TE} />
+                  <div style={{ display: 'flex', gap: isMobile ? 10 : 6, alignItems: 'center', flexWrap: 'wrap', marginTop: isMobile ? 8 : 4 }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>ENV</span>
+                    <Toggle on={!!layer.filter.envelope} onChange={() => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: layer.filter!.envelope ? undefined : { amount: 2000, attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 } } })} color={TE.cyan} size={toggleSize} TE={TE} />
+                    {layer.filter.envelope && <>
+                      <MiniKnob value={layer.filter.envelope.amount} min={-10000} max={10000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, amount: v } } })} label="AMT" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, sustain: v } } })} label="S" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
+                    </>}
+                  </div>
                 </>}
               </Module>
             </div>
@@ -697,8 +732,24 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               </Module>
               <Module label="FILTER" color={TE.cyan} on={!!layer.filter} onToggle={() => onUpdate({ ...layer, filter: layer.filter ? undefined : { type: 'lowpass', frequency: 2000, q: 1 } })} isMobile={isMobile} TE={TE}>
                 {layer.filter && <>
+                  <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
+                    {['lowpass', 'highpass', 'bandpass', 'notch'].map(t => (
+                      <Btn key={t} active={layer.filter!.type === t} onClick={() => onUpdate({ ...layer, filter: { ...layer.filter!, type: t as any } })} color={TE.cyan} small size={btnSize} TE={TE}>{t.slice(0, 2).toUpperCase()}</Btn>
+                    ))}
+                  </div>
                   <MiniKnob value={layer.filter.frequency} min={20} max={20000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, frequency: v } })} label="FRQ" color={TE.cyan} logarithmic size={knobSize} TE={TE} />
                   <MiniKnob value={layer.filter.q} min={0.1} max={20} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, q: v } })} label="Q" color={TE.cyan} size={knobSize} TE={TE} />
+                  <div style={{ display: 'flex', gap: isMobile ? 10 : 6, alignItems: 'center', flexWrap: 'wrap', marginTop: isMobile ? 8 : 4 }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>ENV</span>
+                    <Toggle on={!!layer.filter.envelope} onChange={() => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: layer.filter!.envelope ? undefined : { amount: 2000, attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 } } })} color={TE.cyan} size={toggleSize} TE={TE} />
+                    {layer.filter.envelope && <>
+                      <MiniKnob value={layer.filter.envelope.amount} min={-10000} max={10000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, amount: v } } })} label="AMT" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, sustain: v } } })} label="S" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
+                    </>}
+                  </div>
                 </>}
               </Module>
             </div>
@@ -930,6 +981,7 @@ export function SynthesizerUI() {
   const updateEffects = (effects: SoundConfig['effects']) => setConfig({ ...config, effects });
   const updateDuration = (duration: number) => setConfig({ ...config, timing: { ...config.timing, duration } });
   const updateDynamics = (dynamics: Partial<SoundConfig['dynamics']>) => setConfig({ ...config, dynamics: { ...config.dynamics, ...dynamics } });
+  const updateMetadata = (metadata: Partial<SoundConfig['metadata']>) => setConfig({ ...config, metadata: { ...config.metadata, ...metadata } });
 
   // Generate sound from AI prompt
   const handleGenerate = async () => {
@@ -1303,7 +1355,7 @@ export function SynthesizerUI() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 10 : 6 }}>
               {config.synthesis.layers.map((layer, i) => (
-                <LayerPanel key={i} layer={layer} index={i} selected={selectedLayer === i} onSelect={() => setSelectedLayer(i)} onUpdate={l => updateLayer(i, l)} onRemove={() => removeLayer(i)} canRemove={config.synthesis.layers.length > 1} isMobile={isMobile} isTablet={isTablet} knobSize={knobSize} btnSize={btnSize} TE={TE} />
+                <LayerPanel key={i} layer={layer} index={i} selected={selectedLayer === i} onSelect={() => setSelectedLayer(i)} onUpdate={l => updateLayer(i, l)} onRemove={() => removeLayer(i)} canRemove={config.synthesis.layers.length > 1} isMobile={isMobile} isTablet={isTablet} knobSize={knobSize} btnSize={btnSize} toggleSize={toggleSize} TE={TE} />
               ))}
             </div>
           </div>
@@ -1373,13 +1425,16 @@ export function SynthesizerUI() {
             {config.filter && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 8 }}>
                 <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
-                  {['lowpass', 'highpass', 'bandpass', 'notch'].map(t => (
+                  {['lowpass', 'highpass', 'bandpass', 'notch', 'allpass', 'peaking'].map(t => (
                     <Btn key={t} active={config.filter!.type === t} onClick={() => updateFilter({ ...config.filter!, type: t as any })} color={TE.cyan} small size={btnSize} TE={TE}>{t.slice(0, 2).toUpperCase()}</Btn>
                   ))}
                 </div>
-                <div style={{ display: 'flex', gap: isMobile ? 12 : 8, justifyContent: 'center' }}>
+                <div style={{ display: 'flex', gap: isMobile ? 12 : 8, justifyContent: 'center', flexWrap: 'wrap' }}>
                   <MiniKnob value={config.filter.frequency} min={20} max={20000} onChange={v => updateFilter({ ...config.filter!, frequency: v })} label="FREQ" color={TE.cyan} logarithmic size={knobSize} TE={TE} />
                   <MiniKnob value={config.filter.q} min={0.1} max={20} onChange={v => updateFilter({ ...config.filter!, q: v })} label="RES" color={TE.cyan} size={knobSize} TE={TE} />
+                  {config.filter.type === 'peaking' && (
+                    <MiniKnob value={config.filter.gain ?? 0} min={-24} max={24} onChange={v => updateFilter({ ...config.filter!, gain: v })} label="GAIN" color={TE.cyan} size={knobSize} TE={TE} />
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: isMobile ? 10 : 6, alignItems: 'center', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>ENV</span>
@@ -1389,6 +1444,8 @@ export function SynthesizerUI() {
                       <MiniKnob value={config.filter.envelope.amount} min={-10000} max={10000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, amount: v } })} label="AMT" color={TE.cyan} size={knobSize} TE={TE} />
                       <MiniKnob value={config.filter.envelope.attack * 1000} min={1} max={2000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, attack: v / 1000 } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
                       <MiniKnob value={config.filter.envelope.decay * 1000} min={1} max={2000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, decay: v / 1000 } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={config.filter.envelope.sustain} min={0} max={1} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, sustain: v } })} label="S" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={config.filter.envelope.release * 1000} min={1} max={5000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, release: v / 1000 } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
                     </>
                   )}
                 </div>
@@ -1413,8 +1470,8 @@ export function SynthesizerUI() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 10 : 6 }}>
               <Effect name="DISTORT" on={!!config.effects.distortion} onToggle={() => config.effects.distortion ? updateEffects({ ...config.effects, distortion: undefined }) : updateEffects({ ...config.effects, distortion: { type: 'soft', amount: 0.5, mix: 0.5 } })} color={TE.orange} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
                 <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
-                  {['soft', 'hard', 'fuzz'].map(t => (
-                    <Btn key={t} active={config.effects.distortion?.type === t} onClick={() => updateEffects({ ...config.effects, distortion: { ...config.effects.distortion!, type: t as any } })} color={TE.orange} small size={btnSize} TE={TE}>{t.slice(0, 2).toUpperCase()}</Btn>
+                  {['soft', 'hard', 'fuzz', 'bitcrush', 'waveshaper'].map(t => (
+                    <Btn key={t} active={config.effects.distortion?.type === t} onClick={() => updateEffects({ ...config.effects, distortion: { ...config.effects.distortion!, type: t as any } })} color={TE.orange} small size={btnSize} TE={TE}>{t === 'bitcrush' ? 'BIT' : t === 'waveshaper' ? 'WS' : t.slice(0, 2).toUpperCase()}</Btn>
                   ))}
                 </div>
                 <MiniKnob value={config.effects.distortion?.amount || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, distortion: { ...config.effects.distortion!, amount: v } })} label="AMT" color={TE.orange} size={knobSize} TE={TE} />
@@ -1438,6 +1495,7 @@ export function SynthesizerUI() {
                 <MiniKnob value={config.effects.compressor?.ratio || 4} min={1} max={20} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, ratio: v } })} label="RATIO" color={TE.yellow} size={knobSize} TE={TE} />
                 <MiniKnob value={(config.effects.compressor?.attack || 0.003) * 1000} min={0.1} max={100} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, attack: v / 1000 } })} label="ATK" color={TE.yellow} size={knobSize} TE={TE} />
                 <MiniKnob value={(config.effects.compressor?.release || 0.25) * 1000} min={10} max={1000} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, release: v / 1000 } })} label="REL" color={TE.yellow} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.compressor?.knee ?? 30} min={0} max={40} onChange={v => updateEffects({ ...config.effects, compressor: { ...config.effects.compressor!, knee: v } })} label="KNEE" color={TE.yellow} size={knobSize} TE={TE} />
               </Effect>
 
               <Effect name="GATE" on={!!config.effects.gate} onToggle={() => config.effects.gate ? updateEffects({ ...config.effects, gate: undefined }) : updateEffects({ ...config.effects, gate: { attack: 0.001, hold: 0.2, release: 0.05 } })} color={TE.green} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
@@ -1447,6 +1505,97 @@ export function SynthesizerUI() {
               </Effect>
             </div>
           </Section>
+
+          {/* METADATA */}
+          <div style={{ background: TE.panel, borderRadius: 6, padding: isMobile ? 12 : 10, border: `1px solid ${TE.border}` }}>
+            <span style={{ fontSize: isMobile ? 10 : 8, color: TE.grey, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: isMobile ? 12 : 8 }}>METADATA</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>NAME</span>
+                <input
+                  type="text"
+                  value={config.metadata.name}
+                  onChange={e => updateMetadata({ name: e.target.value })}
+                  placeholder="Sound name..."
+                  style={{
+                    padding: isMobile ? '8px 10px' : '5px 8px',
+                    background: TE.inputBg,
+                    border: `1px solid ${TE.border}`,
+                    borderRadius: 4,
+                    color: TE.black,
+                    fontSize: isMobile ? 11 : 9,
+                    width: '100%',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>CATEGORY</span>
+                <div style={{ display: 'flex', gap: isMobile ? 6 : 3, flexWrap: 'wrap' }}>
+                  {['kick', 'snare', 'hihat', 'tom', 'perc', 'bass', 'lead', 'pad', 'fx', 'other'].map(cat => (
+                    <Btn key={cat} active={config.metadata.category === cat} onClick={() => updateMetadata({ category: cat as SoundConfig['metadata']['category'] })} color={TE.pink} small size={btnSize} TE={TE}>{cat.toUpperCase()}</Btn>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>DESCRIPTION</span>
+                <textarea
+                  value={config.metadata.description}
+                  onChange={e => updateMetadata({ description: e.target.value })}
+                  placeholder="Describe the sound..."
+                  rows={2}
+                  style={{
+                    padding: isMobile ? '8px 10px' : '5px 8px',
+                    background: TE.inputBg,
+                    border: `1px solid ${TE.border}`,
+                    borderRadius: 4,
+                    color: TE.black,
+                    fontSize: isMobile ? 11 : 9,
+                    width: '100%',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>TAGS</span>
+                <input
+                  type="text"
+                  value={config.metadata.tags.join(', ')}
+                  onChange={e => updateMetadata({ tags: e.target.value.split(',').map(t => t.trim()).filter(t => t) })}
+                  placeholder="tag1, tag2, tag3..."
+                  style={{
+                    padding: isMobile ? '8px 10px' : '5px 8px',
+                    background: TE.inputBg,
+                    border: `1px solid ${TE.border}`,
+                    borderRadius: 4,
+                    color: TE.black,
+                    fontSize: isMobile ? 11 : 9,
+                    width: '100%',
+                  }}
+                />
+                {config.metadata.tags.length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                    {config.metadata.tags.map((tag, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          padding: '2px 6px',
+                          background: `${TE.cyan}20`,
+                          border: `1px solid ${TE.cyan}40`,
+                          borderRadius: 3,
+                          fontSize: isMobile ? 9 : 7,
+                          color: TE.cyan,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       </Stack>

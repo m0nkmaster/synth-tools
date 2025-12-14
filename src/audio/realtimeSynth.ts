@@ -36,6 +36,7 @@ export class RealtimeSynth {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private effectsInput: AudioNode | null = null;
+  private effectsOutput: AudioNode | null = null;
   private activeVoices: Map<number, ActiveVoice> = new Map();
   private config: SoundConfig;
   private maxPolyphony = 16;
@@ -48,12 +49,11 @@ export class RealtimeSynth {
     if (!this.ctx || this.ctx.state === 'closed') {
       this.ctx = new AudioContext();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = 0.7;
+      // Match the static synth's output level (no arbitrary reduction)
+      this.masterGain.gain.value = 1.0;
 
       // Create effects chain
-      const effects = createEffectsChain(this.ctx, this.config.effects);
-      this.effectsInput = effects.input;
-      effects.output.connect(this.masterGain);
+      this.rebuildEffectsChain();
       this.masterGain.connect(this.ctx.destination);
     }
 
@@ -64,14 +64,29 @@ export class RealtimeSynth {
     return this.ctx;
   }
 
+  private rebuildEffectsChain(): void {
+    if (!this.ctx || !this.masterGain) return;
+
+    // Disconnect old effects chain if it exists
+    if (this.effectsOutput) {
+      try {
+        this.effectsOutput.disconnect();
+      } catch {
+        // Already disconnected
+      }
+    }
+
+    // Create new effects chain
+    const effects = createEffectsChain(this.ctx, this.config.effects);
+    this.effectsInput = effects.input;
+    this.effectsOutput = effects.output;
+    effects.output.connect(this.masterGain);
+  }
+
   updateConfig(config: SoundConfig): void {
     this.config = config;
-    // Rebuild effects chain on next note
-    if (this.ctx && this.masterGain) {
-      const effects = createEffectsChain(this.ctx, this.config.effects);
-      this.effectsInput = effects.input;
-      effects.output.connect(this.masterGain);
-    }
+    // Rebuild effects chain when config changes
+    this.rebuildEffectsChain();
   }
 
   noteOn(note: number, velocity: number): void {
