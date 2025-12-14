@@ -106,11 +106,19 @@ bun run lint:fix  # Auto-fix lint issues
 - No files uploaded except AI text prompts (when using AI features)
 - Works offline (except AI features)
 
+## Related Tools
+
+- **[TE Drum Utility](https://teenage.engineering/apps/drum-utility)** — Official Teenage Engineering web tool for creating drum packs. Great for testing compatibility.
+- **[teoperator](https://github.com/schollz/teoperator)** — Command-line tool by [@schollz](https://github.com/schollz) for creating OP-1/OP-Z patches. Invaluable format research resource.
+
 ## License
 
 MIT
 
 ## Credits
 
-- Format research from [teoperator](https://github.com/schollz/teoperator)
-- Built for the OP-Z community
+This project builds on the work of the OP-Z community:
+
+- **Format specification** derived from reverse engineering by [schollz/teoperator](https://github.com/schollz/teoperator)
+- **Compatibility testing** validated against [TE Drum Utility](https://teenage.engineering/apps/drum-utility)
+- Built with ❤️ for the Teenage Engineering community

@@ -1,354 +1,264 @@
-# OP-Z Drum Pack Format Specification
+# OP-Z Format Specification
 
-The definitive format reference for OP-Z/OP-1 compatible drum pack AIFF files.
+AIFF format requirements for OP-Z drum packs.
 
 ## Overview
 
-OP-Z drum packs are AIFF-C (AIFC) files containing:
-- Mono, 16-bit, 44.1kHz audio (little-endian PCM)
-- Metadata in an APPL chunk defining slice positions and parameters
+OP-Z drum packs are AIFF files containing:
+- Mono, 16-bit, 44.1kHz audio
+- APPL metadata chunk with slice positions
 
----
+## Audio Requirements
+
+| Parameter | Value |
+|-----------|-------|
+| Container | AIFF |
+| Channels | 1 (mono) |
+| Sample rate | 44,100 Hz |
+| Bit depth | 16-bit |
+| Byte order | Big-endian |
+| Max duration | 11.8 seconds |
+| Max slices | 24 |
 
 ## File Structure
 
 ```
-FORM (AIFC)
-├── FVER (version chunk)
-├── COMM (format chunk)
-├── APPL (OP-Z metadata chunk)  ← Must appear before SSND
-└── SSND (audio data chunk)
+FORM (AIFF)
+├── COMM (format description)
+├── APPL (OP-Z metadata)  ← Must be before SSND
+└── SSND (audio data)
 ```
 
-Chunks must appear in this exact order.
+## Chunk Details
 
----
-
-## Audio Constraints
-
-| Constraint | Value |
-|------------|-------|
-| Container | AIFF-C (AIFC) |
-| Channels | 1 (mono) |
-| Sample rate | 44,100 Hz |
-| Bit depth | 16-bit |
-| Encoding | Little-endian PCM (`sowt`) |
-| Max duration | 12 seconds |
-| Max slices | 24 |
-| Max per-slice | ~4 seconds |
-
----
-
-## Chunk Specifications
-
-### FVER Chunk
+### FORM Header
 
 ```
-ID:   FVER
-Size: 4 bytes
-Data: 0xA2805140 (2726318400)
+Offset  Size  Description
+0       4     "FORM"
+4       4     File size - 8 (big-endian)
+8       4     "AIFF"
 ```
-
-Required for AIFC format.
 
 ### COMM Chunk
 
 ```
-ID:   COMM
-Size: 64 bytes (with compression name)
-
-Fields:
-- Channels: 1 (mono)
-- Sample frames: <total frame count>
-- Bits per sample: 16
-- Sample rate: 44100 Hz (80-bit extended float)
-- Compression type: 'sowt' (little-endian PCM)
-- Compression name: "Signed integer (little-endian) linear PCM"
+Offset  Size  Description
+0       4     "COMM"
+4       4     Chunk size (18)
+8       2     Channels (1)
+10      4     Number of frames
+14      2     Bits per sample (16)
+16      10    Sample rate (80-bit extended float)
 ```
 
 ### APPL Chunk
 
-The metadata chunk containing slice definitions.
-
 ```
-ID:   APPL
-Size: 4 + JSON length + 1 (null terminator)
-
-Structure:
-├── App signature: "op-1" (4 bytes ASCII)
-├── JSON payload (variable length)
-└── Null terminator: 0x00 (1 byte)  ← REQUIRED
+Offset  Size  Description
+0       4     "APPL"
+4       4     Chunk size
+8       4     "op-1" (signature)
+12      N     JSON metadata
 ```
-
-The null terminator after the JSON is critical for TE Drum Utility compatibility.
 
 ### SSND Chunk
 
-Standard AIFF sound data chunk.
-
 ```
-ID:   SSND
-Size: 8 + audio data length
-
-Fields:
-├── Offset: 0 (4 bytes)
-├── Block size: 0 (4 bytes)
-└── Audio samples (16-bit little-endian PCM)
+Offset  Size  Description
+0       4     "SSND"
+4       4     Chunk size
+8       4     Offset (0)
+12      4     Block size (0)
+16      N     Audio samples
 ```
 
----
-
-## Metadata JSON Schema
-
-Fields must appear in this exact order (TE Drum Utility is order-sensitive):
+## Metadata JSON
 
 ```json
 {
-  "drum_version": 2,
+  "drum_version": 3,
   "type": "drum",
-  "name": "My Kit",
-  "start": [0, 180633600, ...],
-  "end": [180633599, 361267199, ...],
+  "name": "Pack Name",
   "octave": 0,
-  "pitch": [0, 0, 0, ...],
-  "playmode": [4096, 4096, ...],
+  "start": [0, 180416, ...],
+  "end": [180415, 360831, ...],
+  "pitch": [0, 0, ...],
+  "playmode": [12288, 12288, ...],
   "reverse": [8192, 8192, ...],
-  "volume": [8192, 8192, ...],
-  "dyna_env": [0, 8192, 0, 8192, 0, 0, 0, 0],
-  "fx_active": false,
-  "fx_type": "delay",
-  "fx_params": [8000, 8000, 8000, 8000, 8000, 8000, 8000, 8000],
-  "lfo_active": false,
-  "lfo_type": "tremolo",
-  "lfo_params": [16000, 16000, 16000, 16000, 0, 0, 0, 0]
+  "volume": [8192, 8192, ...]
 }
 ```
 
-### Array Requirements
-
-All arrays must have exactly **24 elements**, one per slice slot.
-
-### Field Definitions
+### Required Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | drum_version | number | 2 (OP-1) or 3 (OP-Z) |
 | type | string | Always `"drum"` |
-| name | string | Pack name displayed on device |
-| start | number[24] | Slice start positions (encoded) |
-| end | number[24] | Slice end positions (encoded) |
-| octave | number | -4 to +4, global pitch offset |
-| pitch | number[24] | Per-slice pitch (0 = center) |
+| name | string | Pack name |
+| octave | number | -4 to +4 |
+| start | number[24] | Slice start positions |
+| end | number[24] | Slice end positions |
+| pitch | number[24] | Per-slice pitch offset |
 | playmode | number[24] | Playback mode |
-| reverse | number[24] | Reverse playback |
+| reverse | number[24] | Reverse flag |
 | volume | number[24] | Per-slice volume |
-| dyna_env | number[8] | Dynamic envelope |
-| fx_active | boolean | Effects enabled |
-| fx_type | string | Effect type name |
-| fx_params | number[8] | Effect parameters |
-| lfo_active | boolean | LFO enabled |
-| lfo_type | string | LFO type name |
-| lfo_params | number[8] | LFO parameters |
 
----
+All arrays must have exactly 24 elements.
 
 ## Position Encoding
 
-Frame positions are scaled by 4096:
+Frame positions are scaled:
 
 ```
-encoded_position = frame_number × 4096
+encoded_position = frame_number × 4058
 ```
 
-This provides sub-frame precision for pitch shifting.
+**Note:** The scale factor is 4058, not 4096 as sometimes documented.
 
-### Limits
-
-| Limit | Value |
-|-------|-------|
-| Maximum encoded value | 0x7FFFFFFE (2,147,483,646) |
-| Scale factor | 4096 |
-| Max frames at 44.1kHz | ~524,287 (~11.9 seconds) |
-
-### Example
+### Calculation
 
 ```typescript
-// 1 second at 44.1kHz
-const frameIndex = 44100;
-const encoded = frameIndex * 4096; // 180,633,600
+// From config.ts
+POSITION_SCALE: 4058
+MAX_POSITION: 0x7FFFFFFE  // 2,147,483,646
+
+// Encoding
+function encodePosition(frame: number): number {
+  const encoded = Math.round(frame * 4058);
+  return Math.min(encoded, 0x7FFFFFFE);
+}
+
+// Decoding
+function decodePosition(encoded: number): number {
+  return Math.round(encoded / 4058);
+}
 ```
 
----
+## Default Values
 
-## Default Parameter Values
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| volume | 8192 | Unity gain |
+| pitch | 0 | No pitch shift |
+| playmode | 12288 | Play Out mode |
+| reverse | 8192 | Forward playback |
 
-| Parameter | AIFF Value | AIFC Value | Notes |
-|-----------|------------|------------|-------|
-| pitch | 0 | 0 | Center pitch |
-| playmode | 8192 | 4096 | Different for AIFF vs AIFC |
-| reverse | 8192 | 8192 | Normal playback |
-| volume | 8192 | 8192 | Full volume |
+### Playmode Values
 
-**Critical:** For AIFC format, `playmode` must be 4096, not 8192.
+| Value | Mode |
+|-------|------|
+| 8192 | Mono (cuts off on retrigger) |
+| 12288 | Play Out (plays to completion) |
 
----
+## Slice Layout
 
-## Slice Placement
-
-Slices should be contiguous with small gaps:
-
-```
-[Slice 0 audio][gap][Slice 1 audio][gap][Slice 2 audio]...
-```
-
-- Gap: ~0.1 seconds (4410 samples) prevents audio bleed
-- Slices start immediately after previous gap
-- Empty slots have `start === end === 0`
-
----
-
-## Common Mistakes
-
-### 1. Wrong JSON Field Order
-
-```json
-// WRONG: octave before start/end
-{"drum_version":2,"type":"drum","name":"kit","octave":0,"start":[...],...}
-
-// CORRECT: start/end before octave
-{"drum_version":2,"type":"drum","name":"kit","start":[...],"end":[...],"octave":0,...}
-```
-
-### 2. Missing Null Terminator
+Slices are packed contiguously:
 
 ```
-// WRONG: No null byte after JSON
-...0,0,0,0]}SSND...
-
-// CORRECT: Null byte after closing brace
-...0,0,0,0]}\x00SSND...
+[Slice 0][Slice 1][Slice 2]...[Slice N]
 ```
 
-### 3. Wrong Playmode for AIFC
+- No gaps between slices in current implementation
+- Empty slots have `start === end`
 
-```json
-// WRONG for AIFC format
-"playmode": [8192, 8192, ...]
+## Implementation
 
-// CORRECT for AIFC format
-"playmode": [4096, 4096, ...]
-```
-
-### 4. Arrays Not 24 Elements
-
-All slice arrays must have exactly 24 elements, even if some slots are empty.
-
-### 5. Non-Sequential Slices
-
-Slices should be placed sequentially from the beginning of the file, not scattered.
-
----
-
-## Validation Checklist
-
-- [ ] File type is AIFC (not plain AIFF)
-- [ ] FVER version is 0xA2805140
-- [ ] COMM compression is `sowt`
-- [ ] APPL chunk starts with `op-1`
-- [ ] APPL chunk appears before SSND
-- [ ] JSON field order is correct
-- [ ] Null terminator after JSON
-- [ ] All arrays have 24 elements
-- [ ] playmode is 4096 for AIFC
-- [ ] Positions encoded with × 4096
-- [ ] Slices are contiguous
-- [ ] Total duration ≤ 12 seconds
-
----
-
-## Implementation Reference
-
-### Building the APPL Chunk
+### Building APPL Chunk
 
 ```typescript
-function buildDrumMetadataChunk(
-  startFrames: number[],
-  endFrames: number[],
-  metadata: DrumMetadata
-): Uint8Array {
-  // Pad arrays to 24 elements
-  const start = padArray(startFrames, 24, 0);
-  const end = padArray(endFrames, 24, 0);
-  
-  // Encode positions (× 4096)
-  const positionsStart = encodePositions(start);
-  const positionsEnd = encodePositions(end);
-
-  // Build JSON with correct field order
-  const payload = JSON.stringify({
+function buildApplChunk(metadata: DrumMetadata, start: number[], end: number[]): Uint8Array {
+  const json = JSON.stringify({
     drum_version: metadata.drumVersion,
     type: 'drum',
     name: metadata.name,
-    start: positionsStart,
-    end: positionsEnd,
     octave: metadata.octave,
-    pitch: padArray(metadata.pitch, 24, 0),
-    playmode: padArray(metadata.playmode, 24, 4096),
-    reverse: padArray(metadata.reverse, 24, 8192),
-    volume: padArray(metadata.volume, 24, 8192),
-    dyna_env: [0, 8192, 0, 8192, 0, 0, 0, 0],
-    fx_active: false,
-    fx_type: 'delay',
-    fx_params: [8000, 8000, 8000, 8000, 8000, 8000, 8000, 8000],
-    lfo_active: false,
-    lfo_type: 'tremolo',
-    lfo_params: [16000, 16000, 16000, 16000, 0, 0, 0, 0]
+    start: start.map(f => Math.round(f * 4058)),
+    end: end.map(f => Math.round(f * 4058)),
+    pitch: metadata.pitch,
+    playmode: metadata.playmode,
+    reverse: metadata.reverse,
+    volume: metadata.volume,
   });
 
-  // Build chunk: 'APPL' + size + 'op-1' + JSON + null
-  const jsonBytes = new TextEncoder().encode(payload);
-  const chunkSize = 4 + jsonBytes.length + 1; // op-1 + JSON + null
+  const signature = new TextEncoder().encode('op-1');
+  const jsonBytes = new TextEncoder().encode(json);
+  const payloadSize = signature.length + jsonBytes.length;
   
-  const chunk = new Uint8Array(8 + chunkSize);
-  chunk.set([0x41, 0x50, 0x50, 0x4C], 0); // 'APPL'
-  writeUInt32BE(chunk, 4, chunkSize);
-  chunk.set([0x6F, 0x70, 0x2D, 0x31], 8); // 'op-1'
+  const chunk = new Uint8Array(8 + payloadSize);
+  chunk.set(new TextEncoder().encode('APPL'), 0);
+  // Write size as big-endian
+  chunk[4] = (payloadSize >> 24) & 0xFF;
+  chunk[5] = (payloadSize >> 16) & 0xFF;
+  chunk[6] = (payloadSize >> 8) & 0xFF;
+  chunk[7] = payloadSize & 0xFF;
+  chunk.set(signature, 8);
   chunk.set(jsonBytes, 12);
-  chunk[12 + jsonBytes.length] = 0x00; // null terminator
   
   return chunk;
 }
 ```
 
-### Position Encoding
+### Injecting Metadata
 
 ```typescript
-function encodePositions(frames: number[]): number[] {
-  const MAX_POSITION = 0x7FFFFFFE;
-  return frames.map(f => {
-    const encoded = Math.round(f * 4096);
-    return Math.max(0, Math.min(MAX_POSITION, encoded));
-  });
-}
+function injectDrumMetadata(aiff: Uint8Array, applChunk: Uint8Array): Uint8Array {
+  const { chunks, formSize } = parseAiff(aiff);
+  const ssndChunk = chunks.find(c => c.id === 'SSND');
+  const insertPos = ssndChunk ? ssndChunk.offset : aiff.length;
 
-function decodePositions(encoded: number[]): number[] {
-  return encoded.map(p => Math.round(p / 4096));
+  const result = new Uint8Array(aiff.length + applChunk.length);
+  result.set(aiff.slice(0, insertPos), 0);
+  result.set(applChunk, insertPos);
+  result.set(aiff.slice(insertPos), insertPos + applChunk.length);
+
+  // Update FORM size
+  const newSize = formSize + applChunk.length;
+  result[4] = (newSize >> 24) & 0xFF;
+  result[5] = (newSize >> 16) & 0xFF;
+  result[6] = (newSize >> 8) & 0xFF;
+  result[7] = newSize & 0xFF;
+
+  return result;
 }
 ```
 
+## Validation
+
+Before export, verify:
+
+- [ ] Total duration ≤ 11.8 seconds
+- [ ] Slice count ≤ 24
+- [ ] All slices are mono, 16-bit, 44.1kHz
+- [ ] Position values fit in 32-bit signed int
+- [ ] All metadata arrays have 24 elements
+- [ ] APPL chunk appears before SSND
+
+## Testing
+
+Use Sample Analyzer to verify:
+- Waveform displays correctly
+- Slice boundaries match expected positions
+- Metadata fields parse correctly
+
+Use [TE Drum Utility](https://teenage.engineering/apps/drum-utility) for device compatibility testing.
+
 ---
 
-## Testing Tools
+## References
 
-- **TE Drum Utility**: https://teenage.engineering/apps/drum-utility — Official validation
-- **scripts/analyze_aiff.py**: Local inspection tool
-- **Sample Analyzer page**: Visual validation in OP Done
+### Official Resources
 
----
+- **[TE Drum Utility](https://teenage.engineering/apps/drum-utility)** — Official Teenage Engineering web tool for creating OP-1/OP-Z drum packs. Supports 24 slots, 12 seconds max for OP-Z. Essential for compatibility testing.
 
-## Resources
+### Community Resources
 
-- [AIFF Specification](http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/AIFF/AIFF.html)
-- [AIFC Specification](http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/AIFF/AIFC.html)
-- [OP-Z Official Guide](https://teenage.engineering/guides/op-z)
+- **[teoperator](https://github.com/schollz/teoperator)** by [@schollz](https://github.com/schollz) — Go-based command-line tool for creating OP-1/OP-Z patches. The primary source for format reverse engineering. Includes detailed [write-up of the metadata format](https://schollz.com/blog/op1/).
 
+### Format Notes
+
+The OP-Z drum format is largely compatible with OP-1, using the `op-1` signature in the APPL chunk. Key differences:
+- OP-Z uses `drum_version: 3` (OP-1 uses `2`)
+- OP-Z supports stereo in some modes (drum packs are mono)
+- OP-1 field supports 20 seconds stereo; OP-Z supports 12 seconds mono

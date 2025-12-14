@@ -341,3 +341,16 @@ When using Synthesizer AI or AI Kit Generator:
 Everything works offline except:
 - AI sound generation (requires network)
 - AI kit generation (requires network)
+
+---
+
+## Resources
+
+### Official Teenage Engineering
+
+- **[TE Drum Utility](https://teenage.engineering/apps/drum-utility)** — Official web tool for creating OP-1/OP-Z drum packs. Use this to verify your packs work correctly before loading onto your device.
+- **[OP-Z User Guide](https://teenage.engineering/guides/op-z)** — Official documentation for the OP-Z.
+
+### Community Tools
+
+- **[teoperator](https://github.com/schollz/teoperator)** — Command-line tool by @schollz for creating OP-1/OP-Z patches from audio files.

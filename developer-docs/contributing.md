@@ -1,27 +1,27 @@
 # Contributing
 
-Development workflow, code style, and testing guide.
+Development workflow, testing, and code style.
 
 ## Setup
 
 ### Prerequisites
 
-- **Bun** (latest version) — never use npm/npx
-- **Git** for version control
-- **VS Code** recommended with ESLint extension
+- **Bun** (latest) — never use npm/npx
+- **Git**
+- **VS Code** with ESLint extension (recommended)
 
-### Initial Setup
+### First Time
 
 ```bash
 git clone <repo-url>
 cd op-done
 bun install
-bun dev        # http://localhost:5173
+bun dev
 ```
 
----
+Open http://localhost:5173
 
-## Development Workflow
+## Workflow
 
 ### Before Starting
 
@@ -35,15 +35,15 @@ bun test
 ### During Development
 
 ```bash
-bun dev              # Dev server with hot reload
-bun test --watch     # Watch mode
+bun dev              # Dev server
+bun test --watch     # Test watcher
 bun run lint         # Check issues
 ```
 
 ### Before Committing
 
 ```bash
-bun run lint:fix     # Auto-fix issues
+bun run lint:fix     # Auto-fix
 bun test             # All tests pass
 bun run build        # Verify build
 ```
@@ -52,47 +52,45 @@ bun run build        # Verify build
 
 ```bash
 git add .
-git commit -m "feat: add pitch detection"
+git commit -m "feat: add feature"
 git push origin feature/your-feature
 ```
-
----
 
 ## Code Style
 
 ### TypeScript
 
-**Strict mode enabled.** No `any` types.
+**Strict mode.** No `any`.
 
 ```typescript
-// Bad
+// ❌ Bad
 function process(data: any) { ... }
 
-// Good
+// ✅ Good
 function process(data: AudioBuffer) { ... }
 ```
 
-**Explicit return types** for public functions:
+**Explicit return types** for exports:
 
 ```typescript
-// Bad
-export function encodePositions(frames: number[]) {
-  return frames.map(f => f * 4096);
+// ❌ Bad
+export function encode(frames: number[]) {
+  return frames.map(f => f * 4058);
 }
 
-// Good
-export function encodePositions(frames: number[]): number[] {
-  return frames.map(f => f * 4096);
+// ✅ Good
+export function encode(frames: number[]): number[] {
+  return frames.map(f => f * 4058);
 }
 ```
 
 **Prefer `const`:**
 
 ```typescript
-// Bad
+// ❌ Bad
 let result = compute();
 
-// Good
+// ✅ Good
 const result = compute();
 ```
 
@@ -100,39 +98,42 @@ const result = compute();
 
 | Type | Convention | Example |
 |------|------------|---------|
-| Files | camelCase | `aiff.ts`, `useSlices.ts` |
+| Files | camelCase | `aiff.ts` |
 | Components | PascalCase | `DrumCreator.tsx` |
-| Functions | camelCase | `encodePositions()` |
+| Functions | camelCase | `encodePositions` |
 | Constants | UPPER_SNAKE | `MAX_SLICES` |
-| Types | PascalCase | `DrumMetadata` |
+| Types | PascalCase | `SoundConfig` |
 
 ### Functions
 
-**Pure functions** (prefer):
+**Pure functions** preferred:
+
 ```typescript
-export function encodePositions(frames: number[]): number[] {
-  return frames.map(f => Math.round(f * 4096));
+export function encode(frames: number[]): number[] {
+  return frames.map(f => Math.round(f * 4058));
 }
 ```
 
 **Arrow functions** for callbacks:
+
 ```typescript
-const removeSlice = useCallback((id: string) => {
+const handleClick = useCallback((id: string) => {
   setSlices(prev => prev.filter(s => s.id !== id));
 }, []);
 ```
 
-**Async/await** (not promise chains):
+**async/await** not promise chains:
+
 ```typescript
-// Bad
-function loadData() {
+// ❌ Bad
+function load() {
   return fetch(url).then(r => r.json());
 }
 
-// Good
-async function loadData() {
-  const response = await fetch(url);
-  return response.json();
+// ✅ Good
+async function load() {
+  const res = await fetch(url);
+  return res.json();
 }
 ```
 
@@ -140,107 +141,76 @@ async function loadData() {
 
 Order:
 1. External packages
-2. Internal modules (absolute paths)
+2. Internal modules
 3. Relative imports
 4. Types
 
 ```typescript
-// External
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { Box, Button } from '@mui/material';
 
-// Internal
 import { MAX_SLICES } from '../constants';
 
-// Relative
 import { probeDuration } from './metadata';
 
-// Types
 import type { Slice } from '../types';
 ```
 
-**Named exports** preferred over default exports.
+Named exports preferred.
 
 ### Comments
 
-Comment when:
-- Complex algorithms (FFT, autocorrelation)
-- Non-obvious decisions (why 4096 scale?)
-- Workarounds (browser bugs)
+Comment:
+- Complex algorithms
+- Non-obvious decisions
+- Workarounds
 
-Don't comment:
-- Obvious code
-- Redundant descriptions
+Don't comment obvious code.
 
 ```typescript
-// Good
-// OP-Z format requires frame positions scaled by 4096 for sub-frame precision
-const scaled = frame * 4096;
+// ✅ Good
+// Position scale is 4058 based on TE's actual encoding
+const scaled = frame * 4058;
 
-// Bad
-// Increment i
+// ❌ Bad
+// Increment counter
 i++;
 ```
-
----
-
-## Project Structure
-
-### Adding Features
-
-1. **Document first**: Create `docs/features/<name>.md`
-2. **Implement core logic**: Pure TS in `src/audio/` or `src/utils/`
-3. **Add tests**: `<module>.test.ts` alongside module
-4. **Add UI**: Component in `src/components/` or page in `src/pages/`
-5. **Update architecture**: If significant structural change
-
-### File Placement
-
-| Type | Location |
-|------|----------|
-| Pure functions | `src/audio/` or `src/utils/` |
-| React components | `src/components/` |
-| Pages | `src/pages/` |
-| Hooks | `src/hooks/` |
-| Types | `src/types/` or inline |
-| Config | `src/config.ts` |
-
----
 
 ## Testing
 
 ### Stack
 
-- **Framework**: Vitest
-- **DOM**: jsdom
-- **Runner**: Bun
+- **Vitest** — Test framework
+- **jsdom** — DOM environment
+- **Bun** — Test runner
 
 ### Commands
 
 ```bash
-bun test                       # Run all
-bun test --watch              # Watch mode
-bun test src/audio/aiff.test.ts  # Single file
-bun test --coverage           # Coverage report
+bun test                    # Run all
+bun test --watch           # Watch mode
+bun test src/audio/        # Specific directory
+bun test aiff.test.ts      # Specific file
 ```
 
-### Test Structure
+### Structure
 
 ```typescript
 import { describe, it, expect } from 'vitest';
 import { encodePositions } from './opz';
 
 describe('encodePositions', () => {
-  it('scales frames by 4096', () => {
-    expect(encodePositions([0, 44100])).toEqual([0, 180633600]);
+  it('scales by 4058', () => {
+    expect(encodePositions([44100])).toEqual([178960200]);
   });
-  
-  it('clamps to MAX_POSITION', () => {
-    expect(encodePositions([1000000000])).toEqual([0x7ffffffe]);
+
+  it('clamps to max position', () => {
+    expect(encodePositions([1e9])).toEqual([0x7FFFFFFE]);
   });
-  
-  it('handles negative values', () => {
-    expect(encodePositions([-100])).toEqual([0]);
+
+  it('handles empty array', () => {
+    expect(encodePositions([])).toEqual([]);
   });
 });
 ```
@@ -252,93 +222,57 @@ describe('encodePositions', () => {
 | `src/audio/` | 80%+ |
 | `src/utils/` | 80%+ |
 | Hooks | 70%+ |
-| Components | 50%+ (future) |
 
 ### Mocking
 
 **AudioContext:**
+
 ```typescript
 import { vi } from 'vitest';
 
-const mockAudioContext = {
+global.AudioContext = vi.fn(() => ({
   decodeAudioData: vi.fn().mockResolvedValue({
     duration: 1.0,
     numberOfChannels: 2,
     sampleRate: 44100,
   }),
-  close: vi.fn().mockResolvedValue(undefined)
-};
-
-global.AudioContext = vi.fn(() => mockAudioContext) as any;
+  close: vi.fn(),
+})) as any;
 ```
 
 **Files:**
+
 ```typescript
-function createMockFile(name: string): File {
+function mockFile(name: string): File {
   return new File([''], name, { type: 'audio/wav' });
 }
 ```
 
-### Best Practices
+## Adding Features
 
-**Naming:**
-```typescript
-// Good
-it('encodes positions with 4096 scale', ...);
-it('throws on invalid AIFF header', ...);
+1. Create `docs/features/<name>.md` (optional for small features)
+2. Implement in `src/audio/` or `src/utils/` (pure TS)
+3. Add tests
+4. Add UI in `src/components/` or `src/pages/`
+5. Update docs if significant
 
-// Bad
-it('works', ...);
-it('test 1', ...);
-```
+### File Placement
 
-**Independence:** Each test sets up its own data, doesn't depend on other tests.
+| Type | Location |
+|------|----------|
+| Pure functions | `src/audio/`, `src/utils/` |
+| Components | `src/components/` |
+| Pages | `src/pages/` |
+| Hooks | `src/hooks/` |
+| Types | `src/types/` |
+| Config | `src/config.ts` |
 
-**Async:** Always await, set timeout for slow tests:
-```typescript
-it('builds pack', async () => {
-  // ...
-}, 30000);
-```
-
----
-
-## Pull Requests
-
-### Checklist
-
-- [ ] All tests pass (`bun test`)
-- [ ] Linting passes (`bun run lint`)
-- [ ] Build succeeds (`bun run build`)
-- [ ] Tests added for new code
-- [ ] Documentation updated (if applicable)
-
-### PR Template
-
-```markdown
-## Description
-Brief description of changes.
-
-## Type
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation
-
-## Testing
-- [ ] Unit tests added/updated
-- [ ] Manual testing completed
-- [ ] Tested on real OP-Z (if applicable)
-```
-
----
-
-## Commit Messages
+## Commits
 
 ### Format
 
 ```
-<type>(<scope>): <subject>
+<type>: <description>
 ```
 
 ### Types
@@ -347,39 +281,48 @@ Brief description of changes.
 |------|-----|
 | feat | New feature |
 | fix | Bug fix |
-| docs | Documentation only |
-| style | Formatting (no logic change) |
-| refactor | Restructuring (no behavior change) |
-| perf | Performance improvement |
-| test | Adding/updating tests |
-| chore | Maintenance (deps, config) |
+| docs | Documentation |
+| style | Formatting |
+| refactor | Restructuring |
+| perf | Performance |
+| test | Tests |
+| chore | Maintenance |
 
 ### Examples
 
 ```
-feat(audio): add pitch detection to classification
-fix(ffmpeg): handle AIFF conversion errors
-docs(architecture): update data flow diagrams
+feat: add MIDI velocity sensitivity
+fix: handle empty slice array in export
+docs: update format spec with correct scale
+refactor: extract noise generation to separate function
 ```
 
----
+## Pull Requests
+
+### Checklist
+
+- [ ] Tests pass (`bun test`)
+- [ ] Lint passes (`bun run lint`)
+- [ ] Build works (`bun run build`)
+- [ ] Tests added for new code
+- [ ] Docs updated if needed
 
 ## Common Issues
 
 ### FFmpeg Not Loading
 
 ```typescript
-// Always call before using
+// Always ensure loaded before use
 await ensureFFmpeg();
 ```
 
-### Tests Failing in CI
+### Tests Fail in CI
 
-- Check Bun version matches
-- Verify all dependencies installed
-- Check for race conditions in async tests
+- Check Bun version
+- Verify dependencies
+- Check for timing issues in async tests
 
-### Linting Errors
+### Lint Errors
 
 ```bash
 bun run lint:fix
@@ -387,48 +330,33 @@ bun run lint:fix
 
 ### Build Errors
 
-```bash
-# Check TypeScript
-bun run typecheck
-
-# Verify imports
-# Check for missing dependencies
-```
-
----
+- Check for TypeScript errors
+- Verify all imports resolve
+- Check for circular dependencies
 
 ## Debugging
 
-### Console Logs
+### Console
 
 ```typescript
-it('debugs issue', () => {
-  const result = functionToTest(input);
-  console.log('Result:', result);
+it('debugs', () => {
+  console.log('Value:', result);
   expect(result).toBe(expected);
 });
 ```
 
-### Isolate Test
+### Isolate
 
 ```typescript
-it.only('runs only this test', () => {
+it.only('runs only this', () => {
   // ...
 });
 ```
 
-### Skip Test
+### Skip
 
 ```typescript
-it.skip('skips this test', () => {
+it.skip('skips this', () => {
   // ...
 });
 ```
-
----
-
-## Resources
-
-- [Vitest Documentation](https://vitest.dev/)
-- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)

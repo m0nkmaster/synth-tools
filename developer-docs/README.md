@@ -1,36 +1,44 @@
-# OP Done Developer Documentation
+# Developer Documentation
 
-Technical documentation for developers working on the OP Done codebase.
+Technical documentation for OP Done development.
 
-## What Is OP Done?
+## Project Overview
 
-A browser-based tool for creating OP-Z drum sample packs. Converts audio files to OP-Z compatible AIFF format with proper metadata. Also includes AI-powered sound synthesis and sample analysis features.
+OP Done is a browser-based toolkit for Teenage Engineering OP-Z:
+- **Drum Kit Creator** — Build packs from audio samples
+- **Sample Analyzer** — Inspect existing packs
+- **Synthesizer** — Full-featured synth with MIDI and AI
+- **AI Kit Generator** — Generate complete kits from text
+- **USB Browser** — Direct OP-Z file management
 
-**Stack:** Vite + React + TypeScript + MUI + ffmpeg.wasm  
-**Runtime:** Bun (never npm/npx)
+All processing runs client-side using ffmpeg.wasm and Web Audio API.
 
-## Documentation Index
+## Documentation
 
 | Document | Description |
 |----------|-------------|
 | [Architecture](./architecture.md) | System design, modules, data flow |
-| [Format Spec](./format-spec.md) | OP-Z AIFF format specification |
-| [Audio Processing](./audio-processing.md) | FFmpeg pipeline, classification, synthesis |
-| [Contributing](./contributing.md) | Development workflow, testing, code style |
+| [Format Spec](./format-spec.md) | OP-Z AIFF format details |
+| [Audio Processing](./audio-processing.md) | FFmpeg, classification, synthesis |
+| [Contributing](./contributing.md) | Dev workflow, testing, code style |
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Runtime | Bun |
+| UI | Vite + React 18 + TypeScript + MUI |
+| Audio | ffmpeg.wasm + Web Audio API |
+| AI | OpenAI GPT / Google Gemini |
+| Testing | Vitest |
+| Linting | ESLint 9 |
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 bun install
-
-# Run dev server
-bun dev
-
-# Run tests
+bun dev           # localhost:5173
 bun test
-
-# Check linting
 bun run lint
 ```
 
@@ -38,102 +46,108 @@ bun run lint
 
 ```
 src/
-├── audio/          # Core audio processing (pure TypeScript)
-│   ├── aiff.ts     # AIFF parsing and encoding
-│   ├── pack.ts     # Pack building orchestration
-│   ├── ffmpeg.ts   # FFmpeg.wasm integration
-│   ├── classify.ts # Audio classification
-│   ├── pitch.ts    # Pitch detection
-│   └── synthesizer.ts # Sound synthesis engine
-├── components/     # React UI components
-├── hooks/          # React hooks (state management)
-├── pages/          # Route pages
-├── services/       # External services (AI)
-├── utils/          # Utility functions
-├── types/          # TypeScript types
-├── config.ts       # Configuration constants
-└── constants.ts    # Re-exported constants
-
-user-guide/         # User documentation
-developer-docs/     # This documentation
+├── audio/              # Core audio (pure TypeScript)
+│   ├── aiff.ts         # AIFF parsing/encoding
+│   ├── pack.ts         # Pack building
+│   ├── ffmpeg.ts       # FFmpeg.wasm wrapper
+│   ├── classify.ts     # Audio classification
+│   ├── pitch.ts        # Pitch detection
+│   ├── synthesizer.ts  # Offline synthesis
+│   └── realtimeSynth.ts # Live MIDI synthesis
+├── components/         # React components
+├── hooks/              # React hooks
+│   ├── useSlices.ts    # Slice state management
+│   ├── useMidi.ts      # Web MIDI integration
+│   └── useNodeGraph.ts # Visual synth state
+├── pages/              # Route pages
+│   ├── DrumCreator.tsx
+│   ├── SampleAnalyzer.tsx
+│   ├── SynthesizerUI.tsx
+│   ├── AIKitGenerator.tsx
+│   ├── USBBrowser.tsx
+│   └── VisualNodeSynth.tsx
+├── services/           # External APIs
+│   └── ai.ts           # OpenAI/Gemini integration
+├── types/              # TypeScript types
+│   ├── types.ts        # Core types
+│   └── soundConfig.ts  # Synthesis config
+├── utils/              # Utilities
+├── config.ts           # Configuration constants
+└── constants.ts        # Re-exported constants
 ```
 
-## Key Features
+## Routes
 
-### Drum Kit Creator
-- Upload audio files (WAV, AIFF, MP3, M4A, FLAC)
-- Automatic format conversion (mono, 16-bit, 44.1kHz)
-- Audio classification (kick, snare, hat, etc.)
-- Pitch detection for melodic samples
-- Per-slice volume and pitch controls
-- Export OP-Z compatible AIFF with metadata
+| Path | Page | Description |
+|------|------|-------------|
+| `/drum-creator` | DrumCreator | Build packs from samples |
+| `/sample-analyzer` | SampleAnalyzer | Inspect OP-Z packs |
+| `/synthesizer` | SynthesizerUI | Full synth with MIDI/AI |
+| `/ai-kit-generator` | AIKitGenerator | AI-powered kit creation |
+| `/usb-browser` | USBBrowser | Direct device management |
+| `/visual-node-synth` | VisualNodeSynth | Experimental node editor |
 
-### Sample Analyzer
-- Parse existing OP-Z packs
-- Visualize waveform with slice boundaries
-- Display metadata and slice parameters
-- Audition individual slices
+## Key Configuration
 
-### AI Sound Creation
-- Text-to-sound generation via OpenAI or Gemini
-- Layered Web Audio synthesis
-- Iterative refinement
-- WAV export
+From `src/config.ts`:
 
-## Core Principles
-
-### Pure Functions
-Audio processing modules (`src/audio/`) are pure TypeScript functions with no React dependencies. This enables deterministic output, easy testing, and future framework portability.
-
-### Client-Side Only
-All processing happens in the browser. No file uploads, no backend required (except for AI features which call external APIs).
-
-### Type Safety
-Strict TypeScript throughout. No `any` types. Explicit interfaces for all data structures.
-
-### Minimal Dependencies
-Only essential packages. New dependencies require justification.
-
-## Constraints
-
-| Constraint | Value |
-|------------|-------|
-| Audio format | Mono, 16-bit, 44.1kHz AIFF |
-| Max duration | ~12 seconds |
-| Max slices | 24 |
-| Position encoding | Frame × 4096 |
-| Metadata chunk | APPL with `op-1` signature |
+```typescript
+OPZ: {
+  MAX_SLICES: 24,
+  MAX_DURATION_SECONDS: 11.8,
+  MAX_SLICE_DURATION_SECONDS: 4,
+  SLICE_GAP_SECONDS: 0,
+  POSITION_SCALE: 4058,
+  MAX_POSITION: 0x7ffffffe,
+  DEFAULT_VOLUME: 8192,
+  DEFAULT_PITCH: 0,
+  DEFAULT_PLAYMODE: 12288,  // Play Out mode
+  DEFAULT_REVERSE: 8192,
+}
+```
 
 ## Commands
 
 ```bash
 bun install       # Install dependencies
-bun dev           # Start dev server (localhost:5173)
+bun dev           # Dev server
 bun run build     # Production build
-bun test          # Run all tests
+bun test          # Run tests
 bun test --watch  # Watch mode
 bun run lint      # Check linting
 bun run lint:fix  # Auto-fix lint issues
 ```
 
-## Development Workflow
+## Core Principles
 
-### Before Starting
-```bash
-git pull origin main
-bun run lint
-bun test
-```
+### Pure Audio Core
+Audio modules (`src/audio/`) are pure TypeScript with no React dependencies. This enables:
+- Deterministic output
+- Easy testing
+- Framework portability
 
-### After Changes
-```bash
-bun run lint:fix
-bun test
-bun run build
-```
+### Client-Side Processing
+All audio processing runs in browser:
+- ffmpeg.wasm for format conversion
+- Web Audio API for synthesis
+- No server required
+
+### Type Safety
+Strict TypeScript throughout:
+- No `any` types
+- Explicit interfaces
+- Validated configurations
 
 ## Resources
 
-- [TE Drum Utility](https://teenage.engineering/apps/drum-utility) — Official tool for testing packs
-- [FFmpeg Filters](https://ffmpeg.org/ffmpeg-filters.html) — Filter chain reference
+### Official
+
+- [TE Drum Utility](https://teenage.engineering/apps/drum-utility) — Official web tool for compatibility testing
+- [OP-Z User Guide](https://teenage.engineering/guides/op-z) — Official device documentation
+
+### Community
+
+- [teoperator](https://github.com/schollz/teoperator) — Format reverse engineering reference by @schollz
+- [FFmpeg Filters](https://ffmpeg.org/ffmpeg-filters.html) — Audio filter documentation
 - [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) — Synthesis reference
+- [Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API) — MIDI integration reference

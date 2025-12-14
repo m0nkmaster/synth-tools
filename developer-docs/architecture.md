@@ -1,199 +1,157 @@
 # Architecture
 
-System design, module organization, and data flow patterns.
+System design, modules, and data flow.
 
-## Layered Architecture
+## Layers
 
 ```
 ┌─────────────────────────────────────────────┐
-│         Presentation Layer (React)          │
+│         Presentation (React)                │
 │  Pages, Components, Hooks, Theme            │
 └──────────────────┬──────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────┐
-│      Application Layer (Services)           │
-│  AI Integration, State Management           │
+│         Services                            │
+│  AI Integration (OpenAI, Gemini)            │
 └──────────────────┬──────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────┐
-│       Domain Layer (Pure TypeScript)        │
-│  Audio Processing, Classification, Utils    │
+│         Core (Pure TypeScript)              │
+│  Audio Processing, Synthesis, Utilities     │
 └─────────────────────────────────────────────┘
 ```
 
-### Design Principles
-
-1. **Pure Core** — Audio modules are pure functions with no React dependencies
-2. **Unidirectional Data Flow** — User actions → state updates → UI re-renders
-3. **Minimal Coupling** — Modules depend on interfaces, not implementations
-4. **Client-Side First** — All processing in browser; AI features are opt-in
-
----
-
 ## Module Reference
 
-### `/src/audio/` — Core Audio Processing
-
-Pure TypeScript modules for audio manipulation.
+### `/src/audio/` — Core Audio
 
 | Module | Purpose |
 |--------|---------|
-| `aiff.ts` | AIFF parsing, metadata injection, chunk building |
-| `pack.ts` | Orchestrates pack building: FFmpeg → Parse → Calculate → Inject |
-| `ffmpeg.ts` | FFmpeg.wasm integration, file transcoding, concatenation |
+| `aiff.ts` | AIFF parsing, chunk manipulation, metadata injection |
+| `pack.ts` | Orchestrates pack building |
+| `ffmpeg.ts` | FFmpeg.wasm wrapper, transcoding, concatenation |
 | `convert.ts` | Format conversion (AIFF → WAV for playback) |
-| `metadata.ts` | Duration probing via Web Audio API |
+| `metadata.ts` | Duration probing via Web Audio |
 | `classify.ts` | Audio classification (drum type detection) |
 | `pitch.ts` | Pitch detection via autocorrelation |
-| `synthesizer.ts` | Web Audio synthesis engine |
-
-**Dependencies:**
-```
-pack.ts → ffmpeg.ts, aiff.ts, utils/opz.ts
-classify.ts → utils/dsp.ts, utils/audio.ts
-pitch.ts → ffmpeg.ts, utils/audio.ts
-synthesizer.ts → types/soundConfig.ts, config.ts
-```
-
-### `/src/utils/` — Utility Functions
-
-| Module | Purpose |
-|--------|---------|
-| `opz.ts` | Position encoding/decoding, slice boundary calculation |
-| `audio.ts` | Frequency → MIDI, MIDI → note name, pitch conversions |
-| `dsp.ts` | Downmix, normalize, trim silence, RMS calculation |
-| `array.ts` | Array padding, clamping |
-| `naming.ts` | Filename prefix generation from classification |
+| `synthesizer.ts` | Offline audio synthesis |
+| `realtimeSynth.ts` | Live MIDI synthesis |
 
 ### `/src/hooks/` — React Hooks
 
 | Hook | Purpose |
 |------|---------|
-| `useSlices.ts` | Slice array state, CRUD operations, validation |
-| `useMidi.ts` | Web MIDI API integration |
-| `useNodeGraph.ts` | Visual node editor state |
+| `useSlices` | Slice array state, add/remove/update/reorder |
+| `useMidi` | Web MIDI API, device detection, note handling |
+| `useNodeGraph` | Visual node editor state |
+| `useDefaultPreset` | Default SoundConfig preset |
 
 ### `/src/pages/` — Route Pages
 
-| Page | Purpose |
-|------|---------|
-| `DrumCreator.tsx` | Main drum pack builder |
-| `SampleAnalyzer.tsx` | OP-Z pack inspector |
-| `AIKitGenerator.tsx` | AI-powered sound creation |
-| `SynthesizerUI.tsx` | Manual synthesis testing |
-| `USBBrowser.tsx` | File System Access API browser |
+| Page | Route | Purpose |
+|------|-------|---------|
+| `DrumCreator` | `/drum-creator` | Build packs from samples |
+| `SampleAnalyzer` | `/sample-analyzer` | Inspect OP-Z packs |
+| `SynthesizerUI` | `/synthesizer` | Full synth with MIDI/AI |
+| `AIKitGenerator` | `/ai-kit-generator` | Generate kits from text |
+| `USBBrowser` | `/usb-browser` | Direct device file management |
+| `VisualNodeSynth` | `/visual-node-synth` | Experimental node editor |
 
 ### `/src/services/` — External Services
 
 | Service | Purpose |
 |---------|---------|
-| `ai.ts` | AI provider abstraction (OpenAI, Gemini) |
-| `openai.ts` | OpenAI-specific implementation |
+| `ai.ts` | OpenAI and Gemini integration, SoundConfig generation |
 
-### `/src/types/` — TypeScript Types
+### `/src/utils/` — Utilities
 
-| File | Key Types |
-|------|-----------|
-| `types.ts` | Slice, SliceStatus, DrumMetadata, SampleAnalysis |
-| `soundConfig.ts` | SoundConfig, layer types, effect types |
-| `nodeGraph.ts` | Node editor types |
+| Module | Purpose |
+|--------|---------|
+| `opz.ts` | Position encoding/decoding, slice boundaries |
+| `audio.ts` | Frequency/MIDI/note conversions |
+| `dsp.ts` | Downmix, normalize, trim, RMS |
+| `validation.ts` | SoundConfig validation |
+| `metadata.ts` | DrumMetadata utilities |
+| `naming.ts` | Filename prefix generation |
 
 ---
 
 ## Data Flow
 
-### Import Flow
-
-```
-User selects files
-    ↓
-useSlices.addFiles()
-    ↓
-For each file (parallel):
-    ├── probeDuration() → duration
-    ├── classifyAudio() → type, drumClass, confidence
-    └── detectPitch() → note, frequency
-    ↓
-Create Slice objects
-    ↓
-Update state: setSlices([...prev, ...new])
-    ↓
-UI re-renders with new slices
-```
-
-### Export Flow
+### Drum Pack Export
 
 ```
 User clicks Export
     ↓
-Validate:
-    ├── slices.length ≤ 24
-    ├── totalDuration ≤ 12s
-    └── all slices status === 'ready'
+Validate slices (count, duration, status)
     ↓
 buildDrumPack(slices, options)
     ↓
 transcodeAndConcat(files)
-    ├── Load ffmpeg.wasm (lazy)
+    ├── Load ffmpeg.wasm
     ├── Write files to virtual FS
-    ├── Execute filter chain
-    ├── Read output + frame counts
+    ├── Convert each to mono/16-bit/44.1kHz
+    ├── Concatenate all
+    ├── Read frame counts per slice
     └── Cleanup virtual FS
     ↓
 parseAiff(data)
-    ├── Find COMM chunk → numFrames
-    └── Locate SSND chunk → insertPos
+    ├── Extract COMM chunk → numFrames
+    └── Locate SSND chunk → insert position
     ↓
-calculateSliceBoundaries(frames, totalFrames)
-    ├── Compute start/end positions
-    └── Encode with × 4096 scale
+calculateSliceBoundaries(frames, total)
+    ├── Compute start/end for each slice
+    └── Encode with × 4058 scale
     ↓
 injectDrumMetadata(aiff, start, end, metadata)
     ├── Build APPL chunk
     ├── Insert before SSND
     └── Update FORM size
     ↓
-Create Blob → Trigger download
+Blob → Download
 ```
 
-### Classification Flow
+### Sample Import
 
 ```
-classifyAudio(blob)
+User adds files
     ↓
-Decode → AudioBuffer
+useSlices.addFiles()
     ↓
-downmixToMono() → Float32Array
+For each file (parallel):
+    ├── probeDuration() → seconds
+    ├── classifyAudio() → type, drumClass, confidence
+    ├── detectPitch() → note, frequency
+    └── convertToWav() → playable blob (if AIFF)
     ↓
-normalizeBuffer() → Peak = 1.0
+Create Slice objects
     ↓
-trimSilence() → Remove quiet sections
-    ↓
-Spectral Analysis:
-    ├── computeSpectrum() → FFT magnitudes
-    ├── computeSpectralCentroid() → Frequency center
-    ├── computeBandEnergy() → Low/Mid/High ratios
-    ├── computeSpectralFlatness() → Noise vs tone
-    └── computeHarmonicConcentration() → Peak strength
-    ↓
-decideSampleType() → drum_hit | melodic | unknown
-    ↓
-If drum_hit: classifyDrum() → kick | snare | hat | cymbal | other
-If melodic: detectPitch() → note name
-    ↓
-Return SampleAnalysis
+setSlices([...prev, ...new])
 ```
 
-### Synthesis Flow
+### AI Kit Generation
 
 ```
 User enters prompt
     ↓
-generateSoundConfig(prompt, provider)
+KIT_PLANNER_PROMPT → AI
     ↓
-AI returns SoundConfig JSON
+AI returns { kitName, sounds[24] }
     ↓
-ensureDefaults() + validateConfig()
+For each sound:
+    ├── generateSoundConfig(description)
+    ├── synthesizeSound(config)
+    └── Create Slice from AudioBuffer
+    ↓
+buildDrumPack(slices)
+    ↓
+Download pack
+```
+
+### Synthesizer Playback
+
+```
+User clicks Play (or MIDI note)
     ↓
 synthesizeSound(config)
     ↓
@@ -208,25 +166,46 @@ For each layer:
     ↓
 Apply: global filter → master envelope → LFO
     ↓
-Apply effects: distortion → compressor → gate → delay → reverb
+Apply effects chain:
+    distortion → compressor → gate → delay → reverb
     ↓
-Render → Normalize → Return AudioBuffer
+Render → Normalize (optional)
     ↓
-Convert to WAV Blob → Play or download
+Play AudioBuffer / Export WAV
+```
+
+### MIDI Input
+
+```
+MIDI device connected
+    ↓
+useMidi hook detects device
+    ↓
+Note On event
+    ↓
+RealtimeSynth.noteOn(note, velocity)
+    ├── Create AudioContext nodes
+    ├── Apply SoundConfig parameters
+    └── Start sources
+    ↓
+Note Off event
+    ↓
+RealtimeSynth.noteOff(note)
+    └── Trigger release phase
 ```
 
 ---
 
 ## State Management
 
-OP Done uses React hooks (no Redux/Zustand).
+React hooks, no Redux.
 
 ### Slice State (`useSlices`)
 
 ```typescript
 const [slices, setSlices] = useState<Slice[]>([]);
-const [error, setError] = useState<string | null>(null);
 const [isProcessing, setIsProcessing] = useState(false);
+const [error, setError] = useState<string | null>(null);
 
 const totalDuration = useMemo(
   () => slices.reduce((acc, s) => acc + s.duration, 0),
@@ -236,14 +215,15 @@ const totalDuration = useMemo(
 
 ### Slice Lifecycle
 
-```typescript
-type SliceStatus = 'pending' | 'processing' | 'ready' | 'error';
+```
+pending → processing → ready
+                    ↘ error
 ```
 
 | Status | Meaning |
 |--------|---------|
-| pending | File added, not yet processed |
-| processing | Duration/classification in progress |
+| pending | File added, not processed |
+| processing | Duration/classification running |
 | ready | All processing complete |
 | error | Processing failed |
 
@@ -262,26 +242,11 @@ setSlices(prev => prev.filter(s => s.id !== id));
 // Reorder
 setSlices(prev => {
   const next = [...prev];
-  const [item] = next.splice(fromIdx, 1);
-  next.splice(toIdx, 0, item);
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
   return next;
 });
 ```
-
----
-
-## Routing
-
-React Router v7 with flat route structure:
-
-| Path | Page | Purpose |
-|------|------|---------|
-| `/` | Landing | Feature overview |
-| `/creator` | DrumCreator | Drum pack builder |
-| `/analyzer` | SampleAnalyzer | Pack inspector |
-| `/ai-kit` | AIKitGenerator | AI sound creation |
-| `/synth` | SynthesizerUI | Synthesis testing |
-| `/usb` | USBBrowser | USB file browser |
 
 ---
 
@@ -297,13 +262,77 @@ export async function ensureFFmpeg(): Promise<FFmpeg> {
     ffmpegInstance = new FFmpeg();
   }
   if (!ffmpegInstance.loaded) {
-    await ffmpegInstance.load(); // ~30MB, 2-5s
+    await ffmpegInstance.load(); // ~30MB download
   }
   return ffmpegInstance;
 }
 ```
 
-Lazy-loaded on first export to reduce initial load time.
+Lazy-loaded on first use.
+
+---
+
+## Theme System
+
+Light/dark mode via React context:
+
+```typescript
+const { mode, toggleMode } = useThemeMode();
+const theme = mode === 'dark' ? darkTheme : lightTheme;
+```
+
+Theme tokens in `src/theme.ts` with TE-inspired colors:
+- Orange (#FF6B00) — Primary accent
+- Cyan (#00D4AA) — Secondary accent
+- Yellow (#FFD93D) — Highlights
+
+---
+
+## Key Types
+
+### Slice
+
+```typescript
+type Slice = {
+  id: string;
+  file: File;
+  name: string;
+  duration: number;
+  status: SliceStatus;
+  error?: string;
+  analysis?: SampleAnalysis;
+  detectedNote?: string | null;
+  detectedFrequency?: number | null;
+  semitones?: number;
+  playableBlob?: Blob;
+};
+```
+
+### SoundConfig
+
+See `src/types/soundConfig.ts` — comprehensive synthesis configuration:
+- `synthesis.layers[]` — Oscillator, Noise, FM, Karplus-Strong
+- `envelope` — Master ADSR
+- `filter` — Global filter with envelope
+- `lfo` — Modulation
+- `effects` — Distortion, compressor, gate, delay, reverb
+- `timing` — Duration
+- `dynamics` — Velocity, normalize
+- `metadata` — Name, category, tags
+
+### DrumMetadata
+
+```typescript
+type DrumMetadata = {
+  name: string;
+  octave: number;
+  drumVersion: number;
+  pitch: number[];
+  playmode: number[];
+  reverse: number[];
+  volume: number[];
+};
+```
 
 ---
 
@@ -311,70 +340,22 @@ Lazy-loaded on first export to reduce initial load time.
 
 ### Parallelization
 
-| Operation | Parallel | Notes |
-|-----------|----------|-------|
-| Duration probing | Yes | All files concurrent |
-| Classification | Yes | All files concurrent |
-| Pitch detection | Yes | All files concurrent |
-| FFmpeg processing | No | Single instance |
+| Operation | Parallel? |
+|-----------|-----------|
+| Duration probing | Yes — all files |
+| Classification | Yes — all files |
+| Pitch detection | Yes — all files |
+| FFmpeg processing | No — single instance |
+| Sound synthesis | Sequential |
 
-### Memory Management
+### Memory
 
-- File objects held in React state (no copies)
+- File objects held in React state
 - AudioContext closed after use
-- FFmpeg virtual FS cleaned after export
+- FFmpeg virtual FS cleaned after operations
 - Blob URLs revoked after download
 
-### Optimization Strategies
+### Lazy Loading
 
-- FFmpeg loaded lazily on first export
-- Route code-splitting with `lazy()`
-- `useMemo` for computed values
-- `useCallback` for stable function references
-
----
-
-## Error Handling
-
-### Categories
-
-| Category | Examples |
-|----------|----------|
-| User errors | Too many slices, duration exceeded, unsupported format |
-| Processing errors | FFmpeg failure, AIFF parsing error, decode error |
-| Network errors | API key missing, request failed, rate limited |
-
-### Strategy
-
-- Graceful degradation: probe fails → duration = 0, classification fails → type = 'unknown'
-- Per-slice error state with inline messages
-- Global error toast for export failures
-- Console logging for debugging
-
----
-
-## Future: Electron Migration
-
-The pure core architecture enables future Electron packaging:
-
-```
-┌─────────────────────────────────────────┐
-│         Renderer Process (React)        │
-│  Same UI code, minimal changes          │
-└──────────────────┬──────────────────────┘
-                   │ IPC
-┌──────────────────▼──────────────────────┐
-│         Main Process (Node.js)          │
-│  File system, native dialogs            │
-└──────────────────┬──────────────────────┘
-                   │
-┌──────────────────▼──────────────────────┐
-│       Core Audio (Pure TypeScript)      │
-│  No changes needed                      │
-└─────────────────────────────────────────┘
-```
-
-Changes required:
-- **Renderer**: Replace File API with IPC, native dialogs
-- **Main**: Implement IPC handlers, file system ops, device detection
-- **Core**: No changes (framework-agnostic)
+- FFmpeg loaded on first export/analysis
+- Route components can be code-split
