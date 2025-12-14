@@ -21,6 +21,8 @@ All processing runs client-side using Web Audio API and ffmpeg.wasm.
 | [Format Spec](./format-spec.md) | OP-Z AIFF format details |
 | [Audio Processing](./audio-processing.md) | FFmpeg, classification, synthesis |
 | [Contributing](./contributing.md) | Dev workflow, testing, code style |
+| [Roadmap](./roadmap.md) | Planned features and future development |
+
 
 ## Tech Stack
 
