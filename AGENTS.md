@@ -66,6 +66,29 @@ src/utils/     # Utils + tests
 docs/features/ # Feature specs
 ```
 
+## Synthesizer
+
+### Architecture
+- **Layers**: Oscillator, Noise, FM, Karplus-Strong (up to 8)
+- **Per-layer**: Filter, Envelope, Saturation, Pitch Envelope
+- **Global**: Filter, LFO, Effects chain
+- **Effects**: EQ → Distortion → Compressor → Chorus → Delay → Reverb → Gate
+
+### Key Files
+- `src/types/soundConfig.ts` - Zod schemas + AI prompts
+- `src/audio/synthCore.ts` - Shared audio graph functions
+- `src/audio/synthesizer.ts` - Offline rendering
+- `src/audio/realtimeSynth.ts` - MIDI playback
+
+### Adding Synth Features
+1. Add bounds + schema in `soundConfig.ts`
+2. Update `generateSchemaPrompt()` for AI
+3. Add audio function in `synthCore.ts`
+4. Wire into `synthesizer.ts` (static)
+5. Wire into `realtimeSynth.ts` (MIDI)
+6. Add UI controls in `SynthesizerUI.tsx`
+7. Run `bun test` + `bun run lint:fix`
+
 ## Constraints
 
 - AIFF: mono, 16-bit, 44.1kHz, ≤12s

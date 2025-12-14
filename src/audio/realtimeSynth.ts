@@ -14,6 +14,7 @@ import {
   applyADSREnvelope,
   applyReleaseEnvelope,
   applyFilterEnvelope,
+  applyPitchEnvelopeRealtime,
 } from './synthCore';
 
 // Safe value helper - returns fallback for non-finite values
@@ -170,6 +171,16 @@ export class RealtimeSynth {
         startTime
       );
       allSources.push(...sources);
+
+      // Apply pitch envelope to oscillator sources
+      if (layer.oscillator?.pitchEnvelope) {
+        const pitchEnv = layer.oscillator.pitchEnvelope;
+        for (const source of sources) {
+          if (source instanceof OscillatorNode) {
+            applyPitchEnvelopeRealtime(source.frequency, frequency, pitchEnv, startTime);
+          }
+        }
+      }
 
       // Layer filter with envelope (matching static synth)
       let layerOutput: AudioNode = output;

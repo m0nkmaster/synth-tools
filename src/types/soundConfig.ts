@@ -94,6 +94,25 @@ export const BOUNDS = {
     hold: { min: 0, max: 2 },
     release: { min: 0, max: 1 },
   },
+  pitchEnvelope: {
+    amount: { min: -4800, max: 4800 },  // cents (±4 octaves)
+    attack: { min: 0, max: 2 },
+    decay: { min: 0.001, max: 5 },
+    sustain: { min: -4800, max: 4800 },  // cents (sustain deviation)
+    release: { min: 0.001, max: 5 },
+  },
+  chorus: {
+    rate: { min: 0.1, max: 10 },
+    depth: { min: 0, max: 1 },
+    mix: { min: 0, max: 1 },
+    feedback: { min: 0, max: 0.9 },
+    delay: { min: 1, max: 50 },  // ms: 1-5 = flanger, 20-50 = chorus
+  },
+  eq: {
+    gain: { min: -24, max: 24 },
+    frequency: { min: 20, max: 20000 },
+    q: { min: 0.1, max: 10 },
+  },
   timing: {
     duration: { min: 0.1, max: 12 },
   },
@@ -134,12 +153,21 @@ const subOscillatorSchema = z.object({
   waveform: z.enum(['sine', 'square', 'triangle']).optional(),
 });
 
+const pitchEnvelopeSchema = z.object({
+  amount: z.number().min(BOUNDS.pitchEnvelope.amount.min).max(BOUNDS.pitchEnvelope.amount.max),
+  attack: z.number().min(BOUNDS.pitchEnvelope.attack.min).max(BOUNDS.pitchEnvelope.attack.max),
+  decay: z.number().min(BOUNDS.pitchEnvelope.decay.min).max(BOUNDS.pitchEnvelope.decay.max),
+  sustain: z.number().min(BOUNDS.pitchEnvelope.sustain.min).max(BOUNDS.pitchEnvelope.sustain.max),
+  release: z.number().min(BOUNDS.pitchEnvelope.release.min).max(BOUNDS.pitchEnvelope.release.max),
+});
+
 const oscillatorConfigSchema = z.object({
   waveform: waveformEnum,
   frequency: z.number().min(BOUNDS.oscillator.frequency.min).max(BOUNDS.oscillator.frequency.max),
   detune: z.number().min(BOUNDS.oscillator.detune.min).max(BOUNDS.oscillator.detune.max),
   unison: unisonSchema.optional(),
   sub: subOscillatorSchema.optional(),
+  pitchEnvelope: pitchEnvelopeSchema.optional(),
 });
 
 const noiseConfigSchema = z.object({
@@ -231,12 +259,34 @@ const gateSchema = z.object({
   release: z.number().min(BOUNDS.gate.release.min).max(BOUNDS.gate.release.max),
 });
 
+const chorusSchema = z.object({
+  rate: z.number().min(BOUNDS.chorus.rate.min).max(BOUNDS.chorus.rate.max),
+  depth: z.number().min(BOUNDS.chorus.depth.min).max(BOUNDS.chorus.depth.max),
+  mix: z.number().min(BOUNDS.chorus.mix.min).max(BOUNDS.chorus.mix.max),
+  feedback: z.number().min(BOUNDS.chorus.feedback.min).max(BOUNDS.chorus.feedback.max).optional(),
+  delay: z.number().min(BOUNDS.chorus.delay.min).max(BOUNDS.chorus.delay.max).optional(),
+});
+
+const eqBandSchema = z.object({
+  frequency: z.number().min(BOUNDS.eq.frequency.min).max(BOUNDS.eq.frequency.max),
+  gain: z.number().min(BOUNDS.eq.gain.min).max(BOUNDS.eq.gain.max),
+  q: z.number().min(BOUNDS.eq.q.min).max(BOUNDS.eq.q.max).optional(),
+});
+
+const eqSchema = z.object({
+  low: eqBandSchema,
+  mid: eqBandSchema,
+  high: eqBandSchema,
+});
+
 const effectsSchema = z.object({
   distortion: distortionSchema.optional(),
   reverb: reverbSchema.optional(),
   delay: delaySchema.optional(),
   compressor: compressorSchema.optional(),
   gate: gateSchema.optional(),
+  chorus: chorusSchema.optional(),
+  eq: eqSchema.optional(),
 });
 
 const timingSchema = z.object({
@@ -417,7 +467,8 @@ export function generateSchemaPrompt(): string {
         "frequency": number (${b.oscillator.frequency.min}-${b.oscillator.frequency.max} Hz),
         "detune": number (${b.oscillator.detune.min}-${b.oscillator.detune.max} cents),
         "unison": { "voices": number (${b.unison.voices.min}-${b.unison.voices.max}), "detune": number (${b.unison.detune.min}-${b.unison.detune.max} cents), "spread": number (${b.unison.spread.min}-${b.unison.spread.max}) },
-        "sub": { "level": number (${b.sub.level.min}-${b.sub.level.max}), "octave": -1 | -2, "waveform": "sine"|"square"|"triangle" }
+        "sub": { "level": number (${b.sub.level.min}-${b.sub.level.max}), "octave": -1 | -2, "waveform": "sine"|"square"|"triangle" },
+        "pitchEnvelope": { "amount": number (${b.pitchEnvelope.amount.min}-${b.pitchEnvelope.amount.max} cents), "attack": number (${b.pitchEnvelope.attack.min}-${b.pitchEnvelope.attack.max}s), "decay": number (${b.pitchEnvelope.decay.min}-${b.pitchEnvelope.decay.max}s), "sustain": number (${b.pitchEnvelope.sustain.min}-${b.pitchEnvelope.sustain.max} cents), "release": number (${b.pitchEnvelope.release.min}-${b.pitchEnvelope.release.max}s) }
       },
       "fm": { "carrier": number (${b.fm.carrier.min}-${b.fm.carrier.max} Hz), "modulator": number (${b.fm.modulator.min}-${b.fm.modulator.max} Hz), "modulationIndex": number (${b.fm.modulationIndex.min}-${b.fm.modulationIndex.max}) },
       "noise": { "type": "white"|"pink"|"brown" },
@@ -445,7 +496,9 @@ export function generateSchemaPrompt(): string {
     "reverb": { "decay": number (${b.reverb.decay.min}-${b.reverb.decay.max}s), "damping": number (${b.reverb.damping.min}-${b.reverb.damping.max}), "mix": number (${b.reverb.mix.min}-${b.reverb.mix.max}) },
     "delay": { "time": number (${b.delay.time.min}-${b.delay.time.max}s), "feedback": number (${b.delay.feedback.min}-${b.delay.feedback.max}), "mix": number (${b.delay.mix.min}-${b.delay.mix.max}) },
     "compressor": { "threshold": number (${b.compressor.threshold.min}-${b.compressor.threshold.max} dB), "ratio": number (${b.compressor.ratio.min}-${b.compressor.ratio.max}), "attack": number (${b.compressor.attack.min}-${b.compressor.attack.max}s), "release": number (${b.compressor.release.min}-${b.compressor.release.max}s), "knee": number (${b.compressor.knee.min}-${b.compressor.knee.max} dB) },
-    "gate": { "attack": number (${b.gate.attack.min}-${b.gate.attack.max}s), "hold": number (${b.gate.hold.min}-${b.gate.hold.max}s), "release": number (${b.gate.release.min}-${b.gate.release.max}s) }
+    "gate": { "attack": number (${b.gate.attack.min}-${b.gate.attack.max}s), "hold": number (${b.gate.hold.min}-${b.gate.hold.max}s), "release": number (${b.gate.release.min}-${b.gate.release.max}s) },
+    "chorus": { "rate": number (${b.chorus.rate.min}-${b.chorus.rate.max} Hz), "depth": number (${b.chorus.depth.min}-${b.chorus.depth.max}), "mix": number (${b.chorus.mix.min}-${b.chorus.mix.max}), "feedback": number (${b.chorus.feedback.min}-${b.chorus.feedback.max}), "delay": number (${b.chorus.delay.min}-${b.chorus.delay.max} ms, 1-5=flanger, 20-50=chorus) },
+    "eq": { "low": { "frequency": number, "gain": number (${b.eq.gain.min}-${b.eq.gain.max} dB) }, "mid": { "frequency": number, "gain": number (${b.eq.gain.min}-${b.eq.gain.max} dB), "q": number (${b.eq.q.min}-${b.eq.q.max}) }, "high": { "frequency": number, "gain": number (${b.eq.gain.min}-${b.eq.gain.max} dB) } }
   },
   "timing": { "duration": number (${b.timing.duration.min}-${b.timing.duration.max}s) },
   "dynamics": { "velocity": number (${b.dynamics.velocity.min}-${b.dynamics.velocity.max}), "normalize": boolean },
@@ -466,7 +519,7 @@ export function generateBatchSchemaPrompt(): string {
       "envelope": { "attack": number, "decay": number, "sustain": number (0-1), "release": number },
       "filter": { "type": "lowpass"|"highpass"|"bandpass"|"notch", "frequency": number, "q": number, "envelope": { "amount": number, "attack": number, "decay": number, "sustain": number, "release": number } },
       "saturation": { "type": "soft"|"hard"|"tube"|"tape", "drive": number (0-10), "mix": number (0-1) },
-      "oscillator": { "waveform": "sine"|"square"|"sawtooth"|"triangle", "frequency": number, "detune": number },
+      "oscillator": { "waveform": "sine"|"square"|"sawtooth"|"triangle", "frequency": number, "detune": number, "pitchEnvelope": { "amount": number (cents), "attack": number, "decay": number, "sustain": number (cents), "release": number } },
       "fm": { "carrier": number, "modulator": number, "modulationIndex": number },
       "noise": { "type": "white"|"pink"|"brown" }
     }]
@@ -475,7 +528,9 @@ export function generateBatchSchemaPrompt(): string {
   "filter": { "type": "lowpass"|"highpass"|"bandpass"|"notch", "frequency": number, "q": number, "envelope": { "amount": number, "attack": number, "decay": number, "sustain": number, "release": number } },
   "effects": {
     "distortion": { "type": "soft"|"hard"|"fuzz"|"bitcrush", "amount": number (0-1), "mix": number (0-1) },
-    "compressor": { "threshold": number (dB), "ratio": number, "attack": number, "release": number }
+    "compressor": { "threshold": number (dB), "ratio": number, "attack": number, "release": number },
+    "chorus": { "rate": number (Hz), "depth": number (0-1), "mix": number (0-1), "feedback": number (0-0.9), "delay": number (ms, 1-5=flanger, 20-50=chorus) },
+    "eq": { "low": { "frequency": number, "gain": number (dB) }, "mid": { "frequency": number, "gain": number (dB), "q": number }, "high": { "frequency": number, "gain": number (dB) } }
   },
   "timing": { "duration": number (0.05-0.5s for drums) },
   "dynamics": { "velocity": number (0-1), "normalize": true },

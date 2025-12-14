@@ -653,6 +653,15 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
                   <MiniKnob value={layer.saturation.mix} min={0} max={1} onChange={v => onUpdate({ ...layer, saturation: { ...layer.saturation!, mix: v } })} label="MIX" color={TE.yellow} size={knobSize} TE={TE} />
                 </>}
               </Module>
+              <Module label="PITCH ENV" color={cfg.color} on={!!layer.oscillator?.pitchEnvelope} onToggle={() => updateOsc({ pitchEnvelope: layer.oscillator!.pitchEnvelope ? undefined : { amount: 1200, attack: 0, decay: 0.1, sustain: 0, release: 0.1 } })} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
+                {layer.oscillator?.pitchEnvelope && <>
+                  <MiniKnob value={layer.oscillator.pitchEnvelope.amount} min={-4800} max={4800} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, amount: v } })} label="AMT" color={cfg.color} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.oscillator.pitchEnvelope.attack * 1000} min={0} max={500} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, attack: v / 1000 } })} label="A" color={cfg.color} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.oscillator.pitchEnvelope.decay * 1000} min={1} max={2000} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, decay: v / 1000 } })} label="D" color={cfg.color} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.oscillator.pitchEnvelope.sustain} min={-2400} max={2400} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, sustain: v } })} label="S" color={cfg.color} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.oscillator.pitchEnvelope.release * 1000} min={1} max={2000} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, release: v / 1000 } })} label="R" color={cfg.color} size={knobSize} TE={TE} />
+                </>}
+              </Module>
             </div>
           )}
 
@@ -859,6 +868,7 @@ export function SynthesizerUI() {
   const [error, setError] = useState<string | null>(null);
   const [validationResult, setValidationResult] = useState<ValidationResult>({ valid: true, errors: [] });
   const [showJSONEditor, setShowJSONEditor] = useState(false);
+  const [showMetadata, setShowMetadata] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState(0);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const isUpdatingFromUI = useRef(false);
@@ -1359,6 +1369,117 @@ export function SynthesizerUI() {
               ))}
             </div>
           </div>
+
+          {/* METADATA - Collapsible */}
+          <div style={{ background: TE.panel, borderRadius: 4, padding: isMobile ? 12 : 10, border: `1px solid ${TE.border}`, overflow: 'hidden' }}>
+              <div
+                onClick={() => setShowMetadata(!showMetadata)}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                }}
+              >
+                <span style={{ fontSize: isMobile ? 11 : 8, color: TE.grey, fontWeight: 700, letterSpacing: 1 }}>METADATA</span>
+                <span style={{
+                  fontSize: isMobile ? 12 : 10,
+                  color: TE.grey,
+                  transition: 'transform 0.2s ease',
+                  transform: showMetadata ? 'rotate(180deg)' : 'rotate(0deg)',
+                  opacity: 0.6,
+                }}>▾</span>
+              </div>
+              <Collapse in={showMetadata}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 8, marginTop: isMobile ? 12 : 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>NAME</span>
+                    <input
+                      type="text"
+                      value={config.metadata.name}
+                      onChange={e => updateMetadata({ name: e.target.value })}
+                      placeholder="Sound name..."
+                      style={{
+                        padding: isMobile ? '8px 10px' : '5px 8px',
+                        background: TE.inputBg,
+                        border: `1px solid ${TE.border}`,
+                        borderRadius: 4,
+                        color: TE.black,
+                        fontSize: isMobile ? 11 : 9,
+                        width: '100%',
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>CATEGORY</span>
+                    <div style={{ display: 'flex', gap: isMobile ? 6 : 3, flexWrap: 'wrap' }}>
+                      {['kick', 'snare', 'hihat', 'tom', 'perc', 'bass', 'lead', 'pad', 'fx', 'other'].map(cat => (
+                        <Btn key={cat} active={config.metadata.category === cat} onClick={() => updateMetadata({ category: cat as SoundConfig['metadata']['category'] })} color={TE.pink} small size={btnSize} TE={TE}>{cat.toUpperCase()}</Btn>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>DESCRIPTION</span>
+                    <textarea
+                      value={config.metadata.description}
+                      onChange={e => updateMetadata({ description: e.target.value })}
+                      placeholder="Describe the sound..."
+                      rows={2}
+                      style={{
+                        padding: isMobile ? '8px 10px' : '5px 8px',
+                        background: TE.inputBg,
+                        border: `1px solid ${TE.border}`,
+                        borderRadius: 4,
+                        color: TE.black,
+                        fontSize: isMobile ? 11 : 9,
+                        width: '100%',
+                        resize: 'vertical',
+                        fontFamily: 'inherit',
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>TAGS</span>
+                    <input
+                      type="text"
+                      value={config.metadata.tags.join(', ')}
+                      onChange={e => updateMetadata({ tags: e.target.value.split(',').map(t => t.trim()).filter(t => t) })}
+                      placeholder="tag1, tag2, tag3..."
+                      style={{
+                        padding: isMobile ? '8px 10px' : '5px 8px',
+                        background: TE.inputBg,
+                        border: `1px solid ${TE.border}`,
+                        borderRadius: 4,
+                        color: TE.black,
+                        fontSize: isMobile ? 11 : 9,
+                        width: '100%',
+                      }}
+                    />
+                    {config.metadata.tags.length > 0 && (
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                        {config.metadata.tags.map((tag, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              padding: '2px 6px',
+                              background: `${TE.cyan}20`,
+                              border: `1px solid ${TE.cyan}40`,
+                              borderRadius: 3,
+                              fontSize: isMobile ? 9 : 7,
+                              color: TE.cyan,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Collapse>
+            </div>
         </div>
 
         {/* RIGHT */}
@@ -1503,99 +1624,38 @@ export function SynthesizerUI() {
                 <MiniKnob value={(config.effects.gate?.hold || 0.2) * 1000} min={10} max={1000} onChange={v => updateEffects({ ...config.effects, gate: { ...config.effects.gate!, hold: v / 1000 } })} label="HOLD" color={TE.green} size={knobSize} TE={TE} />
                 <MiniKnob value={(config.effects.gate?.release || 0.05) * 1000} min={5} max={500} onChange={v => updateEffects({ ...config.effects, gate: { ...config.effects.gate!, release: v / 1000 } })} label="REL" color={TE.green} size={knobSize} TE={TE} />
               </Effect>
+
+              <Effect name="CHORUS" on={!!config.effects.chorus} onToggle={() => config.effects.chorus ? updateEffects({ ...config.effects, chorus: undefined }) : updateEffects({ ...config.effects, chorus: { rate: 0.5, depth: 0.5, mix: 0.5, feedback: 0, delay: 20 } })} color={TE.pink} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
+                <MiniKnob value={config.effects.chorus?.rate || 0.5} min={0.1} max={10} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, rate: v } })} label="RATE" color={TE.pink} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.chorus?.depth || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, depth: v } })} label="DEPTH" color={TE.pink} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.chorus?.delay || 20} min={1} max={50} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, delay: v } })} label="DELAY" color={TE.pink} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.chorus?.feedback || 0} min={0} max={0.9} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, feedback: v } })} label="FB" color={TE.pink} size={knobSize} TE={TE} />
+                <MiniKnob value={config.effects.chorus?.mix || 0.5} min={0} max={1} onChange={v => updateEffects({ ...config.effects, chorus: { ...config.effects.chorus!, mix: v } })} label="MIX" color={TE.pink} size={knobSize} TE={TE} />
+              </Effect>
+
+              <Effect name="EQ" on={!!config.effects.eq} onToggle={() => config.effects.eq ? updateEffects({ ...config.effects, eq: undefined }) : updateEffects({ ...config.effects, eq: { low: { frequency: 100, gain: 0 }, mid: { frequency: 1000, gain: 0, q: 1 }, high: { frequency: 8000, gain: 0 } } })} color={TE.cyan} isMobile={isMobile} toggleSize={toggleSize} TE={TE}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 10 : 6, width: '100%' }}>
+                  <div style={{ display: 'flex', gap: isMobile ? 10 : 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700, width: 28 }}>LOW</span>
+                    <MiniKnob value={config.effects.eq?.low.frequency || 100} min={20} max={500} onChange={v => updateEffects({ ...config.effects, eq: { ...config.effects.eq!, low: { ...config.effects.eq!.low, frequency: v } } })} label="FRQ" color={TE.cyan} size={knobSize} logarithmic TE={TE} />
+                    <MiniKnob value={config.effects.eq?.low.gain || 0} min={-24} max={24} onChange={v => updateEffects({ ...config.effects, eq: { ...config.effects.eq!, low: { ...config.effects.eq!.low, gain: v } } })} label="GAIN" color={TE.cyan} size={knobSize} TE={TE} />
+                  </div>
+                  <div style={{ display: 'flex', gap: isMobile ? 10 : 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700, width: 28 }}>MID</span>
+                    <MiniKnob value={config.effects.eq?.mid.frequency || 1000} min={200} max={5000} onChange={v => updateEffects({ ...config.effects, eq: { ...config.effects.eq!, mid: { ...config.effects.eq!.mid, frequency: v } } })} label="FRQ" color={TE.cyan} size={knobSize} logarithmic TE={TE} />
+                    <MiniKnob value={config.effects.eq?.mid.gain || 0} min={-24} max={24} onChange={v => updateEffects({ ...config.effects, eq: { ...config.effects.eq!, mid: { ...config.effects.eq!.mid, gain: v } } })} label="GAIN" color={TE.cyan} size={knobSize} TE={TE} />
+                    <MiniKnob value={config.effects.eq?.mid.q || 1} min={0.1} max={10} onChange={v => updateEffects({ ...config.effects, eq: { ...config.effects.eq!, mid: { ...config.effects.eq!.mid, q: v } } })} label="Q" color={TE.cyan} size={knobSize} TE={TE} />
+                  </div>
+                  <div style={{ display: 'flex', gap: isMobile ? 10 : 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700, width: 28 }}>HIGH</span>
+                    <MiniKnob value={config.effects.eq?.high.frequency || 8000} min={2000} max={20000} onChange={v => updateEffects({ ...config.effects, eq: { ...config.effects.eq!, high: { ...config.effects.eq!.high, frequency: v } } })} label="FRQ" color={TE.cyan} size={knobSize} logarithmic TE={TE} />
+                    <MiniKnob value={config.effects.eq?.high.gain || 0} min={-24} max={24} onChange={v => updateEffects({ ...config.effects, eq: { ...config.effects.eq!, high: { ...config.effects.eq!.high, gain: v } } })} label="GAIN" color={TE.cyan} size={knobSize} TE={TE} />
+                  </div>
+                </div>
+              </Effect>
             </div>
           </Section>
 
-          {/* METADATA */}
-          <div style={{ background: TE.panel, borderRadius: 6, padding: isMobile ? 12 : 10, border: `1px solid ${TE.border}` }}>
-            <span style={{ fontSize: isMobile ? 10 : 8, color: TE.grey, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: isMobile ? 12 : 8 }}>METADATA</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 8 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>NAME</span>
-                <input
-                  type="text"
-                  value={config.metadata.name}
-                  onChange={e => updateMetadata({ name: e.target.value })}
-                  placeholder="Sound name..."
-                  style={{
-                    padding: isMobile ? '8px 10px' : '5px 8px',
-                    background: TE.inputBg,
-                    border: `1px solid ${TE.border}`,
-                    borderRadius: 4,
-                    color: TE.black,
-                    fontSize: isMobile ? 11 : 9,
-                    width: '100%',
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>CATEGORY</span>
-                <div style={{ display: 'flex', gap: isMobile ? 6 : 3, flexWrap: 'wrap' }}>
-                  {['kick', 'snare', 'hihat', 'tom', 'perc', 'bass', 'lead', 'pad', 'fx', 'other'].map(cat => (
-                    <Btn key={cat} active={config.metadata.category === cat} onClick={() => updateMetadata({ category: cat as SoundConfig['metadata']['category'] })} color={TE.pink} small size={btnSize} TE={TE}>{cat.toUpperCase()}</Btn>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>DESCRIPTION</span>
-                <textarea
-                  value={config.metadata.description}
-                  onChange={e => updateMetadata({ description: e.target.value })}
-                  placeholder="Describe the sound..."
-                  rows={2}
-                  style={{
-                    padding: isMobile ? '8px 10px' : '5px 8px',
-                    background: TE.inputBg,
-                    border: `1px solid ${TE.border}`,
-                    borderRadius: 4,
-                    color: TE.black,
-                    fontSize: isMobile ? 11 : 9,
-                    width: '100%',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>TAGS</span>
-                <input
-                  type="text"
-                  value={config.metadata.tags.join(', ')}
-                  onChange={e => updateMetadata({ tags: e.target.value.split(',').map(t => t.trim()).filter(t => t) })}
-                  placeholder="tag1, tag2, tag3..."
-                  style={{
-                    padding: isMobile ? '8px 10px' : '5px 8px',
-                    background: TE.inputBg,
-                    border: `1px solid ${TE.border}`,
-                    borderRadius: 4,
-                    color: TE.black,
-                    fontSize: isMobile ? 11 : 9,
-                    width: '100%',
-                  }}
-                />
-                {config.metadata.tags.length > 0 && (
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                    {config.metadata.tags.map((tag, i) => (
-                      <span
-                        key={i}
-                        style={{
-                          padding: '2px 6px',
-                          background: `${TE.cyan}20`,
-                          border: `1px solid ${TE.cyan}40`,
-                          borderRadius: 3,
-                          fontSize: isMobile ? 9 : 7,
-                          color: TE.cyan,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
       </Stack>

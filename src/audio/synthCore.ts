@@ -514,6 +514,201 @@ export function createCompressor(
 }
 
 /**
+ * Apply pitch envelope to oscillator frequency
+ * Modulates frequency using cents-based envelope
+ */
+export function applyPitchEnvelope(
+  frequencyParam: AudioParam,
+  baseFrequency: number,
+  envelope: { amount: number; attack: number; decay: number; sustain: number; release: number },
+  startTime: number,
+  duration: number
+): void {
+  const { amount, attack, decay, sustain, release } = envelope;
+  
+  // Convert cents to frequency multiplier: 1200 cents = 1 octave = 2x frequency
+  const peakMultiplier = Math.pow(2, amount / 1200);
+  const sustainMultiplier = Math.pow(2, sustain / 1200);
+  
+  const peakFreq = Math.max(20, Math.min(20000, baseFrequency * peakMultiplier));
+  const sustainFreq = Math.max(20, Math.min(20000, baseFrequency * sustainMultiplier));
+  const safeBaseFreq = Math.max(20, baseFrequency);
+  
+  const safeAttack = Math.max(0.001, attack);
+  const safeDecay = Math.max(0.001, decay);
+  const safeRelease = Math.max(0.001, release);
+  const releaseStart = Math.max(safeAttack + safeDecay, duration - safeRelease);
+  
+  frequencyParam.setValueAtTime(safeBaseFreq, startTime);
+  
+  if (attack > 0) {
+    frequencyParam.exponentialRampToValueAtTime(peakFreq, startTime + safeAttack);
+  } else {
+    frequencyParam.setValueAtTime(peakFreq, startTime);
+  }
+  
+  frequencyParam.exponentialRampToValueAtTime(sustainFreq, startTime + safeAttack + safeDecay);
+  frequencyParam.setValueAtTime(sustainFreq, releaseStart);
+  frequencyParam.exponentialRampToValueAtTime(safeBaseFreq, duration);
+}
+
+/**
+ * Apply pitch envelope for real-time use (MIDI)
+ * Uses long duration; release handled by noteOff
+ */
+export function applyPitchEnvelopeRealtime(
+  frequencyParam: AudioParam,
+  baseFrequency: number,
+  envelope: { amount: number; attack: number; decay: number; sustain: number; release: number },
+  startTime: number
+): void {
+  const { amount, attack, decay, sustain } = envelope;
+  
+  const peakMultiplier = Math.pow(2, amount / 1200);
+  const sustainMultiplier = Math.pow(2, sustain / 1200);
+  
+  const peakFreq = Math.max(20, Math.min(20000, baseFrequency * peakMultiplier));
+  const sustainFreq = Math.max(20, Math.min(20000, baseFrequency * sustainMultiplier));
+  const safeBaseFreq = Math.max(20, baseFrequency);
+  
+  const safeAttack = Math.max(0.001, attack);
+  const safeDecay = Math.max(0.001, decay);
+  
+  frequencyParam.setValueAtTime(safeBaseFreq, startTime);
+  
+  if (attack > 0) {
+    frequencyParam.exponentialRampToValueAtTime(peakFreq, startTime + safeAttack);
+  } else {
+    frequencyParam.setValueAtTime(peakFreq, startTime);
+  }
+  
+  frequencyParam.exponentialRampToValueAtTime(sustainFreq, startTime + safeAttack + safeDecay);
+}
+
+/**
+ * Create chorus/flanger effect
+ * Low delay (1-5ms) = flanger, High delay (20-50ms) = chorus
+ */
+export function createChorus(
+  ctx: AnyAudioContext,
+  config: { rate: number; depth: number; mix: number; feedback?: number; delay?: number }
+): { input: GainNode; output: GainNode; sources: OscillatorNode[] } {
+  const input = ctx.createGain();
+  const output = ctx.createGain();
+  const sources: OscillatorNode[] = [];
+  
+  const rate = Math.max(0.1, Math.min(10, config.rate));
+  const depth = Math.max(0, Math.min(1, config.depth));
+  const mix = Math.max(0, Math.min(1, config.mix));
+  const feedback = Math.max(0, Math.min(0.9, config.feedback ?? 0));
+  const baseDelay = Math.max(1, Math.min(50, config.delay ?? 20)) / 1000; // ms to seconds
+  
+  // Dry path
+  const dryGain = ctx.createGain();
+  dryGain.gain.value = 1 - mix * 0.5;
+  
+  // Wet path with 2 voices for stereo
+  const wetGain = ctx.createGain();
+  wetGain.gain.value = mix;
+  
+  const delay1 = ctx.createDelay(0.1);
+  const delay2 = ctx.createDelay(0.1);
+  delay1.delayTime.value = baseDelay;
+  delay2.delayTime.value = baseDelay * 1.1; // Slight offset for stereo
+  
+  // LFOs for modulation
+  const lfo1 = ctx.createOscillator();
+  const lfo2 = ctx.createOscillator();
+  lfo1.type = 'sine';
+  lfo2.type = 'sine';
+  lfo1.frequency.value = rate;
+  lfo2.frequency.value = rate * 1.1; // Slight detuning
+  
+  const lfoGain1 = ctx.createGain();
+  const lfoGain2 = ctx.createGain();
+  const modDepth = baseDelay * depth * 0.5; // Modulate up to 50% of delay time
+  lfoGain1.gain.value = modDepth;
+  lfoGain2.gain.value = modDepth;
+  
+  // Feedback for flanger effect
+  const feedbackGain = ctx.createGain();
+  feedbackGain.gain.value = feedback;
+  
+  // Stereo output
+  const merger = ctx.createChannelMerger(2);
+  
+  // Connect LFOs to delay times
+  lfo1.connect(lfoGain1);
+  lfo2.connect(lfoGain2);
+  lfoGain1.connect(delay1.delayTime);
+  lfoGain2.connect(delay2.delayTime);
+  
+  // Signal routing
+  input.connect(dryGain);
+  dryGain.connect(output);
+  
+  input.connect(delay1);
+  input.connect(delay2);
+  
+  delay1.connect(feedbackGain);
+  feedbackGain.connect(delay1);
+  
+  delay1.connect(merger, 0, 0); // Left
+  delay2.connect(merger, 0, 1); // Right
+  merger.connect(wetGain);
+  wetGain.connect(output);
+  
+  lfo1.start();
+  lfo2.start();
+  sources.push(lfo1, lfo2);
+  
+  return { input, output, sources };
+}
+
+/**
+ * Create 3-band parametric EQ
+ * Low: lowshelf, Mid: peaking, High: highshelf
+ */
+export function createEQ(
+  ctx: AnyAudioContext,
+  config: {
+    low: { frequency: number; gain: number; q?: number };
+    mid: { frequency: number; gain: number; q?: number };
+    high: { frequency: number; gain: number; q?: number };
+  }
+): { input: GainNode; output: GainNode } {
+  const input = ctx.createGain();
+  const output = ctx.createGain();
+  
+  // Low band - lowshelf filter
+  const lowBand = ctx.createBiquadFilter();
+  lowBand.type = 'lowshelf';
+  lowBand.frequency.value = Math.max(20, Math.min(2000, config.low.frequency));
+  lowBand.gain.value = Math.max(-24, Math.min(24, config.low.gain));
+  
+  // Mid band - peaking filter
+  const midBand = ctx.createBiquadFilter();
+  midBand.type = 'peaking';
+  midBand.frequency.value = Math.max(100, Math.min(10000, config.mid.frequency));
+  midBand.Q.value = Math.max(0.1, Math.min(10, config.mid.q ?? 1));
+  midBand.gain.value = Math.max(-24, Math.min(24, config.mid.gain));
+  
+  // High band - highshelf filter
+  const highBand = ctx.createBiquadFilter();
+  highBand.type = 'highshelf';
+  highBand.frequency.value = Math.max(1000, Math.min(20000, config.high.frequency));
+  highBand.gain.value = Math.max(-24, Math.min(24, config.high.gain));
+  
+  // Chain: input -> low -> mid -> high -> output
+  input.connect(lowBand);
+  lowBand.connect(midBand);
+  midBand.connect(highBand);
+  highBand.connect(output);
+  
+  return { input, output };
+}
+
+/**
  * Create the complete effects chain
  */
 export function createEffectsChain(
@@ -522,6 +717,13 @@ export function createEffectsChain(
 ): { input: AudioNode; output: AudioNode } {
   const input = ctx.createGain();
   let current: AudioNode = input;
+  
+  // EQ first (shape tone before other effects)
+  if (effects.eq) {
+    const eq = createEQ(ctx, effects.eq);
+    current.connect(eq.input);
+    current = eq.output;
+  }
   
   if (effects.distortion) {
     const dist = createDistortion(ctx, effects.distortion);
@@ -533,6 +735,13 @@ export function createEffectsChain(
     const comp = createCompressor(ctx, effects.compressor);
     current.connect(comp);
     current = comp;
+  }
+  
+  // Chorus after compression
+  if (effects.chorus) {
+    const chorus = createChorus(ctx, effects.chorus);
+    current.connect(chorus.input);
+    current = chorus.output;
   }
   
   if (effects.delay) {

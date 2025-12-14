@@ -6,6 +6,7 @@ import {
   createSaturation,
   createEffectsChain,
   createLFO,
+  applyPitchEnvelope,
 } from './synthCore';
 
 function safeValue(value: number, fallback = 0): number {
@@ -32,6 +33,16 @@ export async function synthesizeSound(config: SoundConfig): Promise<AudioBuffer>
     const layerFreq = layer.oscillator?.frequency ?? layer.fm?.carrier ?? layer.karplus?.frequency ?? 440;
     const { sources: layerSources, output } = createLayerSources(ctx, layer, safeValue(layerFreq, 440), 0);
     let chain: AudioNode = output;
+
+    // Apply pitch envelope to oscillator sources
+    if (layer.oscillator?.pitchEnvelope) {
+      const pitchEnv = layer.oscillator.pitchEnvelope;
+      for (const source of layerSources) {
+        if (source instanceof OscillatorNode) {
+          applyPitchEnvelope(source.frequency, layerFreq, pitchEnv, 0, config.timing.duration);
+        }
+      }
+    }
 
     if (layer.filter) {
       const layerFilter = createLayerFilter(ctx, layer.filter, config);
