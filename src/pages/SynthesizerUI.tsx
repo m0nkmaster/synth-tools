@@ -110,10 +110,11 @@ function MiniKnob({ value, min, max, onChange, label, color, logarithmic, disabl
   const rotation = normalized * 270 - 135;
 
   // Size configurations for responsive knobs
+  // Note: valueSize must be 16px+ on mobile to prevent iOS zoom on focus
   const sizes = {
-    small: { knob: 24, indicator: 3, indicatorTop: 3, origin: 9, labelSize: 7, valueSize: 8 },
-    medium: { knob: 32, indicator: 4, indicatorTop: 4, origin: 12, labelSize: 8, valueSize: 9 },
-    large: { knob: 44, indicator: 5, indicatorTop: 6, origin: 16, labelSize: 9, valueSize: 10 },
+    small: { knob: 24, indicator: 3, indicatorTop: 3, origin: 9, labelSize: 7, valueSize: 16 },
+    medium: { knob: 32, indicator: 4, indicatorTop: 4, origin: 12, labelSize: 8, valueSize: 16 },
+    large: { knob: 44, indicator: 5, indicatorTop: 6, origin: 16, labelSize: 9, valueSize: 16 },
   };
   const s = sizes[size];
 
@@ -1186,7 +1187,7 @@ export function SynthesizerUI() {
                 border: `1px solid ${TE.border}`,
                 borderRadius: 4,
                 color: TE.black,
-                fontSize: isMobile ? 11 : 9,
+                fontSize: isMobile ? 16 : 9,
                 cursor: 'pointer',
                 minWidth: isMobile ? '100%' : 100,
               }}
@@ -1208,7 +1209,7 @@ export function SynthesizerUI() {
                 border: `1px solid ${TE.border}`,
                 borderRadius: 4,
                 color: TE.black,
-                fontSize: isMobile ? 12 : 10,
+                fontSize: isMobile ? 16 : 10,
                 width: isMobile ? '100%' : 'auto',
                 minWidth: 0,
               }}
@@ -1432,7 +1433,7 @@ export function SynthesizerUI() {
                         border: `1px solid ${TE.border}`,
                         borderRadius: 4,
                         color: TE.black,
-                        fontSize: isMobile ? 11 : 9,
+                        fontSize: isMobile ? 16 : 9,
                         width: '100%',
                       }}
                     />
@@ -1458,7 +1459,7 @@ export function SynthesizerUI() {
                         border: `1px solid ${TE.border}`,
                         borderRadius: 4,
                         color: TE.black,
-                        fontSize: isMobile ? 11 : 9,
+                        fontSize: isMobile ? 16 : 9,
                         width: '100%',
                         resize: 'vertical',
                         fontFamily: 'inherit',
@@ -1478,7 +1479,7 @@ export function SynthesizerUI() {
                         border: `1px solid ${TE.border}`,
                         borderRadius: 4,
                         color: TE.black,
-                        fontSize: isMobile ? 11 : 9,
+                        fontSize: isMobile ? 16 : 9,
                         width: '100%',
                       }}
                     />
@@ -1721,7 +1722,7 @@ export function SynthesizerUI() {
                         border: `1px solid ${TE.border}`,
                         borderRadius: 4,
                         color: TE.black,
-                        fontSize: isMobile ? 11 : 9,
+                        fontSize: isMobile ? 16 : 9,
                         width: '100%',
                       }}
                     />
@@ -1747,7 +1748,7 @@ export function SynthesizerUI() {
                         border: `1px solid ${TE.border}`,
                         borderRadius: 4,
                         color: TE.black,
-                        fontSize: isMobile ? 11 : 9,
+                        fontSize: isMobile ? 16 : 9,
                         width: '100%',
                         resize: 'vertical',
                         fontFamily: 'inherit',
@@ -1767,7 +1768,7 @@ export function SynthesizerUI() {
                         border: `1px solid ${TE.border}`,
                         borderRadius: 4,
                         color: TE.black,
-                        fontSize: isMobile ? 11 : 9,
+                        fontSize: isMobile ? 16 : 9,
                         width: '100%',
                       }}
                     />

@@ -273,6 +273,24 @@ function AppContent() {
         </Drawer>
         
         <Outlet />
+        
+        {/* Version indicator */}
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 8,
+            right: 12,
+            fontSize: 10,
+            fontFamily: 'monospace',
+            color: isDark ? TE_COLORS.dark.textMuted : TE_COLORS.light.textMuted,
+            opacity: 0.5,
+            letterSpacing: 0.5,
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
+        >
+          beta 0.1
+        </Box>
       </Box>
     </ThemeProvider>
   );

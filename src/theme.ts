@@ -144,6 +144,10 @@ export const darkTheme: Theme = createTheme({
             '& fieldset': { borderColor: TE_COLORS.dark.border },
             '&:hover fieldset': { borderColor: TE_COLORS.dark.borderLight },
             '&.Mui-focused fieldset': { borderColor: TE_COLORS.orange, borderWidth: 1 },
+            // Prevent iOS zoom on focus - inputs must be 16px+ on mobile
+            '@media (max-width: 768px)': {
+              fontSize: 16,
+            },
           },
           '& .MuiInputLabel-root': { fontSize: 11 },
         },
@@ -275,6 +279,10 @@ export const lightTheme: Theme = createTheme({
             '& fieldset': { borderColor: TE_COLORS.light.border },
             '&:hover fieldset': { borderColor: '#b0b0b0' },
             '&.Mui-focused fieldset': { borderColor: TE_COLORS.orangeLight, borderWidth: 1 },
+            // Prevent iOS zoom on focus - inputs must be 16px+ on mobile
+            '@media (max-width: 768px)': {
+              fontSize: 16,
+            },
           },
           '& .MuiInputLabel-root': { fontSize: 11 },
         },
