@@ -13,6 +13,9 @@ if [ -f "$ENV_FILE" ]; then
   export TF_VAR_openai_api_key=$(grep -E '^OPENAI_API_KEY=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"'"'")
   export TF_VAR_gemini_api_key=$(grep -E '^GEMINI_API_KEY=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"'"'")
   export TF_VAR_anthropic_api_key=$(grep -E '^ANTHROPIC_API_KEY=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"'"'")
+  export TF_VAR_openai_model=$(grep -E '^OPENAI_MODEL=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"'"'")
+  export TF_VAR_gemini_model=$(grep -E '^GEMINI_MODEL=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"'"'")
+  export TF_VAR_anthropic_model=$(grep -E '^ANTHROPIC_MODEL=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"'"'")
 else
   echo "Warning: $ENV_FILE not found"
 fi

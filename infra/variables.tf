@@ -78,6 +78,6 @@ variable "anthropic_api_key" {
 variable "anthropic_model" {
   description = "Anthropic Claude model version"
   type        = string
-  default     = "claude-sonnet-4-20250514"
+  default     = "claude-sonnet-4"
 }
 
