@@ -59,7 +59,7 @@ resource "aws_cloudfront_distribution" "website" {
     domain_name              = aws_s3_bucket.website.bucket_regional_domain_name
     origin_id                = "S3Origin"
     origin_access_control_id = aws_cloudfront_origin_access_control.website.id
-    origin_path              = "/${var.app_path}"
+    # No origin_path - files are already under /synthtools/ in S3
   }
 
   # Lambda Function URL origin for API
@@ -96,7 +96,7 @@ resource "aws_cloudfront_distribution" "website" {
     max_ttl     = 31536000
   }
 
-  # /synthtools/* path - redirect to root since S3 origin has origin_path
+  # /synthtools/* path - serve from S3
   ordered_cache_behavior {
     path_pattern               = "/${var.app_path}/*"
     allowed_methods            = ["GET", "HEAD", "OPTIONS"]
@@ -144,14 +144,14 @@ resource "aws_cloudfront_distribution" "website" {
   custom_error_response {
     error_code            = 404
     response_code         = 200
-    response_page_path    = "/index.html"
+    response_page_path    = "/synthtools/index.html"
     error_caching_min_ttl = 0
   }
 
   custom_error_response {
     error_code            = 403
     response_code         = 200
-    response_page_path    = "/index.html"
+    response_page_path    = "/synthtools/index.html"
     error_caching_min_ttl = 0
   }
 
