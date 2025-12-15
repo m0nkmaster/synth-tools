@@ -112,8 +112,8 @@ function MiniKnob({ value, min, max, onChange, label, color, logarithmic, disabl
   // Size configurations for responsive knobs
   // Note: valueSize must be 16px+ on mobile to prevent iOS zoom on focus
   const sizes = {
-    small: { knob: 24, indicator: 3, indicatorTop: 3, origin: 9, labelSize: 7, valueSize: 16 },
-    medium: { knob: 32, indicator: 4, indicatorTop: 4, origin: 12, labelSize: 8, valueSize: 16 },
+    small: { knob: 24, indicator: 3, indicatorTop: 3, origin: 9, labelSize: 6, valueSize: 9 },
+    medium: { knob: 32, indicator: 4, indicatorTop: 4, origin: 12, labelSize: 7, valueSize: 11 },
     large: { knob: 44, indicator: 5, indicatorTop: 6, origin: 16, labelSize: 9, valueSize: 16 },
   };
   const s = sizes[size];
@@ -559,10 +559,10 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
   };
 
   return (
-    <div onClick={onSelect} style={{
+    <div style={{
       background: selected ? TE.panel : TE.surface,
       border: `1px solid ${selected ? cfg.color : TE.border}`,
-      borderRadius: 6, cursor: 'pointer',
+      borderRadius: 6,
       boxShadow: selected ? `0 4px 16px ${cfg.color}15` : 'none', 
       overflow: 'hidden',
       transition: 'all 0.2s ease',
@@ -578,7 +578,7 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
         gap: 8,
         minWidth: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 8, minWidth: 0, flexShrink: 0 }}>
+        <div onClick={onSelect} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 8, minWidth: 0, flexShrink: 0, cursor: 'pointer' }}>
           <div style={{
             width: isMobile ? 28 : 20,
             height: isMobile ? 28 : 20,
@@ -947,7 +947,7 @@ export function SynthesizerUI() {
 
   // Responsive sizing
   const knobSize = isMobile ? 'large' : isTablet ? 'medium' : 'small';
-  const toggleSize = isMobile ? 'large' : isTablet ? 'medium' : 'small';
+  const toggleSize = 'small' as const;
   const btnSize = isMobile ? 'medium' : 'small';
 
   // Initialize JSON value from config
