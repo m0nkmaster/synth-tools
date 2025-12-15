@@ -1,10 +1,19 @@
-import { AppBar, Box, Button, CssBaseline, Toolbar, Tooltip } from '@mui/material';
+import { useState } from 'react';
+import { AppBar, Box, Button, CssBaseline, Drawer, IconButton, List, ListItem, ListItemButton, ListItemText, Toolbar, Tooltip, useMediaQuery } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { darkTheme, lightTheme, TE_COLORS } from './theme';
 import { ThemeContextProvider, useThemeMode } from './context/ThemeContext';
 import { TEBackground } from './components/TEBackground';
 import { TELogo } from './components/TELogo';
+
+const NAV_ITEMS = [
+  { path: '/synthesizer', label: 'Synth' },
+  { path: '/drum-creator', label: 'Drum Kit' },
+  { path: '/sample-analyzer', label: 'Analyzer' },
+  { path: '/usb-browser', label: 'OP-Z USB' },
+  { path: '/ai-kit-generator', label: 'AI Kit' },
+];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // THEME SWITCHER - Beautiful animated sun/moon toggle
@@ -122,21 +131,42 @@ function ThemeSwitcher() {
 // APP CONTENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
+function HamburgerIcon({ isDark }: { isDark: boolean }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M3 6h18M3 12h18M3 18h18"
+        stroke={isDark ? TE_COLORS.dark.textSecondary : TE_COLORS.light.textSecondary}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { mode } = useThemeMode();
   const theme = mode === 'dark' ? darkTheme : lightTheme;
   const isDark = mode === 'dark';
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  
+  // Responsive breakpoints
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // < 600px - burger menu
+  const isCompact = useMediaQuery(theme.breakpoints.down('md')); // < 900px - reduced spacing
 
   const navButtonStyle = (path: string) => ({
     color: location.pathname === path ? TE_COLORS.orange : (isDark ? TE_COLORS.dark.textSecondary : 'text.secondary'),
     borderBottom: location.pathname === path ? `2px solid ${TE_COLORS.orange}` : 'none',
     borderRadius: 0,
-    px: 2,
-    fontSize: 10,
+    px: isCompact ? 1 : 2,
+    py: 1,
+    minWidth: 'auto',
+    fontSize: isCompact ? 9 : 10,
     fontWeight: 600,
-    letterSpacing: 0.5,
+    letterSpacing: isCompact ? 0.3 : 0.5,
+    whiteSpace: 'nowrap',
     transition: 'all 0.2s ease',
     '&:hover': {
       color: TE_COLORS.orange,
@@ -144,34 +174,104 @@ function AppContent() {
     },
   });
 
+  const handleNavClick = (path: string) => {
+    navigate(path);
+    setDrawerOpen(false);
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <TEBackground isDark={isDark} />
       <Box sx={{ minHeight: '100vh', position: 'relative' }}>
         <AppBar position="static" color="transparent" elevation={0}>
-          <Toolbar sx={{ minHeight: 64, px: 3 }}>
+          <Toolbar sx={{ minHeight: 64, px: { xs: 1.5, sm: 2, md: 3 }, gap: 1 }}>
             <TELogo size={32} />
-            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', gap: 1 }}>
-              <Button onClick={() => navigate('/synthesizer')} sx={navButtonStyle('/synthesizer')}>
-                Synth
-              </Button>
-              <Button onClick={() => navigate('/drum-creator')} sx={navButtonStyle('/drum-creator')}>
-                Drum Kit
-              </Button>
-              <Button onClick={() => navigate('/sample-analyzer')} sx={navButtonStyle('/sample-analyzer')}>
-                Analyzer
-              </Button>
-              <Button onClick={() => navigate('/usb-browser')} sx={navButtonStyle('/usb-browser')}>
-                OP-Z USB
-              </Button>
-              <Button onClick={() => navigate('/ai-kit-generator')} sx={navButtonStyle('/ai-kit-generator')}>
-                AI Kit
-              </Button>
-            </Box>
+            
+            {/* Mobile: Hamburger menu */}
+            {isMobile ? (
+              <>
+                <Box sx={{ flexGrow: 1 }} />
+                <IconButton
+                  onClick={() => setDrawerOpen(true)}
+                  sx={{
+                    mr: 1,
+                    border: `1px solid ${isDark ? TE_COLORS.dark.border : TE_COLORS.light.border}`,
+                    borderRadius: 1.5,
+                  }}
+                >
+                  <HamburgerIcon isDark={isDark} />
+                </IconButton>
+              </>
+            ) : (
+              /* Desktop/Tablet: Inline nav buttons */
+              <Box sx={{ 
+                flexGrow: 1, 
+                display: 'flex', 
+                justifyContent: 'center', 
+                gap: isCompact ? 0.25 : 1 
+              }}>
+                {NAV_ITEMS.map(({ path, label }) => (
+                  <Button 
+                    key={path} 
+                    onClick={() => navigate(path)} 
+                    sx={navButtonStyle(path)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </Box>
+            )}
+            
             <ThemeSwitcher />
           </Toolbar>
         </AppBar>
+        
+        {/* Mobile drawer */}
+        <Drawer
+          anchor="right"
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          PaperProps={{
+            sx: {
+              width: 220,
+              bgcolor: isDark ? TE_COLORS.dark.surface : TE_COLORS.light.panel,
+              borderLeft: `1px solid ${isDark ? TE_COLORS.dark.border : TE_COLORS.light.border}`,
+            }
+          }}
+        >
+          <Box sx={{ pt: 2, pb: 1, px: 2, borderBottom: `1px solid ${isDark ? TE_COLORS.dark.border : TE_COLORS.light.border}` }}>
+            <TELogo size={28} />
+          </Box>
+          <List sx={{ pt: 1 }}>
+            {NAV_ITEMS.map(({ path, label }) => (
+              <ListItem key={path} disablePadding>
+                <ListItemButton 
+                  onClick={() => handleNavClick(path)}
+                  sx={{
+                    py: 1.5,
+                    borderLeft: location.pathname === path ? `3px solid ${TE_COLORS.orange}` : '3px solid transparent',
+                    bgcolor: location.pathname === path ? `${TE_COLORS.orange}10` : 'transparent',
+                    '&:hover': {
+                      bgcolor: `${TE_COLORS.orange}15`,
+                    },
+                  }}
+                >
+                  <ListItemText 
+                    primary={label}
+                    primaryTypographyProps={{
+                      fontSize: 12,
+                      fontWeight: location.pathname === path ? 700 : 500,
+                      color: location.pathname === path ? TE_COLORS.orange : (isDark ? TE_COLORS.dark.textSecondary : TE_COLORS.light.textSecondary),
+                      letterSpacing: 0.5,
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Drawer>
+        
         <Outlet />
       </Box>
     </ThemeProvider>

@@ -327,17 +327,34 @@ function Btn({ children, active, onClick, color, small, size = 'small', TE }: { 
 function ScopeDisplay({ audioBuffer, TE }: { audioBuffer: AudioBuffer | null; TE: ReturnType<typeof createThemeTokens> }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
+  // ResizeObserver to track container width changes
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  // Draw waveform when container size or audio changes
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    if (!canvas || !container) return;
+    if (!canvas || !container || containerWidth === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = container.getBoundingClientRect();
-    const w = rect.width;
+    const w = containerWidth;
     const h = 60;
 
     canvas.width = w * dpr;
@@ -372,7 +389,7 @@ function ScopeDisplay({ audioBuffer, TE }: { audioBuffer: AudioBuffer | null; TE
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
-  }, [audioBuffer, TE]);
+  }, [audioBuffer, TE, containerWidth]);
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: 60 }}>
@@ -389,17 +406,34 @@ function EnvelopeDisplay({ attack, decay, sustain, release, color, TE }: { attac
   const envColor = color || TE.green;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
+  // ResizeObserver to track container width changes
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  // Draw envelope when container size or params change
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    if (!canvas || !container) return;
+    if (!canvas || !container || containerWidth === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = container.getBoundingClientRect();
-    const w = rect.width;
+    const w = containerWidth;
     const h = 60;
 
     canvas.width = w * dpr;
@@ -456,7 +490,7 @@ function EnvelopeDisplay({ attack, decay, sustain, release, color, TE }: { attac
       ctx.arc(x, y, 3, 0, Math.PI * 2);
       ctx.fill();
     });
-  }, [attack, decay, sustain, release, envColor, TE]);
+  }, [attack, decay, sustain, release, envColor, TE, containerWidth]);
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: 60 }}>
