@@ -1,0 +1,12 @@
+# Copy this file to terraform.tfvars and fill in your values
+# terraform.tfvars is gitignored
+
+aws_region      = "us-east-1"
+domain_name     = "robmacdonald.com"
+app_path        = "synthtools"
+route53_zone_id = "ZXXXXXXXXXXXXXXXXX"  # Find in Route53 console
+
+# API keys - these will be set as Lambda environment variables
+openai_api_key = ""
+gemini_api_key = ""
+

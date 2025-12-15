@@ -1,0 +1,16 @@
+{
+  "name": "op-done-lambda",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "esbuild index.ts --bundle --platform=node --target=node20 --outdir=dist --format=esm --external:@aws-sdk/*",
+    "package": "cd dist && zip -r ../function.zip ."
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "esbuild": "^0.24.0"
+  }
+}
+

@@ -1,0 +1,12 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+*.tfplan
+.terraform.lock.hcl
+
+# Lambda placeholder
+lambda_placeholder.zip
+

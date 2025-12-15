@@ -1211,8 +1211,8 @@ export function SynthesizerUI() {
             </button>
           </div>
 
-          {/* MIDI PANEL - only show when connected */}
-          {midi.enabled && (
+          {/* MIDI PANEL - only show when devices available */}
+          {midi.enabled && midi.devices.length > 0 && (
             <div style={{
               display: 'flex',
               flexDirection: isMobile ? 'column' : 'row',

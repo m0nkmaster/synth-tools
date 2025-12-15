@@ -1,0 +1,45 @@
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+
+  # Uncomment and configure after initial apply to enable remote state
+  # backend "s3" {
+  #   bucket = "op-done-terraform-state"
+  #   key    = "synthtools/terraform.tfstate"
+  #   region = "us-east-1"
+  # }
+}
+
+# Primary provider for most resources
+provider "aws" {
+  region = var.aws_region
+
+  default_tags {
+    tags = {
+      Project     = "op-done"
+      Environment = "production"
+      ManagedBy   = "terraform"
+    }
+  }
+}
+
+# ACM certificates for CloudFront must be in us-east-1
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+
+  default_tags {
+    tags = {
+      Project     = "op-done"
+      Environment = "production"
+      ManagedBy   = "terraform"
+    }
+  }
+}
+

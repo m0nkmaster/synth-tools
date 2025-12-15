@@ -22,6 +22,6 @@ export default [
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'legacy-scripts/', 'scripts/'],
+    ignores: ['dist/', 'node_modules/', 'legacy-scripts/', 'scripts/', 'private/', 'lambda/', 'infra/'],
   },
 ];

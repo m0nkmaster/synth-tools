@@ -126,19 +126,23 @@ export const BOUNDS = {
 // Sub-schemas
 // ============================================================================
 
+// Helper to clamp envelope time values to valid range (AI sometimes returns 0)
+const clampedEnvelopeTime = (min: number, max: number) =>
+  z.number().transform(v => Math.max(min, Math.min(max, v)));
+
 const envelopeSchema = z.object({
-  attack: z.number().min(BOUNDS.envelope.attack.min).max(BOUNDS.envelope.attack.max),
-  decay: z.number().min(BOUNDS.envelope.decay.min).max(BOUNDS.envelope.decay.max),
+  attack: clampedEnvelopeTime(BOUNDS.envelope.attack.min, BOUNDS.envelope.attack.max),
+  decay: clampedEnvelopeTime(BOUNDS.envelope.decay.min, BOUNDS.envelope.decay.max),
   sustain: z.number().min(BOUNDS.envelope.sustain.min).max(BOUNDS.envelope.sustain.max),
-  release: z.number().min(BOUNDS.envelope.release.min).max(BOUNDS.envelope.release.max),
+  release: clampedEnvelopeTime(BOUNDS.envelope.release.min, BOUNDS.envelope.release.max),
 });
 
 const filterEnvelopeSchema = z.object({
   amount: z.number().min(BOUNDS.filter.envelopeAmount.min).max(BOUNDS.filter.envelopeAmount.max),
-  attack: z.number().min(BOUNDS.envelope.attack.min).max(BOUNDS.envelope.attack.max),
-  decay: z.number().min(BOUNDS.envelope.decay.min).max(BOUNDS.envelope.decay.max),
+  attack: clampedEnvelopeTime(BOUNDS.envelope.attack.min, BOUNDS.envelope.attack.max),
+  decay: clampedEnvelopeTime(BOUNDS.envelope.decay.min, BOUNDS.envelope.decay.max),
   sustain: z.number().min(BOUNDS.envelope.sustain.min).max(BOUNDS.envelope.sustain.max),
-  release: z.number().min(BOUNDS.envelope.release.min).max(BOUNDS.envelope.release.max),
+  release: clampedEnvelopeTime(BOUNDS.envelope.release.min, BOUNDS.envelope.release.max),
 });
 
 const unisonSchema = z.object({
@@ -155,16 +159,16 @@ const subOscillatorSchema = z.object({
 
 const pitchEnvelopeSchema = z.object({
   amount: z.number().min(BOUNDS.pitchEnvelope.amount.min).max(BOUNDS.pitchEnvelope.amount.max),
-  attack: z.number().min(BOUNDS.pitchEnvelope.attack.min).max(BOUNDS.pitchEnvelope.attack.max),
-  decay: z.number().min(BOUNDS.pitchEnvelope.decay.min).max(BOUNDS.pitchEnvelope.decay.max),
+  attack: clampedEnvelopeTime(BOUNDS.pitchEnvelope.attack.min, BOUNDS.pitchEnvelope.attack.max),
+  decay: clampedEnvelopeTime(BOUNDS.pitchEnvelope.decay.min, BOUNDS.pitchEnvelope.decay.max),
   sustain: z.number().min(BOUNDS.pitchEnvelope.sustain.min).max(BOUNDS.pitchEnvelope.sustain.max),
-  release: z.number().min(BOUNDS.pitchEnvelope.release.min).max(BOUNDS.pitchEnvelope.release.max),
+  release: clampedEnvelopeTime(BOUNDS.pitchEnvelope.release.min, BOUNDS.pitchEnvelope.release.max),
 });
 
 const oscillatorConfigSchema = z.object({
   waveform: waveformEnum,
-  frequency: z.number().min(BOUNDS.oscillator.frequency.min).max(BOUNDS.oscillator.frequency.max),
-  detune: z.number().min(BOUNDS.oscillator.detune.min).max(BOUNDS.oscillator.detune.max),
+  frequency: z.number().min(BOUNDS.oscillator.frequency.min).max(BOUNDS.oscillator.frequency.max).default(440),
+  detune: z.number().min(BOUNDS.oscillator.detune.min).max(BOUNDS.oscillator.detune.max).default(0),
   unison: unisonSchema.optional(),
   sub: subOscillatorSchema.optional(),
   pitchEnvelope: pitchEnvelopeSchema.optional(),
