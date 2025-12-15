@@ -292,10 +292,6 @@ export function DrumCreator() {
       const blob = slice.playableBlob || slice.file;
       const arrayBuffer = await blob.arrayBuffer();
       const ac = new AudioContext();
-      // iOS Safari requires explicit resume on user gesture
-      if (ac.state === 'suspended') {
-        await ac.resume();
-      }
       const audioBuffer = await ac.decodeAudioData(arrayBuffer);
       const source = ac.createBufferSource();
       const gainNode = ac.createGain();

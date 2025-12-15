@@ -96,7 +96,7 @@ export function SampleAnalyzer() {
     }
   };
 
-  const playSlice = async (idx: number) => {
+  const playSlice = (idx: number) => {
     if (!audioBuffer || !metadata) return;
     if (audioSourceRef.current) {
       audioSourceRef.current.stop();
@@ -106,10 +106,6 @@ export function SampleAnalyzer() {
     const end = metadata.end[idx];
     if (start === 0 && end === 0) return;
     const ac = new AudioContext();
-    // iOS Safari requires explicit resume on user gesture
-    if (ac.state === 'suspended') {
-      await ac.resume();
-    }
     const source = ac.createBufferSource();
     source.buffer = audioBuffer;
     source.connect(ac.destination);
