@@ -203,7 +203,11 @@ const layerFilterSchema = z.object({
 });
 
 const saturationSchema = z.object({
-  type: saturationTypeEnum,
+  type: z.string().transform(v => 
+    saturationTypeEnum.options.includes(v as typeof saturationTypeEnum.options[number]) 
+      ? v as typeof saturationTypeEnum.options[number]
+      : 'soft'
+  ),
   drive: z.number().min(BOUNDS.saturation.drive.min).max(BOUNDS.saturation.drive.max),
   mix: z.number().min(BOUNDS.saturation.mix.min).max(BOUNDS.saturation.mix.max),
 });
@@ -300,7 +304,9 @@ const effectsSchema = z.object({
 });
 
 const timingSchema = z.object({
-  duration: z.number().min(BOUNDS.timing.duration.min).max(BOUNDS.timing.duration.max),
+  duration: z.number().transform(v => 
+    Math.max(BOUNDS.timing.duration.min, Math.min(BOUNDS.timing.duration.max, v))
+  ),
 });
 
 const dynamicsSchema = z.object({

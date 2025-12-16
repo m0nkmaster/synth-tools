@@ -22,7 +22,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
-import { generateBatchSoundConfigs, planDrumKit, type AIProvider, type SoundIdea } from '../services/ai';
+import { generateBatchSoundConfigsChunked, planDrumKit, type AIProvider, type SoundIdea } from '../services/ai';
 import { synthesizeSound } from '../audio/synthesizer';
 import { buildDrumPack } from '../audio/pack';
 import type { SoundConfig } from '../types/soundConfig';
@@ -40,14 +40,20 @@ interface GeneratedSound {
 }
 
 
-const PHASE_LABELS: Record<GenerationPhase, string> = {
-  idle: '',
-  planning: 'Planning kit...',
-  generating: 'Generating configs...',
-  synthesizing: 'Synthesizing sounds...',
-  building: 'Building pack...',
-  complete: 'Complete',
-  error: 'Error',
+const getPhaseLabel = (phase: GenerationPhase, chunkProgress?: { current: number; total: number }): string => {
+  if (phase === 'generating' && chunkProgress && chunkProgress.total > 1) {
+    return `Generating configs (${chunkProgress.current}/${chunkProgress.total} chunks)...`;
+  }
+  const labels: Record<GenerationPhase, string> = {
+    idle: '',
+    planning: 'Planning kit...',
+    generating: 'Generating configs...',
+    synthesizing: 'Synthesizing sounds...',
+    building: 'Building pack...',
+    complete: 'Complete',
+    error: 'Error',
+  };
+  return labels[phase];
 };
 
 const CATEGORY_COLORS: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info'> = {
@@ -66,7 +72,9 @@ export default function AIKitGenerator() {
   const [kitName, setKitName] = useState('');
   const [sounds, setSounds] = useState<GeneratedSound[]>([]);
   const [progress, setProgress] = useState({ current: 0, total: 24 });
+  const [chunkProgress, setChunkProgress] = useState<{ current: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [finalBlob, setFinalBlob] = useState<Blob | null>(null);
   const [packInfo, setPackInfo] = useState<{ sliceCount: number; totalDuration: number } | null>(null);
   
@@ -92,8 +100,10 @@ export default function AIKitGenerator() {
     
     abortRef.current = false;
     setError(null);
+    setWarnings([]);
     setFinalBlob(null);
     setPackInfo(null);
+    setChunkProgress(null);
     setPhase('planning');
     setSounds([]);
     
@@ -114,19 +124,30 @@ export default function AIKitGenerator() {
       if (abortRef.current) return;
       setPhase('generating');
       
-      // Phase 2: Generate all configs in a single batch API call
+      // Phase 2: Generate configs in parallel chunks
       setSounds(prev => prev.map(s => ({ ...s, status: 'configuring' })));
       
-      const configs = await generateBatchSoundConfigs(plan.sounds, provider);
+      const result = await generateBatchSoundConfigsChunked(
+        plan.sounds,
+        provider,
+        (completed, total) => setChunkProgress({ current: completed, total })
+      );
       
-      // Update sounds with configs
+      // Report any chunk errors as warnings
+      if (result.errors.length > 0) {
+        const errorMessages = result.errors.map(e => `Chunk ${e.chunkIndex + 1}: ${e.error}`);
+        setWarnings(errorMessages);
+      }
+      
+      // Update sounds with configs (handling nulls from failed chunks)
       setSounds(prev => prev.map((s, idx) => ({
         ...s,
-        config: configs[idx] || null,
-        status: configs[idx] ? 'synthesizing' : 'error',
-        error: configs[idx] ? undefined : 'No config generated',
+        config: result.configs[idx],
+        status: result.configs[idx] ? 'synthesizing' : 'error',
+        error: result.configs[idx] ? undefined : 'Config generation failed',
       })));
       setProgress({ current: plan.sounds.length, total: plan.sounds.length });
+      setChunkProgress(null);
       
       if (abortRef.current) return;
       setPhase('synthesizing');
@@ -134,7 +155,7 @@ export default function AIKitGenerator() {
       // Phase 3: Synthesize each sound
       const soundsWithConfigs = initialSounds.map((s, i) => ({
         ...s,
-        config: configs[i] || null,
+        config: result.configs[i],
       }));
       
       for (let i = 0; i < soundsWithConfigs.length; i++) {
@@ -173,9 +194,9 @@ export default function AIKitGenerator() {
         throw new Error('No sounds were generated successfully');
       }
       
-      const result = await buildPack(validBuffers, kitName || 'AI Kit');
-      setFinalBlob(result.blob);
-      setPackInfo({ sliceCount: result.sliceCount, totalDuration: result.totalDuration });
+      const packResult = await buildPack(validBuffers, kitName || 'AI Kit');
+      setFinalBlob(packResult.blob);
+      setPackInfo({ sliceCount: packResult.sliceCount, totalDuration: packResult.totalDuration });
       setPhase('complete');
       
     } catch (err) {
@@ -201,7 +222,7 @@ export default function AIKitGenerator() {
       }
     }
     
-    const silenceThreshold = 0.01;
+    const silenceThreshold = 0.005;
     let startSample = 0;
     for (let i = 0; i < rawMono.length; i++) {
       if (Math.abs(rawMono[i]) > silenceThreshold) {
@@ -210,7 +231,15 @@ export default function AIKitGenerator() {
       }
     }
     
-    const endSample = rawMono.length;
+    // Trim trailing silence
+    let endSample = rawMono.length;
+    for (let i = rawMono.length - 1; i >= startSample; i--) {
+      if (Math.abs(rawMono[i]) > silenceThreshold) {
+        endSample = Math.min(rawMono.length, i + 10);
+        break;
+      }
+    }
+    
     const mono = rawMono.slice(startSample, endSample);
     const numFrames = mono.length;
     
@@ -223,6 +252,18 @@ export default function AIKitGenerator() {
       for (let i = 0; i < mono.length; i++) {
         mono[i] *= scale;
       }
+    }
+    
+    // Apply 20ms fade-out to prevent clicks at end
+    const fadeOutSamples = Math.min(Math.floor(sampleRate * 0.02), mono.length);
+    for (let i = 0; i < fadeOutSamples; i++) {
+      const idx = mono.length - fadeOutSamples + i;
+      const fadeAmount = i / fadeOutSamples;
+      mono[idx] *= 1 - fadeAmount;
+    }
+    // Ensure last sample is exactly zero
+    if (mono.length > 0) {
+      mono[mono.length - 1] = 0;
     }
     
     const bytesPerSample = bitsPerSample / 8;
@@ -389,7 +430,7 @@ export default function AIKitGenerator() {
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
               <Typography variant="body2" color="text.secondary">
-                {PHASE_LABELS[phase]}
+                {getPhaseLabel(phase, chunkProgress ?? undefined)}
               </Typography>
               <Typography variant="body2" fontWeight={700} color="primary">
                 {progress.current} / {progress.total}
@@ -397,6 +438,13 @@ export default function AIKitGenerator() {
             </Stack>
             <LinearProgress variant="determinate" value={(progress.current / progress.total) * 100} />
           </Paper>
+        )}
+
+        {/* Warnings */}
+        {warnings.length > 0 && (
+          <Alert severity="warning">
+            Some chunks failed: {warnings.join('; ')}
+          </Alert>
         )}
 
         {/* Error */}

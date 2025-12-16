@@ -1,5 +1,6 @@
 import type { SoundConfig } from '../types/soundConfig';
 import { generateSchemaPrompt, generateBatchSchemaPrompt, coerceSoundConfig } from '../types/soundConfig';
+import { AI } from '../config';
 
 export type AIProvider = 'openai' | 'gemini' | 'anthropic';
 
@@ -245,14 +246,14 @@ async function batchGenerateWithAnthropic(ideas: SoundIdea[]): Promise<SoundConf
     .map(c => processAIResponse(c));
 }
 
-// Category-specific max durations for tight, punchy sounds
+// Category-specific max durations - reasonable limits while keeping sounds punchy
 const CATEGORY_MAX_DURATIONS: Record<string, number> = {
-  kick: 0.2,
-  snare: 0.18,
-  hihat: 0.12,
-  tom: 0.25,
-  perc: 0.15,
-  fx: 0.4,
+  kick: 1,
+  snare: 2,
+  hihat: 0.5,
+  tom: 1.5,
+  perc: 2.0,
+  fx: 2.0,
 };
 
 // Enforce punchy parameters for percussion
@@ -345,6 +346,64 @@ export async function generateBatchSoundConfigs(
     
     return config;
   });
+}
+
+// Chunked parallel generation for faster kit creation
+export interface ChunkedGenerationResult {
+  configs: (SoundConfig | null)[];
+  errors: Array<{ chunkIndex: number; error: string }>;
+}
+
+function chunkArray<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
+export async function generateBatchSoundConfigsChunked(
+  ideas: SoundIdea[],
+  provider: AIProvider,
+  onChunkComplete?: (completedCount: number, totalChunks: number) => void
+): Promise<ChunkedGenerationResult> {
+  const chunkSize = AI.BATCH_CHUNK_SIZE;
+  const chunks = chunkArray(ideas, chunkSize);
+  const totalChunks = chunks.length;
+  let completedCount = 0;
+
+  // Fire all chunk requests in parallel
+  const results = await Promise.allSettled(
+    chunks.map(async (chunk, chunkIndex) => {
+      const configs = await generateBatchSoundConfigs(chunk, provider);
+      completedCount++;
+      onChunkComplete?.(completedCount, totalChunks);
+      return { chunkIndex, configs };
+    })
+  );
+
+  // Reconstruct configs array in original order, handling failures
+  const allConfigs: (SoundConfig | null)[] = new Array(ideas.length).fill(null);
+  const errors: Array<{ chunkIndex: number; error: string }> = [];
+
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      const { chunkIndex, configs } = result.value;
+      const startIdx = chunkIndex * chunkSize;
+      configs.forEach((config, i) => {
+        allConfigs[startIdx + i] = config;
+      });
+    } else {
+      // Find which chunk failed by checking which indices are still null
+      const failedChunkIndex = results.indexOf(result);
+      errors.push({
+        chunkIndex: failedChunkIndex,
+        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+      });
+    }
+  }
+
+  return { configs: allConfigs, errors };
 }
 
 // Kit planning schema

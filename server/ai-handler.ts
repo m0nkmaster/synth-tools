@@ -158,12 +158,12 @@ async function callAnthropic(
   const message = await client.messages.create(
     {
       model: getAnthropicModel(),
-      max_tokens: 32768,
+      max_tokens: 8192,
       temperature: ANTHROPIC_TEMPERATURE,
       system: systemPrompt,
       messages: [{ role: 'user', content: `${prompt}\n\nReturn raw JSON only, no markdown.` }],
     },
-    { timeout: 90_000 } // Match Lambda timeout
+    { timeout: 120_000 }
   );
 
   const textBlock = message.content.find((block) => block.type === 'text');

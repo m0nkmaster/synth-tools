@@ -95,6 +95,12 @@ export const SYNTHESIS = {
   PINK_NOISE_OUTPUT_GAIN: 0.11,
 } as const;
 
+// AI Generation
+export const AI = {
+  /** Sounds per API call. Set to 1 for maximum parallelism, 24 for single batch. Default 6. */
+  BATCH_CHUNK_SIZE: parseInt(import.meta.env.VITE_AI_BATCH_CHUNK_SIZE || '4', 10),
+} as const;
+
 // Pink Noise Filter Coefficients
 export const PINK_NOISE = {
   B0_DECAY: 0.99886,
