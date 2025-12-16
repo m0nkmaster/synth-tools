@@ -736,6 +736,7 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               <Module label="STRING" color={cfg.color} isMobile={isMobile} TE={TE}>
                 <MiniKnob value={layer.karplus.frequency} min={20} max={20000} onChange={v => onUpdate({ ...layer, karplus: { ...layer.karplus!, frequency: v } })} label="FRQ" color={cfg.color} logarithmic size={knobSize} TE={TE} />
                 <MiniKnob value={layer.karplus.damping} min={0} max={1} onChange={v => onUpdate({ ...layer, karplus: { ...layer.karplus!, damping: v } })} label="DMP" color={cfg.color} size={knobSize} TE={TE} />
+                <MiniKnob value={layer.karplus.inharmonicity ?? 0} min={0} max={1} onChange={v => onUpdate({ ...layer, karplus: { ...layer.karplus!, inharmonicity: v } })} label="INH" color={cfg.color} size={knobSize} TE={TE} />
               </Module>
               <Module label="ENVELOPE" color={TE.green} on={!!layer.envelope} onToggle={() => onUpdate({ ...layer, envelope: layer.envelope ? undefined : { attack: 0.001, decay: 0.1, sustain: 0.5, release: 0.5 } })} isMobile={isMobile} TE={TE}>
                 {layer.envelope && <>
@@ -743,6 +744,39 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
                   <MiniKnob value={layer.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, decay: v / 1000 } })} label="D" color={TE.green} size={knobSize} TE={TE} />
                   <MiniKnob value={layer.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, sustain: v } })} label="S" color={TE.green} size={knobSize} TE={TE} />
                   <MiniKnob value={layer.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, release: v / 1000 } })} label="R" color={TE.green} size={knobSize} TE={TE} />
+                </>}
+              </Module>
+              <Module label="FILTER" color={TE.cyan} on={!!layer.filter} onToggle={() => onUpdate({ ...layer, filter: layer.filter ? undefined : { type: 'lowpass', frequency: 4000, q: 1 } })} isMobile={isMobile} TE={TE}>
+                {layer.filter && <>
+                  <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
+                    {['lowpass', 'highpass', 'bandpass', 'notch'].map(t => (
+                      <Btn key={t} active={layer.filter!.type === t} onClick={() => onUpdate({ ...layer, filter: { ...layer.filter!, type: t as any } })} color={TE.cyan} small size={btnSize} TE={TE}>{t.slice(0, 2).toUpperCase()}</Btn>
+                    ))}
+                  </div>
+                  <MiniKnob value={layer.filter.frequency} min={20} max={20000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, frequency: v } })} label="FRQ" color={TE.cyan} logarithmic size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.filter.q} min={0.1} max={20} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, q: v } })} label="Q" color={TE.cyan} size={knobSize} TE={TE} />
+                  <div style={{ display: 'flex', gap: isMobile ? 10 : 6, alignItems: 'center', flexWrap: 'wrap', marginTop: isMobile ? 8 : 4 }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: TE.grey, fontWeight: 700 }}>ENV</span>
+                    <Toggle on={!!layer.filter.envelope} onChange={() => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: layer.filter!.envelope ? undefined : { amount: -2000, attack: 0.01, decay: 0.5, sustain: 0, release: 0.3 } } })} color={TE.cyan} size={toggleSize} TE={TE} />
+                    {layer.filter.envelope && <>
+                      <MiniKnob value={layer.filter.envelope.amount} min={-10000} max={10000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, amount: v } } })} label="AMT" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, sustain: v } } })} label="S" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
+                    </>}
+                  </div>
+                </>}
+              </Module>
+              <Module label="SATURATION" color={TE.pink} on={!!layer.saturation} onToggle={() => onUpdate({ ...layer, saturation: layer.saturation ? undefined : { type: 'soft', drive: 2, mix: 0.5 } })} isMobile={isMobile} TE={TE}>
+                {layer.saturation && <>
+                  <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
+                    {['soft', 'hard', 'tube', 'tape'].map(t => (
+                      <Btn key={t} active={layer.saturation!.type === t} onClick={() => onUpdate({ ...layer, saturation: { ...layer.saturation!, type: t as any } })} color={TE.pink} small size={btnSize} TE={TE}>{t.toUpperCase()}</Btn>
+                    ))}
+                  </div>
+                  <MiniKnob value={layer.saturation.drive} min={0} max={10} onChange={v => onUpdate({ ...layer, saturation: { ...layer.saturation!, drive: v } })} label="DRV" color={TE.pink} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.saturation.mix} min={0} max={1} onChange={v => onUpdate({ ...layer, saturation: { ...layer.saturation!, mix: v } })} label="MIX" color={TE.pink} size={knobSize} TE={TE} />
                 </>}
               </Module>
             </div>
@@ -1002,7 +1036,7 @@ export function SynthesizerUI() {
     if (type === 'oscillator') newLayer = { ...base, type, oscillator: { waveform: 'sine', frequency: 440, detune: 0 } };
     else if (type === 'noise') newLayer = { ...base, type, noise: { type: 'white' } };
     else if (type === 'fm') newLayer = { ...base, type, fm: { carrier: 440, modulator: 880, modulationIndex: 100 } };
-    else newLayer = { ...base, type, karplus: { frequency: 440, damping: 0.5 } };
+    else newLayer = { ...base, type, karplus: { frequency: 440, damping: 0.5, inharmonicity: 0 } };
     setConfig({ ...config, synthesis: { ...config.synthesis, layers: [...config.synthesis.layers, newLayer] } });
   };
 

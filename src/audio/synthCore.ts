@@ -210,7 +210,7 @@ function createNoiseLayer(
 
 function createKarplusStrongLayer(
   ctx: AnyAudioContext,
-  config: { frequency: number; damping: number },
+  config: { frequency: number; damping: number; inharmonicity?: number },
   frequency: number,
   startTime: number,
   sources: AudioScheduledSourceNode[]
@@ -230,18 +230,49 @@ function createKarplusStrongLayer(
     ring[i] = Math.random() * 2 - 1;
   }
   
-  // Damping factor
-  const damping = Math.max(0.01, Math.min(0.999, 1 - (config.damping * 0.1)));
+  // Damping factor: higher config.damping = faster decay (more intuitive)
+  // The feedback coefficient must stay very close to 1.0 for audible sustain
+  // (at 44.1kHz, even 0.99 decays almost instantly)
+  // Maps 0-1 input to narrow usable range: 0.9999 (long ring) to 0.95 (short pluck)
+  const minCoeff = 0.95;   // shortest useful sustain
+  const maxCoeff = 0.9999; // longest sustain (near infinite)
+  const damping = maxCoeff - config.damping * (maxCoeff - minCoeff);
+  
+  // Inharmonicity: cascaded allpass filters to stretch higher partials (piano-like)
+  // 0 = pure harmonics (plucked string), 0.3-0.5 = piano-like, 1 = bell-like
+  const inharmonicity = safe(config.inharmonicity, 0);
+  // Use multiple allpass stages for stronger, more audible effect
+  const numStages = 4;
+  // Stronger coefficient for audible effect
+  const allpassCoeff = inharmonicity * 0.85;
   
   let prevSample = 0;
   let pointer = 0;
+  // Cascaded allpass filter states (4 stages for stronger effect)
+  const apPrevIn = new Float32Array(numStages);
+  const apPrevOut = new Float32Array(numStages);
   
   for (let i = 0; i < bufferSize; i++) {
     const val = ring[pointer];
     data[i] = val;
     
-    const newVal = damping * 0.5 * (val + prevSample);
-    ring[pointer] = newVal;
+    // Basic lowpass averaging (original KS)
+    let filtered = damping * 0.5 * (val + prevSample);
+    
+    // Apply cascaded allpass filters for inharmonicity (stretches higher partials)
+    // Each stage adds phase dispersion, making the effect more pronounced
+    // First-order allpass: y[n] = a * x[n] + x[n-1] - a * y[n-1]
+    if (inharmonicity > 0) {
+      for (let stage = 0; stage < numStages; stage++) {
+        const input = filtered;
+        const output = allpassCoeff * input + apPrevIn[stage] - allpassCoeff * apPrevOut[stage];
+        apPrevIn[stage] = input;
+        apPrevOut[stage] = output;
+        filtered = output;
+      }
+    }
+    
+    ring[pointer] = filtered;
     prevSample = val;
     
     pointer = (pointer + 1) % N;

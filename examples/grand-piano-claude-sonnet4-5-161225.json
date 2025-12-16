@@ -1,0 +1,162 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "noise",
+        "gain": 0.15,
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.02,
+          "sustain": 0,
+          "release": 0.01
+        },
+        "filter": {
+          "type": "bandpass",
+          "frequency": 3500,
+          "q": 2,
+          "envelope": {
+            "amount": 0,
+            "attack": 0.001,
+            "decay": 0.01,
+            "sustain": 0,
+            "release": 0.01
+          }
+        },
+        "noise": {
+          "type": "white"
+        }
+      },
+      {
+        "type": "karplus-strong",
+        "gain": 0.85,
+        "envelope": {
+          "attack": 0.001,
+          "decay": 1.2,
+          "sustain": 0.3,
+          "release": 2.5
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 8000,
+          "q": 0.7,
+          "envelope": {
+            "amount": -3000,
+            "attack": 0.001,
+            "decay": 0.8,
+            "sustain": 0.2,
+            "release": 1.5
+          }
+        },
+        "karplus": {
+          "frequency": 440,
+          "damping": 0.35
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.12,
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.6,
+          "sustain": 0.15,
+          "release": 1.8
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 2000,
+          "q": 0.5,
+          "envelope": {
+            "amount": -800,
+            "attack": 0.001,
+            "decay": 0.5,
+            "sustain": 0.1,
+            "release": 1.2
+          }
+        },
+        "oscillator": {
+          "waveform": "triangle",
+          "frequency": 440,
+          "detune": 0,
+          "unison": {
+            "voices": 1,
+            "detune": 0,
+            "spread": 0
+          },
+          "sub": {
+            "level": 0.3,
+            "octave": -1,
+            "waveform": "sine"
+          }
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 1.5,
+    "sustain": 0.25,
+    "release": 3
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 12000,
+    "q": 0.7,
+    "envelope": {
+      "amount": -4000,
+      "attack": 0.001,
+      "decay": 1,
+      "sustain": 0.2,
+      "release": 2
+    }
+  },
+  "effects": {
+    "reverb": {
+      "decay": 2.2,
+      "damping": 0.4,
+      "mix": 0.25
+    },
+    "compressor": {
+      "threshold": -18,
+      "ratio": 3,
+      "attack": 0.005,
+      "release": 0.15,
+      "knee": 6
+    },
+    "eq": {
+      "low": {
+        "frequency": 80,
+        "gain": -2
+      },
+      "mid": {
+        "frequency": 1200,
+        "gain": 1,
+        "q": 1.5
+      },
+      "high": {
+        "frequency": 8000,
+        "gain": 2
+      }
+    }
+  },
+  "timing": {
+    "duration": 6
+  },
+  "dynamics": {
+    "velocity": 0.8,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Grand Piano",
+    "category": "other",
+    "description": "Acoustic grand piano with hammer attack, string resonance, and wooden body character",
+    "tags": [
+      "piano",
+      "acoustic",
+      "grand",
+      "strings",
+      "hammer",
+      "resonant",
+      "natural"
+    ]
+  }
+}
