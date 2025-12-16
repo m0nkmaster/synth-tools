@@ -696,7 +696,7 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               <Module label="FM SYNTHESIS" color={cfg.color} isMobile={isMobile} TE={TE}>
                 <MiniKnob value={layer.fm.carrier} min={20} max={20000} onChange={v => onUpdate({ ...layer, fm: { ...layer.fm!, carrier: v } })} label="CAR" color={cfg.color} logarithmic size={knobSize} TE={TE} />
                 <MiniKnob value={layer.fm.modulator} min={20} max={20000} onChange={v => onUpdate({ ...layer, fm: { ...layer.fm!, modulator: v } })} label="MOD" color={cfg.color} logarithmic size={knobSize} TE={TE} />
-                <MiniKnob value={layer.fm.modulationIndex} min={0} max={1000} onChange={v => onUpdate({ ...layer, fm: { ...layer.fm!, modulationIndex: v } })} label="IDX" color={cfg.color} size={knobSize} TE={TE} />
+                <MiniKnob value={layer.fm.modulationIndex} min={0} max={100} onChange={v => onUpdate({ ...layer, fm: { ...layer.fm!, modulationIndex: v } })} label="IDX" color={cfg.color} size={knobSize} TE={TE} />
               </Module>
               <Module label="ENVELOPE" color={TE.green} on={!!layer.envelope} onToggle={() => onUpdate({ ...layer, envelope: layer.envelope ? undefined : { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.3 } })} isMobile={isMobile} TE={TE}>
                 {layer.envelope && <>
@@ -726,6 +726,17 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
                       <MiniKnob value={layer.filter.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
                     </>}
                   </div>
+                </>}
+              </Module>
+              <Module label="SATURATION" color={TE.pink} on={!!layer.saturation} onToggle={() => onUpdate({ ...layer, saturation: layer.saturation ? undefined : { type: 'soft', drive: 2, mix: 0.5 } })} isMobile={isMobile} TE={TE}>
+                {layer.saturation && <>
+                  <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
+                    {['soft', 'hard', 'tube', 'tape'].map(t => (
+                      <Btn key={t} active={layer.saturation!.type === t} onClick={() => onUpdate({ ...layer, saturation: { ...layer.saturation!, type: t as any } })} color={TE.pink} small size={btnSize} TE={TE}>{t.toUpperCase()}</Btn>
+                    ))}
+                  </div>
+                  <MiniKnob value={layer.saturation.drive} min={0} max={10} onChange={v => onUpdate({ ...layer, saturation: { ...layer.saturation!, drive: v } })} label="DRV" color={TE.pink} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.saturation.mix} min={0} max={1} onChange={v => onUpdate({ ...layer, saturation: { ...layer.saturation!, mix: v } })} label="MIX" color={TE.pink} size={knobSize} TE={TE} />
                 </>}
               </Module>
             </div>
@@ -819,6 +830,17 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
                       <MiniKnob value={layer.filter.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
                     </>}
                   </div>
+                </>}
+              </Module>
+              <Module label="SATURATION" color={TE.pink} on={!!layer.saturation} onToggle={() => onUpdate({ ...layer, saturation: layer.saturation ? undefined : { type: 'soft', drive: 2, mix: 0.5 } })} isMobile={isMobile} TE={TE}>
+                {layer.saturation && <>
+                  <div style={{ display: 'flex', gap: isMobile ? 6 : 2, flexWrap: 'wrap' }}>
+                    {['soft', 'hard', 'tube', 'tape'].map(t => (
+                      <Btn key={t} active={layer.saturation!.type === t} onClick={() => onUpdate({ ...layer, saturation: { ...layer.saturation!, type: t as any } })} color={TE.pink} small size={btnSize} TE={TE}>{t.toUpperCase()}</Btn>
+                    ))}
+                  </div>
+                  <MiniKnob value={layer.saturation.drive} min={0} max={10} onChange={v => onUpdate({ ...layer, saturation: { ...layer.saturation!, drive: v } })} label="DRV" color={TE.pink} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.saturation.mix} min={0} max={1} onChange={v => onUpdate({ ...layer, saturation: { ...layer.saturation!, mix: v } })} label="MIX" color={TE.pink} size={knobSize} TE={TE} />
                 </>}
               </Module>
             </div>
