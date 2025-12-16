@@ -617,10 +617,12 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
                 <MiniKnob value={layer.oscillator.frequency} min={20} max={20000} onChange={v => updateOsc({ frequency: v })} label="FREQ" color={cfg.color} logarithmic size={knobSize} TE={TE} />
                 <MiniKnob value={layer.oscillator.detune} min={-100} max={100} onChange={v => updateOsc({ detune: v })} label="DET" color={cfg.color} size={knobSize} TE={TE} />
               </Module>
-              <Module label="UNISON" color={cfg.color} isMobile={isMobile} TE={TE}>
-                <MiniKnob value={layer.oscillator.unison?.voices || 1} min={1} max={8} onChange={v => updateOsc({ unison: { voices: Math.round(v), detune: layer.oscillator!.unison?.detune || 0, spread: layer.oscillator!.unison?.spread || 0 } })} label="VOX" color={cfg.color} size={knobSize} TE={TE} />
-                <MiniKnob value={layer.oscillator.unison?.detune || 0} min={0} max={100} onChange={v => updateOsc({ unison: { voices: layer.oscillator!.unison?.voices || 1, detune: v, spread: layer.oscillator!.unison?.spread || 0 } })} label="DET" color={cfg.color} size={knobSize} TE={TE} />
-                <MiniKnob value={layer.oscillator.unison?.spread || 0} min={0} max={1} onChange={v => updateOsc({ unison: { voices: layer.oscillator!.unison?.voices || 1, detune: layer.oscillator!.unison?.detune || 0, spread: v } })} label="WID" color={cfg.color} size={knobSize} TE={TE} />
+              <Module label="UNISON" color={cfg.color} on={!!layer.oscillator.unison} onToggle={() => updateOsc({ unison: layer.oscillator!.unison ? undefined : { voices: 2, detune: 15, spread: 0.3 } })} isMobile={isMobile} TE={TE}>
+                {layer.oscillator.unison && <>
+                  <MiniKnob value={layer.oscillator.unison.voices} min={1} max={8} onChange={v => updateOsc({ unison: { ...layer.oscillator!.unison!, voices: Math.round(v) } })} label="VOX" color={cfg.color} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.oscillator.unison.detune} min={0} max={100} onChange={v => updateOsc({ unison: { ...layer.oscillator!.unison!, detune: v } })} label="DET" color={cfg.color} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.oscillator.unison.spread} min={0} max={1} onChange={v => updateOsc({ unison: { ...layer.oscillator!.unison!, spread: v } })} label="WID" color={cfg.color} size={knobSize} TE={TE} />
+                </>}
               </Module>
               <Module label="SUB" color={TE.pink} on={!!layer.oscillator.sub} onToggle={() => updateOsc({ sub: layer.oscillator!.sub ? undefined : { level: 0.5, octave: -1, waveform: 'sine' } })} isMobile={isMobile} TE={TE}>
                 {layer.oscillator.sub && <>
