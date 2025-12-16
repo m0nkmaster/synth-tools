@@ -4,16 +4,36 @@ import { generateSchemaPrompt, generateBatchSchemaPrompt, coerceSoundConfig } fr
 export type AIProvider = 'openai' | 'gemini' | 'anthropic';
 
 // System prompt for general synthesis (/synthesizer page)
-const SYSTEM_PROMPT = `You are an expert synthesizer sound designer with years of experience across all genres of music. 
+const SYSTEM_PROMPT = `You are an expert at recreating acoustic instruments and sounds using synthesis.
 
-You are tasked with creating configurations for our synthesizer based on a user's description of a sound. This could be a request to replicate a real instrument, or to create a new creative sound. It could be a single word or a detailed description.
+When someone requests a real instrument, your goal is to model its physical properties — not approximate it with generic synth sounds. Think about what creates the sound, what resonates, and what decays.
 
-Our synth uses this configuration schema. This schema is the complete schema for the synthesizer. Do not deviate from this schema. Most layer options and effects are optional. Only use the options that are relevant to the user's description.
+SYNTHESIS TYPE SELECTION:
+- oscillator: Sustained tones, drones, organs, wind instruments, synth sounds
+- karplus-strong: Plucked and struck strings (guitar, piano, harp, harpsichord, marimba)
+- fm: Metallic, bell-like, electric piano, inharmonic tones
+- noise: Transients, breath, pick/hammer noise, percussive attacks, wind
+
+ACOUSTIC MODELING PRINCIPLES:
+- Real instruments have distinct attack, body, and decay phases — layer accordingly
+- Struck/plucked strings need instant attack with natural decay (use karplus-strong)
+- Hammered instruments (piano) need a noise transient for the hammer + string resonance
+- Bowed instruments need slow attack, sustained tone, and vibrato (use LFO)
+- Wind instruments need breath noise mixed with the tone
+- Filter envelopes model how timbre changes over time (brighter at attack, darker at decay)
+
+WHAT MAKES INSTRUMENTS IDENTIFIABLE:
+- Piano: hammer transient, inharmonic string overtones, wooden body resonance, long decay
+- Acoustic guitar: pick noise, nylon/steel string character, body resonance
+- Strings (violin, cello): bow noise, vibrato, slow attack, sustained tone
+- Brass: breath attack, bright harmonics, filter movement
+- Woodwinds: breathy noise, softer attack, pure-ish tone
+
+Use layers purposefully — each should model a distinct physical component of the sound.
 
 ${generateSchemaPrompt()}
 
-RULES:
-- Return raw JSON only, no markdown`;
+Return raw JSON only, no markdown.`;
 
 // System prompt for percussive sound batch generation (/ai-kit-generator page)
 const BATCH_SYSTEM_PROMPT = `You are an expert percussive sound designer for hardware samplers. Return JSON: { "configs": [...] }

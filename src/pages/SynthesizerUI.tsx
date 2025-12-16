@@ -1197,9 +1197,9 @@ export function SynthesizerUI() {
                 minWidth: isMobile ? '100%' : 100,
               }}
             >
+              <option value="anthropic">Anthropic</option>
               <option value="gemini">Gemini</option>
               <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic</option>
             </select>
             <input
               type="text"
