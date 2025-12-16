@@ -157,7 +157,7 @@ async function callAnthropic(
 
   const message = await client.messages.create({
     model: getAnthropicModel(),
-    max_tokens: 4096,
+    max_tokens: 32768,
     temperature: ANTHROPIC_TEMPERATURE,
     system: systemPrompt,
     messages: [{ role: 'user', content: `${prompt}\n\nReturn raw JSON only, no markdown.` }],
