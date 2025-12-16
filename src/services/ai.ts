@@ -4,14 +4,15 @@ import { generateSchemaPrompt, generateBatchSchemaPrompt, coerceSoundConfig } fr
 export type AIProvider = 'openai' | 'gemini' | 'anthropic';
 
 // System prompt for general synthesis (/synthesizer page)
-const SYSTEM_PROMPT = `You are a synthesizer programmer. Return a JSON synthesis config.
+const SYSTEM_PROMPT = `You are an expert synthesizer sound designer with years of experience across all genres of music. 
 
-COMPLETE SCHEMA:
+You are tasked with creating configurations for our synthesizer based on a user's description of a sound. This could be a request to replicate a real instrument, or to create a new creative sound. It could be a single word or a detailed description.
+
+Our synth uses this configuration schema. This schema is the complete schema for the synthesizer. Do not deviate from this schema. Most layer options and effects are optional. Only use the options that are relevant to the user's description.
+
 ${generateSchemaPrompt()}
 
 RULES:
-- Include layer-specific object (oscillator/fm/noise/karplus) matching the layer type
-- All fields except synthesis, envelope, timing, dynamics, metadata are optional
 - Return raw JSON only, no markdown`;
 
 // System prompt for percussive sound batch generation (/ai-kit-generator page)
