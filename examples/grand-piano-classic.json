@@ -1,0 +1,128 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "noise",
+        "gain": 0.12,
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.015,
+          "sustain": 0,
+          "release": 0.008
+        },
+        "filter": {
+          "type": "bandpass",
+          "frequency": 3200,
+          "q": 2.5,
+          "envelope": {
+            "amount": 0,
+            "attack": 0.001,
+            "decay": 0.01,
+            "sustain": 0,
+            "release": 0.01
+          }
+        },
+        "noise": {
+          "type": "white"
+        }
+      },
+      {
+        "type": "karplus-strong",
+        "gain": 0.9,
+        "envelope": {
+          "attack": 0.001,
+          "decay": 1.5,
+          "sustain": 0.25,
+          "release": 3
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 8000,
+          "q": 0.6,
+          "envelope": {
+            "amount": -2500,
+            "attack": 0.001,
+            "decay": 1,
+            "sustain": 0.2,
+            "release": 2
+          }
+        },
+        "karplus": {
+          "frequency": 440,
+          "damping": 0.3,
+          "inharmonicity": 0.4
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 1.8,
+    "sustain": 0.2,
+    "release": 3.5
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 10000,
+    "q": 0.7,
+    "gain": 0,
+    "envelope": {
+      "amount": -3000,
+      "attack": 0.001,
+      "decay": 1.2,
+      "sustain": 0.15,
+      "release": 2.5
+    }
+  },
+  "effects": {
+    "reverb": {
+      "decay": 2.5,
+      "damping": 0.35,
+      "mix": 0.22
+    },
+    "compressor": {
+      "threshold": -18,
+      "ratio": 3,
+      "attack": 0.008,
+      "release": 0.18,
+      "knee": 7
+    },
+    "eq": {
+      "low": {
+        "frequency": 100,
+        "gain": -1.5
+      },
+      "mid": {
+        "frequency": 1500,
+        "gain": 1.5,
+        "q": 1.2
+      },
+      "high": {
+        "frequency": 6000,
+        "gain": 2.5
+      }
+    }
+  },
+  "timing": {
+    "duration": 6
+  },
+  "dynamics": {
+    "velocity": 0.8,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Classic Grand Piano",
+    "category": "other",
+    "description": "Acoustic grand piano using Karplus-Strong physical modeling for realistic string resonance. Quick noise burst for hammer attack, long decay with medium sustain for natural ring-out. Inharmonicity 0.4 for piano-like harmonic stretch.",
+    "tags": [
+      "piano",
+      "acoustic",
+      "grand",
+      "classical",
+      "strings",
+      "natural"
+    ]
+  }
+}
+
+

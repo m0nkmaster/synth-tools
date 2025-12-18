@@ -1,0 +1,132 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "karplus-strong",
+        "gain": 0.7,
+        "karplus": {
+          "frequency": 82,
+          "damping": 0.3,
+          "inharmonicity": 0.15
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 2500,
+          "q": 0.7,
+          "envelope": {
+            "amount": 1500,
+            "attack": 0.001,
+            "decay": 0.4,
+            "sustain": 0.2,
+            "release": 0.1
+          }
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 1.5,
+          "sustain": 0.3,
+          "release": 0.4
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.4,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 82,
+          "detune": -3
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 800,
+          "q": 0.5
+        },
+        "envelope": {
+          "attack": 0.002,
+          "decay": 1.8,
+          "sustain": 0.25,
+          "release": 0.5
+        },
+        "saturation": {
+          "type": "tube",
+          "drive": 1.5,
+          "mix": 0.3
+        }
+      },
+      {
+        "type": "noise",
+        "gain": 0.08,
+        "noise": {
+          "type": "pink"
+        },
+        "filter": {
+          "type": "bandpass",
+          "frequency": 3000,
+          "q": 2
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.03,
+          "sustain": 0,
+          "release": 0.01
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 1.5,
+    "sustain": 0.3,
+    "release": 0.4
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 3500,
+    "q": 0.6
+  },
+  "effects": {
+    "eq": {
+      "low": {
+        "frequency": 80,
+        "gain": 3
+      },
+      "mid": {
+        "frequency": 800,
+        "gain": -2,
+        "q": 1.2
+      },
+      "high": {
+        "frequency": 4000,
+        "gain": 1
+      }
+    },
+    "compressor": {
+      "threshold": -20,
+      "ratio": 4,
+      "attack": 0.01,
+      "release": 0.15,
+      "knee": 6
+    },
+    "chorus": {
+      "rate": 0.5,
+      "depth": 0.2,
+      "mix": 0.15,
+      "feedback": 0.3,
+      "delay": 25
+    }
+  },
+  "timing": {
+    "duration": 3
+  },
+  "dynamics": {
+    "velocity": 0.8,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Electric Bass Guitar",
+    "category": "bass",
+    "description": "Punchy electric bass with Karplus-Strong string synthesis for authentic plucked character, layered with a warm sine for body. Features filter sweep, tube saturation, and tight compression.",
+    "tags": ["bass", "guitar", "electric", "plucked", "string"]
+  }
+}
+

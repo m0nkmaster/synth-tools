@@ -1,0 +1,76 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "fm",
+        "gain": 1,
+        "envelope": {
+          "attack": 0.005,
+          "decay": 3.5,
+          "sustain": 0.05,
+          "release": 0.3
+        },
+        "fm": {
+          "ratio": 1,
+          "waveform": "sine",
+          "modulationIndex": 0,
+          "feedback": 0
+        }
+      },
+      {
+        "type": "fm",
+        "gain": 0,
+        "fm": {
+          "ratio": 1,
+          "waveform": "sine",
+          "modulationIndex": 0.8,
+          "feedback": 0,
+          "modulatesLayer": 0,
+          "envelope": {
+            "attack": 0.001,
+            "decay": 2.5,
+            "sustain": 0.08,
+            "release": 0.5
+          }
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.005,
+    "decay": 3.5,
+    "sustain": 0.05,
+    "release": 0.3
+  },
+  "effects": {
+    "chorus": {
+      "rate": 0.5,
+      "depth": 0.4,
+      "mix": 0.5,
+      "feedback": 0.2,
+      "delay": 30
+    },
+    "compressor": {
+      "threshold": -20,
+      "ratio": 3,
+      "attack": 0.005,
+      "release": 0.15,
+      "knee": 6
+    }
+  },
+  "timing": {
+    "duration": 4
+  },
+  "dynamics": {
+    "velocity": 0.8,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "E-Piano Ultra-Safe (modIndex 0.8)",
+    "category": "other",
+    "description": "Ultra-conservative FM E-piano with modIndex 0.8 to guarantee NO negative frequencies (440 - 352 = 88Hz min). If this STILL sounds bad, the FM implementation itself is broken.",
+    "tags": ["test", "epiano", "fm", "safe"]
+  }
+}
+
+

@@ -38,62 +38,62 @@ export const BOUNDS = {
   },
   unison: {
     voices: { min: 1, max: 8 },
-    detune: { min: 0, max: 100 },
-    spread: { min: 0, max: 1 },
+    detune: { min: 0, max: 100 },  // cents per voice
+    spread: { min: 0, max: 1 },  // Stereo width: 0 = mono/center, 1 = full stereo spread
   },
   sub: {
     level: { min: 0, max: 1 },
   },
   filter: {
-    frequency: { min: 20, max: 20000 },
-    q: { min: 0.0001, max: 100 },
-    envelopeAmount: { min: -10000, max: 10000 },
+    frequency: { min: 20, max: 20000 },  // Cutoff frequency in Hz
+    q: { min: 0.0001, max: 100 },  // Resonance: 0.7 = flat, 1-5 = resonant peak, 10+ = self-oscillation
+    envelopeAmount: { min: -10000, max: 10000 },  // Hz offset from base frequency over envelope
   },
   saturation: {
-    drive: { min: 0, max: 10 },
-    mix: { min: 0, max: 1 },
+    drive: { min: 0, max: 10 },  // Saturation amount: 0 = clean, 10 = heavily saturated
+    mix: { min: 0, max: 1 },  // Dry/wet blend: 0 = clean, 1 = fully saturated
   },
   fm: {
     ratio: { min: 0.5, max: 16 },  // Frequency multiplier relative to base pitch
-    modulationIndex: { min: 0, max: 100 },  // 0-10=subtle, 10-30=electric piano, 30-60=bells, 60+=harsh
+    modulationIndex: { min: 0, max: 100 },  // FM modulation depth. Actual Hz deviation = (value/100) × carrierFreqHz. Example: 100 @ 440Hz = 440Hz deviation
     feedback: { min: 0, max: 1 },  // Self-modulation amount (0=none, 0.3=metallic, 0.7+=harsh)
   },
   karplus: {
     frequency: { min: 20, max: 2000 },
-    damping: { min: 0, max: 1 },
-    inharmonicity: { min: 0, max: 1 },  // 0 = pure harmonics, 1 = piano-like stretch
+    damping: { min: 0, max: 1 },  // 0 = long sustain/ring, 1 = short pluck/decay
+    inharmonicity: { min: 0, max: 1 },  // Stretches higher partials: 0 = pure/plucked string, 0.3-0.5 = piano-like, 1 = bell-like
   },
   lfo: {
-    frequency: { min: 0.01, max: 20 },
-    depth: { min: 0, max: 1 },
-    delay: { min: 0, max: 10 },
-    fade: { min: 0, max: 10 },
+    frequency: { min: 0.01, max: 20 },  // LFO rate in Hz
+    depth: { min: 0, max: 1 },  // Modulation amount (target-dependent: pitch=cents*100, filter=freq multiplier, amplitude/pan=direct)
+    delay: { min: 0, max: 10 },  // Seconds before LFO starts
+    fade: { min: 0, max: 10 },  // Seconds to fade in LFO after delay
   },
   distortion: {
-    amount: { min: 0, max: 1 },
-    mix: { min: 0, max: 1 },
+    amount: { min: 0, max: 1 },  // Distortion intensity
+    mix: { min: 0, max: 1 },  // Dry/wet blend: 0 = clean, 1 = fully distorted
   },
   reverb: {
-    decay: { min: 0.1, max: 5 },  // Synth caps at 5s for performance
-    damping: { min: 0, max: 1 },
-    mix: { min: 0, max: 1 },
+    decay: { min: 0.1, max: 5 },  // Reverb tail length in seconds (capped at 5s for performance)
+    damping: { min: 0, max: 1 },  // High frequency absorption: 0 = bright/reflective, 1 = dark/absorptive
+    mix: { min: 0, max: 1 },  // Dry/wet blend: 0 = dry only, 1 = wet only
   },
   delay: {
-    time: { min: 0.01, max: 2 },
-    feedback: { min: 0, max: 0.9 },
-    mix: { min: 0, max: 1 },
+    time: { min: 0.01, max: 2 },  // Delay time in seconds
+    feedback: { min: 0, max: 0.9 },  // Feedback amount: 0 = single echo, 0.9 = long repeating echoes
+    mix: { min: 0, max: 1 },  // Dry/wet blend
   },
   compressor: {
-    threshold: { min: -60, max: 0 },
-    ratio: { min: 1, max: 20 },
-    attack: { min: 0, max: 1 },
-    release: { min: 0, max: 1 },
-    knee: { min: 0, max: 40 },
+    threshold: { min: -60, max: 0 },  // dB level where compression starts
+    ratio: { min: 1, max: 20 },  // Compression ratio: 1 = no compression, 20 = extreme limiting
+    attack: { min: 0, max: 1 },  // Seconds: how quickly compression engages
+    release: { min: 0, max: 1 },  // Seconds: how quickly compression disengages
+    knee: { min: 0, max: 40 },  // dB: 0 = hard knee (abrupt), 40 = soft knee (gradual)
   },
   gate: {
-    attack: { min: 0, max: 1 },
-    hold: { min: 0, max: 2 },
-    release: { min: 0, max: 1 },
+    attack: { min: 0, max: 1 },  // Seconds: gate opening time
+    hold: { min: 0, max: 2 },  // Seconds: how long gate stays open
+    release: { min: 0, max: 1 },  // Seconds: gate closing time
   },
   pitchEnvelope: {
     amount: { min: -4800, max: 4800 },  // cents (±4 octaves)
@@ -574,7 +574,7 @@ SCHEMA:
         "sub": { "level": number ${range(b.sub.level)}, "octave": -1 | -2, "waveform": "sine"|"square"|"triangle" },
         "pitchEnvelope": { "amount": number ${range(b.pitchEnvelope.amount, 'cents')}, "attack": number ${range(b.pitchEnvelope.attack, 's')}, "decay": number ${range(b.pitchEnvelope.decay, 's')}, "sustain": number ${range(b.pitchEnvelope.sustain, 'cents')}, "release": number ${range(b.pitchEnvelope.release, 's')} }
       },
-      "fm": { "ratio": number ${range(b.fm.ratio)} (frequency multiplier), "waveform": ${enumStr(waveformEnum)}, "modulationIndex": number ${range(b.fm.modulationIndex)} (0-10=subtle, 10-30=electric piano, 30-60=bells, 60+=harsh), "feedback": number ${range(b.fm.feedback)} (self-modulation, 0.3=metallic, 0.7+=harsh), "modulatesLayer": number (index of FM layer to modulate, omit for output), "envelope": { "attack": number, "decay": number, "sustain": number, "release": number } },
+      "fm": { "ratio": number ${range(b.fm.ratio)} (frequency multiplier relative to base pitch), "waveform": ${enumStr(waveformEnum)}, "modulationIndex": number ${range(b.fm.modulationIndex)} (FM depth: Hz deviation = value/100 × carrierFreqHz), "feedback": number ${range(b.fm.feedback)} (self-modulation: 0=none, >0.3=metallic, >0.7=harsh), "modulatesLayer": number (optional: index of FM layer to modulate; when set, this layer's output routes to target layer's frequency input instead of audio output), "envelope": { "attack": number, "decay": number, "sustain": number, "release": number } (optional: modulates FM depth over time) },
       "noise": { "type": ${enumStr(noiseTypeEnum)} },
       "karplus": { "frequency": number ${range(b.karplus.frequency, 'Hz')}, "damping": number ${range(b.karplus.damping)} (0=long sustain, 1=short pluck), "inharmonicity": number ${range(b.karplus.inharmonicity)} (0=pure/plucked, 0.3-0.5=piano, 1=bell) }
     }]
@@ -631,7 +631,7 @@ SCHEMA:
       "filter": { "type": ${enumStr(filterTypeEnum)}, "frequency": number ${range(b.filter.frequency, 'Hz')}, "q": number ${range(b.filter.q)}, "envelope": { "amount": number ${range(b.filter.envelopeAmount, 'Hz')}, "attack": number, "decay": number, "sustain": number, "release": number } },
       "saturation": { "type": ${enumStr(saturationTypeEnum)}, "drive": number ${range(b.saturation.drive)}, "mix": number ${range(b.saturation.mix)} },
       "oscillator": { "waveform": ${enumStr(waveformEnum)}, "frequency": number ${range(b.oscillator.frequency, 'Hz')}, "detune": number ${range(b.oscillator.detune, 'cents')}, "pitchEnvelope": { "amount": number ${range(b.pitchEnvelope.amount, 'cents')}, "attack": number, "decay": number, "sustain": number (cents), "release": number } },
-      "fm": { "ratio": number ${range(b.fm.ratio)} (frequency multiplier), "waveform": ${enumStr(waveformEnum)}, "modulationIndex": number ${range(b.fm.modulationIndex)} (0-10=subtle, 10-30=electric piano, 30-60=bells, 60+=harsh), "feedback": number ${range(b.fm.feedback)} (self-modulation), "modulatesLayer": number (index of FM layer to modulate, omit for output), "envelope": { attack, decay, sustain, release } },
+      "fm": { "ratio": number ${range(b.fm.ratio)} (frequency multiplier relative to base pitch), "waveform": ${enumStr(waveformEnum)}, "modulationIndex": number ${range(b.fm.modulationIndex)} (FM depth: Hz deviation = value/100 × carrierFreqHz), "feedback": number ${range(b.fm.feedback)} (self-modulation: 0=none, >0.3=metallic, >0.7=harsh), "modulatesLayer": number (optional: routes modulation to target FM layer instead of audio output), "envelope": { attack, decay, sustain, release } (optional: modulates FM depth over time) },
       "noise": { "type": ${enumStr(noiseTypeEnum)} },
       "karplus": { "frequency": number ${range(b.karplus.frequency, 'Hz')}, "damping": number ${range(b.karplus.damping)} (0=long sustain, 1=short pluck), "inharmonicity": number ${range(b.karplus.inharmonicity)} (0=pure/plucked, 0.3-0.5=piano, 1=bell) }
     }]

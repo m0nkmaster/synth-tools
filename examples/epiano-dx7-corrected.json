@@ -1,0 +1,164 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "fm",
+        "gain": 1,
+        "envelope": {
+          "attack": 0.005,
+          "decay": 3.5,
+          "sustain": 0.05,
+          "release": 0.3
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 8000,
+          "q": 0.7,
+          "envelope": {
+            "amount": 0,
+            "attack": 0.001,
+            "decay": 0.001,
+            "sustain": 1,
+            "release": 0.001
+          }
+        },
+        "fm": {
+          "ratio": 1,
+          "waveform": "sine",
+          "modulationIndex": 0,
+          "feedback": 0
+        }
+      },
+      {
+        "type": "fm",
+        "gain": 0,
+        "fm": {
+          "ratio": 1,
+          "waveform": "sine",
+          "modulationIndex": 10,
+          "feedback": 0.08,
+          "modulatesLayer": 0,
+          "envelope": {
+            "attack": 0.001,
+            "decay": 2.5,
+            "sustain": 0.1,
+            "release": 0.5
+          }
+        }
+      },
+      {
+        "type": "fm",
+        "gain": 0.05,
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.06,
+          "sustain": 0,
+          "release": 0.02
+        },
+        "filter": {
+          "type": "highpass",
+          "frequency": 1000,
+          "q": 0.5,
+          "envelope": {
+            "amount": 0,
+            "attack": 0.001,
+            "decay": 0.001,
+            "sustain": 1,
+            "release": 0.001
+          }
+        },
+        "fm": {
+          "ratio": 14,
+          "waveform": "sine",
+          "modulationIndex": 0,
+          "feedback": 0
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.005,
+    "decay": 3.8,
+    "sustain": 0.03,
+    "release": 0.2
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 5000,
+    "q": 0.6,
+    "gain": 0,
+    "envelope": {
+      "amount": 2500,
+      "attack": 0.001,
+      "decay": 2,
+      "sustain": 0.15,
+      "release": 0.8
+    }
+  },
+  "lfo": {
+    "waveform": "sine",
+    "frequency": 1.2,
+    "depth": 0.08,
+    "target": "pan",
+    "delay": 0.5,
+    "fade": 2
+  },
+  "effects": {
+    "reverb": {
+      "decay": 1.8,
+      "damping": 0.4,
+      "mix": 0.2
+    },
+    "compressor": {
+      "threshold": -18,
+      "ratio": 2.5,
+      "attack": 0.01,
+      "release": 0.2,
+      "knee": 5
+    },
+    "chorus": {
+      "rate": 0.5,
+      "depth": 0.4,
+      "mix": 0.5,
+      "feedback": 0.2,
+      "delay": 30
+    },
+    "eq": {
+      "low": {
+        "frequency": 200,
+        "gain": 1.5
+      },
+      "mid": {
+        "frequency": 2500,
+        "gain": 2,
+        "q": 1
+      },
+      "high": {
+        "frequency": 8000,
+        "gain": 1.5
+      }
+    }
+  },
+  "timing": {
+    "duration": 4
+  },
+  "dynamics": {
+    "velocity": 0.85,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "DX7 E-Piano (Corrected Scaling)",
+    "category": "other",
+    "description": "Classic DX7 electric piano with correct modulation scaling (/10 internally). ModIndex 10 now produces gentle FM growl (44Hz deviation), not harsh aliasing. Includes tine attack layer and lush chorus.",
+    "tags": [
+      "keys",
+      "fm",
+      "dx7",
+      "80s",
+      "electric",
+      "smooth"
+    ]
+  }
+}
+
+

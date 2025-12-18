@@ -124,6 +124,36 @@ describe('synthesizeSound', () => {
     expect(buffer.length).toBeGreaterThan(0);
   });
 
+  it('should handle FM with all sustain values at zero', async () => {
+    const config: SoundConfig = {
+      ...baseConfig,
+      synthesis: {
+        layers: [{
+          type: 'fm',
+          gain: 0.5,
+          envelope: { attack: 0.001, decay: 1.5, sustain: 0, release: 0.3 },
+          filter: {
+            type: 'lowpass',
+            frequency: 5000,
+            q: 1,
+            envelope: { amount: -1500, attack: 0.001, decay: 1, sustain: 0, release: 0.1 }
+          },
+          saturation: { type: 'tube', drive: 2, mix: 0.2 },
+          fm: {
+            ratio: 1,
+            waveform: 'sine',
+            modulationIndex: 12,
+            feedback: 0.1,
+            envelope: { attack: 0.001, decay: 0.6, sustain: 0, release: 0.1 }
+          }
+        }]
+      },
+      timing: { duration: 4 }
+    };
+    const buffer = await synthesizeSound(config);
+    expect(buffer.length).toBeGreaterThan(0);
+  });
+
   it('should route FM layers to modulate each other', async () => {
     const config: SoundConfig = {
       ...baseConfig,

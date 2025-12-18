@@ -1,0 +1,127 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.7,
+        "envelope": {
+          "attack": 0.08,
+          "decay": 0.6,
+          "sustain": 0.5,
+          "release": 1.2
+        },
+        "oscillator": {
+          "waveform": "sawtooth",
+          "frequency": 220,
+          "detune": 0,
+          "unison": {
+            "voices": 3,
+            "detune": 18,
+            "spread": 0.3
+          },
+          "sub": {
+            "level": 0.4,
+            "octave": -1,
+            "waveform": "square"
+          }
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 800,
+          "q": 3.5,
+          "envelope": {
+            "amount": 2800,
+            "attack": 0.02,
+            "decay": 0.8,
+            "sustain": 0.3,
+            "release": 1
+          }
+        },
+        "saturation": {
+          "type": "tube",
+          "drive": 2.5,
+          "mix": 0.3
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.08,
+    "decay": 0.6,
+    "sustain": 0.5,
+    "release": 1.2
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 1200,
+    "q": 2,
+    "gain": 0,
+    "envelope": {
+      "amount": 1500,
+      "attack": 0.02,
+      "decay": 0.8,
+      "sustain": 0.3,
+      "release": 1
+    }
+  },
+  "lfo": {
+    "waveform": "sine",
+    "frequency": 0.3,
+    "depth": 0.15,
+    "target": "filter",
+    "delay": 0,
+    "fade": 2
+  },
+  "effects": {
+    "reverb": {
+      "decay": 2.5,
+      "damping": 0.3,
+      "mix": 0.15
+    },
+    "compressor": {
+      "threshold": -15,
+      "ratio": 4,
+      "attack": 0.01,
+      "release": 0.15,
+      "knee": 8
+    },
+    "eq": {
+      "low": {
+        "frequency": 80,
+        "gain": 3
+      },
+      "mid": {
+        "frequency": 600,
+        "gain": -1,
+        "q": 1.5
+      },
+      "high": {
+        "frequency": 8000,
+        "gain": -2
+      }
+    }
+  },
+  "timing": {
+    "duration": 5
+  },
+  "dynamics": {
+    "velocity": 0.75,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Moog Moody Synth",
+    "category": "lead",
+    "description": "Dark, atmospheric Moog-style analog synth. Fat detuned sawtooth with square sub, resonant lowpass filter sweep, slow LFO modulation. Classic subtractive synthesis with tube saturation for warmth.",
+    "tags": [
+      "moog",
+      "analog",
+      "moody",
+      "dark",
+      "atmospheric",
+      "lead",
+      "synth"
+    ]
+  }
+}
+
+

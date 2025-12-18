@@ -1,0 +1,183 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "fm",
+        "gain": 1,
+        "envelope": {
+          "attack": 0.005,
+          "decay": 3.8,
+          "sustain": 0.05,
+          "release": 0.2
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 8000,
+          "q": 0.7,
+          "envelope": {
+            "amount": 0,
+            "attack": 0.001,
+            "decay": 0.001,
+            "sustain": 1,
+            "release": 0.001
+          }
+        },
+        "saturation": {
+          "type": "soft",
+          "drive": 1,
+          "mix": 0.1
+        },
+        "fm": {
+          "ratio": 1,
+          "waveform": "sine",
+          "modulationIndex": 0,
+          "feedback": 0
+        }
+      },
+      {
+        "type": "fm",
+        "gain": 0,
+        "fm": {
+          "ratio": 1,
+          "waveform": "sine",
+          "modulationIndex": 18,
+          "feedback": 0.1,
+          "modulatesLayer": 0,
+          "envelope": {
+            "attack": 0.001,
+            "decay": 2.5,
+            "sustain": 0.08,
+            "release": 0.3
+          }
+        }
+      },
+      {
+        "type": "fm",
+        "gain": 0.06,
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.08,
+          "sustain": 0,
+          "release": 0.02
+        },
+        "filter": {
+          "type": "highpass",
+          "frequency": 800,
+          "q": 0.5,
+          "envelope": {
+            "amount": 0,
+            "attack": 0.001,
+            "decay": 0.001,
+            "sustain": 1,
+            "release": 0.001
+          }
+        },
+        "saturation": {
+          "type": "soft",
+          "drive": 1.5,
+          "mix": 0.15
+        },
+        "fm": {
+          "ratio": 14,
+          "waveform": "sine",
+          "modulationIndex": 0,
+          "feedback": 0
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.005,
+    "decay": 3.9,
+    "sustain": 0.03,
+    "release": 0.1
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 4500,
+    "q": 0.6,
+    "gain": 0,
+    "envelope": {
+      "amount": 2000,
+      "attack": 0.001,
+      "decay": 2.5,
+      "sustain": 0.1,
+      "release": 0.5
+    }
+  },
+  "lfo": {
+    "waveform": "sine",
+    "frequency": 1.2,
+    "depth": 0.1,
+    "target": "pan",
+    "delay": 0.5,
+    "fade": 2
+  },
+  "effects": {
+    "distortion": {
+      "type": "soft",
+      "amount": 0.1,
+      "mix": 0.1
+    },
+    "reverb": {
+      "decay": 1.8,
+      "damping": 0.4,
+      "mix": 0.25
+    },
+    "delay": {
+      "time": 0.35,
+      "feedback": 0.2,
+      "mix": 0
+    },
+    "compressor": {
+      "threshold": -18,
+      "ratio": 2.5,
+      "attack": 0.01,
+      "release": 0.2,
+      "knee": 5
+    },
+    "chorus": {
+      "rate": 0.6,
+      "depth": 0.5,
+      "mix": 0.6,
+      "feedback": 0.2,
+      "delay": 25
+    },
+    "eq": {
+      "low": {
+        "frequency": 200,
+        "gain": 2
+      },
+      "mid": {
+        "frequency": 3000,
+        "gain": 3.5,
+        "q": 1
+      },
+      "high": {
+        "frequency": 10000,
+        "gain": 1.5
+      }
+    }
+  },
+  "timing": {
+    "duration": 4
+  },
+  "dynamics": {
+    "velocity": 0.9,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Classic DX E-Piano (Natural Decay)",
+    "category": "other",
+    "description": "Electric pianos are struck instruments that naturally decay, not sustain. Long decay (3.8-3.9s) with low sustain (0.03-0.08) creates smooth exponential fade over full 4s duration. FM modulation envelope also uses long decay (2.5s) to maintain timbre.",
+    "tags": [
+      "keys",
+      "fm",
+      "80s",
+      "ballad",
+      "digital",
+      "smooth"
+    ]
+  }
+}
+

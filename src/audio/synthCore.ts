@@ -187,8 +187,9 @@ export function createFMLayer(
   // Modulation output: this is what gets routed to other FM layers
   // The modulation depth is scaled by modulationIndex and operator frequency
   // FM formula: Δf = modulationIndex × modulatorFreq
+  // CRITICAL: Divide by 100 for gentle modulation (modIndex 10 = ~4.4Hz deviation @ 440Hz)
   const modulationOutput = ctx.createGain();
-  modulationOutput.gain.value = safeModIndex * operatorFreq;
+  modulationOutput.gain.value = (safeModIndex / 100) * operatorFreq;
   carrier.connect(modulationOutput);
   
   // Apply per-operator envelope to modulation depth (critical for FM timbres)
@@ -199,7 +200,8 @@ export function createFMLayer(
     const safeDecay = Math.max(0.001, env.decay);
     const safeRelease = Math.max(0.001, env.release);
     // Ensure peakGain is never 0 (exponentialRamp can't target 0)
-    const peakGain = Math.max(SILENCE, safeModIndex * operatorFreq);
+    // Match the /100 scaling from above
+    const peakGain = Math.max(SILENCE, (safeModIndex / 100) * operatorFreq);
     const sustainGain = Math.max(SILENCE, env.sustain * peakGain);
     const releaseStart = Math.max(safeAttack + safeDecay + 0.01, duration - safeRelease);
     

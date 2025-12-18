@@ -1,0 +1,52 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "fm",
+        "gain": 1,
+        "envelope": {
+          "attack": 0.005,
+          "decay": 3.5,
+          "sustain": 0.05,
+          "release": 0.3
+        },
+        "fm": {
+          "ratio": 1,
+          "waveform": "sine",
+          "modulationIndex": 0,
+          "feedback": 0
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.005,
+    "decay": 3.5,
+    "sustain": 0.05,
+    "release": 0.3
+  },
+  "effects": {
+    "compressor": {
+      "threshold": -20,
+      "ratio": 3,
+      "attack": 0.005,
+      "release": 0.15,
+      "knee": 6
+    }
+  },
+  "timing": {
+    "duration": 4
+  },
+  "dynamics": {
+    "velocity": 0.8,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "FM Carrier Only Test (No Modulation)",
+    "category": "other",
+    "description": "Single FM layer with modIndex 0 and no feedback. Should sound IDENTICAL to simple-osc (pure 440Hz sine). If it sounds different, the FM layer creation is adding unwanted artifacts.",
+    "tags": ["test", "fm", "baseline"]
+  }
+}
+
+

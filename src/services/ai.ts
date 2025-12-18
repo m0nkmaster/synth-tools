@@ -5,76 +5,67 @@ import { AI } from '../config';
 export type AIProvider = 'openai' | 'gemini' | 'anthropic';
 
 // System prompt for general synthesis (/synthesizer page)
-const SYSTEM_PROMPT = `You are an expert at recreating acoustic instruments and sounds using synthesis.
+const SYSTEM_PROMPT = `You are a sound synthesis expert. Generate JSON configurations for a multi-layer synthesizer.
 
 SYNTHESIZER ARCHITECTURE:
-This is a configuration schema for a multi-layer additive/subtractive/FM/physical modeling synthesizer. You control everything via a JSON config that defines layers, envelopes, filters, and effects. The output is rendered to audio samples.
+Multi-layer additive/subtractive/FM/physical modeling synthesizer. Supports 1-8 layers per sound.
 
-LAYER TYPES (use 1-8 layers, combine for rich sounds):
-- oscillator: Classic waveforms (sine, square, sawtooth, triangle). Supports unison (1-8 detuned voices with stereo spread), sub oscillator (-1/-2 octaves), and pitch envelope (cents-based sweeps for drums/effects).
-- noise: White (full spectrum), pink (natural/analog), brown (low rumble). Essential for transients, breath, textures.
-- fm: FM operator. Set ratio (frequency multiplier relative to base pitch), modulationIndex (0-10=subtle warmth, 10-30=electric piano, 30-60=bells, 60+=harsh), feedback (self-modulation: 0.3=metallic, 0.7+=harsh). Can modulate other FM layers via modulatesLayer. Use envelope to shape modulation over time (critical for evolving FM timbres).
-- karplus-strong: Physical modeling for plucked/struck strings. damping controls decay (0=long ring, 1=short pluck), inharmonicity stretches harmonics (0=pure guitar, 0.3-0.5=piano, 1=bell-like).
+LAYER TYPES:
+- oscillator: Generates periodic waveforms (sine, square, sawtooth, triangle). Features:
+  * unison: Multiple detuned voices (1-8 voices, detune in cents, stereo spread 0-1)
+  * sub: Sub-oscillator 1 or 2 octaves below (level 0-1, waveform sine/square/triangle)
+  * pitchEnvelope: ADSR envelope modulating pitch in cents (±4800 cents = ±4 octaves)
+
+- noise: Generates white, pink, or brown noise for transients and textures.
+
+- fm: FM synthesis operator. Technical details:
+  * ratio: Frequency multiplier relative to base pitch (0.5-16)
+  * modulationIndex: FM depth where Hz deviation = (value/100) × carrierFreqHz. Example: value=100 @ 440Hz = 440Hz deviation
+  * feedback: Self-modulation amount (0-1). Values >0.3 produce metallic tones, >0.7 harsh/noisy tones
+  * modulatesLayer: Optional. When set to another FM layer's index, routes modulation to that layer's frequency input instead of audio output. Layers with modulatesLayer set should have gain=0
+  * envelope: Optional ADSR envelope modulating FM depth over time
+
+- karplus-strong: Physical modeling for plucked/struck strings. Technical details:
+  * frequency: Base frequency in Hz (20-2000)
+  * damping: Decay rate (0=long sustain/ring, 1=short pluck/fast decay)
+  * inharmonicity: Stretches higher partials (0=pure harmonics/plucked string, 0.3-0.5=piano-like, 1=bell-like)
 
 PER-LAYER PROCESSING:
-Each layer has independent gain (0-1), envelope (ADSR), filter (lowpass/highpass/bandpass/notch with Q and envelope), and saturation (soft/hard/tube/tape with drive and mix).
+- gain: Layer volume (0-1)
+- envelope: Optional ADSR envelope for layer amplitude
+- filter: Optional filter (lowpass/highpass/bandpass/notch) with frequency, Q (resonance), and optional envelope
+- saturation: Optional waveshaping (soft/hard/tube/tape) with drive (0-10) and mix (0-1)
 
 GLOBAL PROCESSING:
-- envelope: Master ADSR applied to the mixed output
-- filter: Global filter with additional types (allpass, peaking) and envelope modulation
-- lfo: Modulates pitch, filter, amplitude, or pan. Use delay/fade for evolving sounds.
+- envelope: Master ADSR envelope (always applied)
+- filter: Optional global filter (lowpass/highpass/bandpass/notch/allpass/peaking) with frequency, Q, optional gain (for peaking), and optional envelope
+- lfo: Optional low-frequency oscillator modulating pitch/filter/amplitude/pan with waveform, frequency, depth, optional delay and fade
 
-EFFECTS CHAIN (signal flows through in order):
-EQ (3-band: low shelf, mid peak, high shelf) → Distortion (soft/hard/fuzz/bitcrush/waveshaper) → Compressor → Chorus (low delay=flanger, high delay=chorus) → Delay → Reverb → Gate
+EFFECTS CHAIN ORDER (applied in sequence):
+EQ → Distortion → Compressor → Chorus → Delay → Reverb → Gate
 
-SOUND DESIGN TIPS:
-- Acoustic instruments: Combine layers for body (low oscillator), harmonics (higher oscillator/FM), and attack transient (noise burst with fast envelope).
-- Plucked strings: Use karplus-strong with low damping, or FM with decaying modulation envelope.
-- Bells/metallic: FM with high modulationIndex and inharmonic ratios (1.4, 2.76, etc.), or karplus-strong with high inharmonicity.
-- Pads: Slow attack, long release, unison voices with detuning, chorus effect, LFO on filter.
-- Drums: Fast attack (<0.005s), pitch envelope with negative amount for kicks, noise layer with bandpass for snares.
-- Bass: Sine/triangle for sub, add harmonics via saturation or FM, keep filter envelope punchy.
-
+TECHNICAL SPECIFICATIONS:
 ${generateSchemaPrompt()}
 
-Your tasks is to return a JSON configuration that matches the schema above and achevices the sound described in the user'sprompt. Return raw JSON only, no markdown.`;
+Return raw JSON only matching the schema above. No markdown formatting.`;
 
 // System prompt for percussive sound batch generation (/ai-kit-generator page)
-const BATCH_SYSTEM_PROMPT = `You are an expert percussive sound designer for hardware samplers. Return JSON: { "configs": [...] }
+const BATCH_SYSTEM_PROMPT = `You are a percussive sound synthesis expert. Generate JSON configurations for drum/percussion sounds.
+
+Return format: { "configs": [...] }
 
 SCHEMA for each config:
 ${generateBatchSchemaPrompt()}
 
-CRITICAL SOUND DESIGN RULES:
+TECHNICAL NOTES FOR PERCUSSION:
+- Percussive sounds are short, transient-heavy, and typically have zero sustain
+- Duration constraints by category: kick (≤1s), snare (≤2s), hihat (≤0.5s), tom (≤1.5s), perc (≤2s), fx (≤2s)
+- Attack times are typically very fast (0.001-0.005s) for immediate impact
+- Envelope sustain is typically 0 for percussive sounds (they decay naturally)
+- Filter envelopes with high Q and fast decay create transient definition
+- Delay and reverb are generally avoided in drum kits to prevent timing/bleed issues
 
-1. TRANSIENTS ARE EVERYTHING
-   - Attack: 0.001-0.005s for ALL percussive sounds (instant impact)
-   - Use filter envelopes with HIGH Q (5-15) and FAST decay (0.01-0.05s) for click/punch
-   - Filter envelope amount: 2000-8000 Hz sweep down for transient definition
-
-2. CATEGORY-SPECIFIC RECIPES:
-   KICK: sine/triangle 40-80Hz, duration 0.1-0.2s, filter sweep 3000-6000Hz for beater click, Q=8-12
-   SNARE: noise layer + sine 150-250Hz, bandpass body + highpass 3-6kHz for snap, duration 0.1-0.2s
-   HIHAT: white/pink noise + highpass 5-10kHz, very short 0.03-0.12s, Q=2-4 for shimmer
-   TOM: sine 60-200Hz depending on pitch, duration 0.1-0.25s, filter sweep for attack
-   PERC: FM or filtered noise, focused mid frequencies, short 0.05-0.15s
-   FX: creative freedom, up to 0.4s
-
-3. AVOID MUDDINESS:
-   - Keep layers frequency-separated (low osc + high noise, not overlapping)
-   - Highpass non-kick sounds at 80-150Hz to clear mud
-   - Short release times (0.01-0.08s) prevent overlap
-   - Zero sustain for all drums (sustain: 0)
-   - Limit to 1-2 layers per sound
-
-4. ADD PRESENCE AND PUNCH:
-   - Saturation (drive 3-7) on kicks/snares adds harmonics
-   - Distortion amount 0.2-0.5 for grit without harshness
-   - Compressor: SLOW attack (0.05-0.15s) preserves transients, fast release (0.05-0.1s), ratio 3-6
-
-5. NO delay or reverb (causes bleed)
-
-Your tasks is to return a JSON configuration that matches the schema above and achevices the sound described in the user'sprompt. Return raw JSON only, no markdown`;
+Return raw JSON only matching the schema above. No markdown formatting.`;
 
 // Extract JSON from text that may have extra content before/after
 function extractJSON(text: string): Record<string, unknown> {
@@ -82,12 +73,44 @@ function extractJSON(text: string): Record<string, unknown> {
   try {
     return JSON.parse(text);
   } catch {
-    // Find JSON object boundaries
+    // Find JSON object with proper brace balancing
     const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start !== -1 && end !== -1 && end > start) {
-      return JSON.parse(text.slice(start, end + 1));
+    if (start === -1) throw new Error('No valid JSON found in response');
+    
+    // Balance braces to find the end of the JSON object
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    
+    for (let i = start; i < text.length; i++) {
+      const char = text[i];
+      
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      
+      if (char === '\\' && inString) {
+        escape = true;
+        continue;
+      }
+      
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      
+      if (inString) continue;
+      
+      if (char === '{') depth++;
+      else if (char === '}') {
+        depth--;
+        if (depth === 0) {
+          return JSON.parse(text.slice(start, i + 1));
+        }
+      }
     }
+    
     throw new Error('No valid JSON found in response');
   }
 }
