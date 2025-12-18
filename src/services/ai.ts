@@ -7,34 +7,37 @@ export type AIProvider = 'openai' | 'gemini' | 'anthropic';
 // System prompt for general synthesis (/synthesizer page)
 const SYSTEM_PROMPT = `You are an expert at recreating acoustic instruments and sounds using synthesis.
 
-When someone requests a real instrument, your goal is to model its physical properties — not approximate it with generic synth sounds. Think about what creates the sound, what resonates, and what decays.
+SYNTHESIZER ARCHITECTURE:
+This is a configuration schema for a multi-layer additive/subtractive/FM/physical modeling synthesizer. You control everything via a JSON config that defines layers, envelopes, filters, and effects. The output is rendered to audio samples.
 
-SYNTHESIS TYPE SELECTION:
-- oscillator: Sustained tones, drones, organs, wind instruments, synth sounds
-- karplus-strong: Plucked and struck strings (guitar, piano, harp, harpsichord, marimba)
-- fm: Metallic, bell-like, electric piano, inharmonic tones
-- noise: Transients, breath, pick/hammer noise, percussive attacks, wind
+LAYER TYPES (use 1-8 layers, combine for rich sounds):
+- oscillator: Classic waveforms (sine, square, sawtooth, triangle). Supports unison (1-8 detuned voices with stereo spread), sub oscillator (-1/-2 octaves), and pitch envelope (cents-based sweeps for drums/effects).
+- noise: White (full spectrum), pink (natural/analog), brown (low rumble). Essential for transients, breath, textures.
+- fm: FM operator. Set ratio (frequency multiplier relative to base pitch), modulationIndex (0-10=subtle warmth, 10-30=electric piano, 30-60=bells, 60+=harsh), feedback (self-modulation: 0.3=metallic, 0.7+=harsh). Can modulate other FM layers via modulatesLayer. Use envelope to shape modulation over time (critical for evolving FM timbres).
+- karplus-strong: Physical modeling for plucked/struck strings. damping controls decay (0=long ring, 1=short pluck), inharmonicity stretches harmonics (0=pure guitar, 0.3-0.5=piano, 1=bell-like).
 
-ACOUSTIC MODELING PRINCIPLES:
-- Real instruments have distinct attack, body, and decay phases — layer accordingly
-- Struck/plucked strings need instant attack with natural decay (use karplus-strong)
-- Hammered instruments (piano) need a noise transient for the hammer + string resonance
-- Bowed instruments need slow attack, sustained tone, and vibrato (use LFO)
-- Wind instruments need breath noise mixed with the tone
-- Filter envelopes model how timbre changes over time (brighter at attack, darker at decay)
+PER-LAYER PROCESSING:
+Each layer has independent gain (0-1), envelope (ADSR), filter (lowpass/highpass/bandpass/notch with Q and envelope), and saturation (soft/hard/tube/tape with drive and mix).
 
-WHAT MAKES INSTRUMENTS IDENTIFIABLE:
-- Piano: hammer transient, inharmonic string overtones, wooden body resonance, long decay
-- Acoustic guitar: pick noise, nylon/steel string character, body resonance
-- Strings (violin, cello): bow noise, vibrato, slow attack, sustained tone
-- Brass: breath attack, bright harmonics, filter movement
-- Woodwinds: breathy noise, softer attack, pure-ish tone
+GLOBAL PROCESSING:
+- envelope: Master ADSR applied to the mixed output
+- filter: Global filter with additional types (allpass, peaking) and envelope modulation
+- lfo: Modulates pitch, filter, amplitude, or pan. Use delay/fade for evolving sounds.
 
-Use layers purposefully — each should model a distinct physical component of the sound.
+EFFECTS CHAIN (signal flows through in order):
+EQ (3-band: low shelf, mid peak, high shelf) → Distortion (soft/hard/fuzz/bitcrush/waveshaper) → Compressor → Chorus (low delay=flanger, high delay=chorus) → Delay → Reverb → Gate
+
+SOUND DESIGN TIPS:
+- Acoustic instruments: Combine layers for body (low oscillator), harmonics (higher oscillator/FM), and attack transient (noise burst with fast envelope).
+- Plucked strings: Use karplus-strong with low damping, or FM with decaying modulation envelope.
+- Bells/metallic: FM with high modulationIndex and inharmonic ratios (1.4, 2.76, etc.), or karplus-strong with high inharmonicity.
+- Pads: Slow attack, long release, unison voices with detuning, chorus effect, LFO on filter.
+- Drums: Fast attack (<0.005s), pitch envelope with negative amount for kicks, noise layer with bandpass for snares.
+- Bass: Sine/triangle for sub, add harmonics via saturation or FM, keep filter envelope punchy.
 
 ${generateSchemaPrompt()}
 
-Return raw JSON only, no markdown.`;
+Your tasks is to return a JSON configuration that matches the schema above and achevices the sound described in the user'sprompt. Return raw JSON only, no markdown.`;
 
 // System prompt for percussive sound batch generation (/ai-kit-generator page)
 const BATCH_SYSTEM_PROMPT = `You are an expert percussive sound designer for hardware samplers. Return JSON: { "configs": [...] }
@@ -71,7 +74,7 @@ CRITICAL SOUND DESIGN RULES:
 
 5. NO delay or reverb (causes bleed)
 
-Return raw JSON only, no markdown`;
+Your tasks is to return a JSON configuration that matches the schema above and achevices the sound described in the user'sprompt. Return raw JSON only, no markdown`;
 
 // Extract JSON from text that may have extra content before/after
 function extractJSON(text: string): Record<string, unknown> {
