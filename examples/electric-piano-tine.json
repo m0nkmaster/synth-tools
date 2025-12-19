@@ -1,0 +1,80 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "fm",
+        "gain": 0.75,
+        "fm": {
+          "carrier": 440,
+          "modulatorRatio": 2.0,
+          "modulationIndex": 1.8
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 1.2,
+          "sustain": 0.2,
+          "release": 0.6
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.15,
+        "oscillator": {
+          "waveform": "triangle",
+          "frequency": 440,
+          "detune": 0
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.8,
+          "sustain": 0.15,
+          "release": 0.8
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 1.1,
+    "sustain": 0.18,
+    "release": 0.7
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 5500,
+    "q": 0.8
+  },
+  "effects": {
+    "tremolo": {
+      "rate": 5.5,
+      "depth": 0.25,
+      "mix": 1.0
+    },
+    "reverb": {
+      "decay": 1.8,
+      "damping": 0.5,
+      "mix": 0.18
+    },
+    "compressor": {
+      "threshold": -20,
+      "ratio": 3,
+      "attack": 0.005,
+      "release": 0.2,
+      "knee": 18
+    }
+  },
+  "timing": {
+    "duration": 2.5
+  },
+  "dynamics": {
+    "velocity": 0.78,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Electric Piano Tine",
+    "category": "keys",
+    "description": "Wurlitzer-style electric piano with tremolo",
+    "tags": ["wurlitzer", "electric-piano", "tine", "keys"]
+  }
+}
+

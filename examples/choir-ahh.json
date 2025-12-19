@@ -1,0 +1,107 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.35,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 440,
+          "detune": 0
+        },
+        "filter": {
+          "type": "bandpass",
+          "frequency": 800,
+          "q": 3.0
+        },
+        "envelope": {
+          "attack": 1.2,
+          "decay": 0.6,
+          "sustain": 0.9,
+          "release": 2.0
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.3,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 440,
+          "detune": 3
+        },
+        "filter": {
+          "type": "bandpass",
+          "frequency": 1200,
+          "q": 2.5
+        },
+        "envelope": {
+          "attack": 1.4,
+          "decay": 0.5,
+          "sustain": 0.85,
+          "release": 2.2
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.25,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 440,
+          "detune": -3
+        },
+        "filter": {
+          "type": "bandpass",
+          "frequency": 2400,
+          "q": 2.0
+        },
+        "envelope": {
+          "attack": 1.3,
+          "decay": 0.5,
+          "sustain": 0.8,
+          "release": 2.1
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 1.2,
+    "decay": 0.5,
+    "sustain": 0.87,
+    "release": 2.1
+  },
+  "lfo": {
+    "waveform": "sine",
+    "frequency": 4.5,
+    "depth": 0.08,
+    "target": "pitch",
+    "fade": 1.0
+  },
+  "effects": {
+    "chorus": {
+      "rate": 0.5,
+      "depth": 0.5,
+      "mix": 0.5,
+      "feedback": 0.35,
+      "delay": 35
+    },
+    "reverb": {
+      "decay": 4.0,
+      "damping": 0.3,
+      "mix": 0.5
+    }
+  },
+  "timing": {
+    "duration": 5
+  },
+  "dynamics": {
+    "velocity": 0.65,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Choir Ahh",
+    "category": "pad",
+    "description": "Ethereal choir 'ahh' sound with formant filtering",
+    "tags": ["choir", "vocal", "pad", "ethereal"]
+  }
+}
+

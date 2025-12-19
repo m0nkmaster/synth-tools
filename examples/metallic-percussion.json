@@ -1,0 +1,66 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "fm",
+        "gain": 0.7,
+        "fm": {
+          "carrier": 880,
+          "modulatorRatio": 11.3,
+          "modulationIndex": 8.5
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.8,
+          "sustain": 0.1,
+          "release": 0.3
+        }
+      },
+      {
+        "type": "noise",
+        "gain": 0.3,
+        "noise": {
+          "type": "white"
+        },
+        "filter": {
+          "type": "highpass",
+          "frequency": 8000,
+          "q": 2
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 0,
+          "release": 0.01
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 0.7,
+    "sustain": 0.08,
+    "release": 0.3
+  },
+  "effects": {
+    "reverb": {
+      "decay": 2.5,
+      "damping": 0.2,
+      "mix": 0.4
+    }
+  },
+  "timing": {
+    "duration": 2
+  },
+  "dynamics": {
+    "velocity": 0.85,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Metallic Percussion",
+    "category": "percussion",
+    "description": "Bright metallic percussion using FM synthesis",
+    "tags": ["metallic", "percussion", "fm", "bell"]
+  }
+}
+

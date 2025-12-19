@@ -1,0 +1,70 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "fm",
+        "gain": 0.75,
+        "fm": {
+          "carrier": 440,
+          "modulatorRatio": 3.5,
+          "modulationIndex": 5.2
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 2.5,
+          "sustain": 0.15,
+          "release": 1.5
+        }
+      },
+      {
+        "type": "fm",
+        "gain": 0.35,
+        "fm": {
+          "carrier": 440,
+          "modulatorRatio": 7,
+          "modulationIndex": 3.8
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 1.8,
+          "sustain": 0.1,
+          "release": 2.0
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 2.2,
+    "sustain": 0.12,
+    "release": 1.8
+  },
+  "effects": {
+    "reverb": {
+      "decay": 3.5,
+      "damping": 0.3,
+      "mix": 0.4
+    },
+    "compressor": {
+      "threshold": -22,
+      "ratio": 3,
+      "attack": 0.01,
+      "release": 0.3,
+      "knee": 15
+    }
+  },
+  "timing": {
+    "duration": 4
+  },
+  "dynamics": {
+    "velocity": 0.7,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "DX7 Bells",
+    "category": "keys",
+    "description": "Bright, shimmering FM bells inspired by the Yamaha DX7",
+    "tags": ["dx7", "fm", "bells", "80s", "digital"]
+  }
+}
+

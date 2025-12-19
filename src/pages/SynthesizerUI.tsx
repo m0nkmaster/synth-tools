@@ -984,6 +984,13 @@ function audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PRESETS - Dynamically loaded from examples folder
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Use Vite's import.meta.glob to get all JSON files from examples folder
+const presetModules = import.meta.glob('../../examples/*.json');
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1005,6 +1012,10 @@ export function SynthesizerUI() {
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const isUpdatingFromUI = useRef(false);
   const isUpdatingFromJSON = useRef(false);
+  
+  // Preset state
+  const [presets, setPresets] = useState<Array<{ name: string; path: string; category?: string; description?: string }>>([]);
+  const [selectedPreset, setSelectedPreset] = useState('Custom');
   
   // AI prompt state
   const [prompt, setPrompt] = useState('');
@@ -1056,6 +1067,38 @@ export function SynthesizerUI() {
   const toggleSize = 'small' as const;
   const btnSize = isMobile ? 'medium' : 'small';
 
+  // Load available presets on mount
+  useEffect(() => {
+    const loadPresets = async () => {
+      const presetPaths = Object.keys(presetModules);
+      const loadedPresets = await Promise.all(
+        presetPaths.map(async (path) => {
+          try {
+            const loadPreset = presetModules[path];
+            const module = await loadPreset() as { default: SoundConfig };
+            const presetConfig = module.default;
+            
+            // Use metadata from the file itself
+            const name = presetConfig.metadata?.name || path.split('/').pop()?.replace('.json', '') || 'Unknown';
+            const category = presetConfig.metadata?.category;
+            const description = presetConfig.metadata?.description;
+            
+            return { name, path, category, description };
+          } catch (err) {
+            // If loading fails, fall back to filename
+            const filename = path.split('/').pop() || '';
+            const name = filename.replace('.json', '').replace(/-/g, ' ');
+            return { name, path };
+          }
+        })
+      );
+      // Sort alphabetically and add "Custom" at the top
+      loadedPresets.sort((a, b) => a.name.localeCompare(b.name));
+      setPresets([{ name: 'Custom', path: '' }, ...loadedPresets]);
+    };
+    loadPresets();
+  }, []);
+
   // Initialize JSON value from config
   useEffect(() => {
     setJsonValue(JSON.stringify(config, null, 2));
@@ -1076,6 +1119,13 @@ export function SynthesizerUI() {
     const t = setTimeout(gen, 200);
     return () => clearTimeout(t);
   }, [config]);
+
+  // Track manual changes to config and switch to "Custom" preset
+  useEffect(() => {
+    if (!isUpdatingFromJSON.current && selectedPreset !== 'Custom') {
+      setSelectedPreset('Custom');
+    }
+  }, [config, selectedPreset]);
 
   // JSON change handler
   const handleJSONChange = useCallback((newJsonValue: string) => {
@@ -1139,6 +1189,35 @@ export function SynthesizerUI() {
       setError(err instanceof Error ? err.message : 'AI generation failed');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  // Load preset
+  const handlePresetChange = async (presetName: string) => {
+    setSelectedPreset(presetName);
+    
+    if (presetName === 'Custom') {
+      return; // Don't reload anything for Custom
+    }
+    
+    const preset = presets.find(p => p.name === presetName);
+    if (!preset || !preset.path) return;
+    
+    try {
+      const loadPreset = presetModules[preset.path];
+      if (!loadPreset) throw new Error('Preset not found');
+      
+      const module = await loadPreset() as { default: SoundConfig };
+      const presetConfig = module.default;
+      
+      // Set flag to prevent auto-switch to "Custom"
+      isUpdatingFromJSON.current = true;
+      setConfig(presetConfig);
+      setTimeout(() => { isUpdatingFromJSON.current = false; }, 100);
+      
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load preset');
     }
   };
 
@@ -1219,7 +1298,7 @@ export function SynthesizerUI() {
                 <div style={{ fontSize: isMobile ? 10 : 8, color: TE.grey }}>make a sound or <span style={{ textDecoration: 'underline' }}>ask AI</span></div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: isMobile ? 'space-between' : 'flex-end', flexWrap: 'wrap' }}>
               <button
                 onClick={() => setShowJSONEditor(!showJSONEditor)}
                 style={{
@@ -1239,6 +1318,28 @@ export function SynthesizerUI() {
               >
                 {'</>'}
               </button>
+              <select
+                value={selectedPreset}
+                onChange={(e) => handlePresetChange(e.target.value)}
+                style={{
+                  padding: isMobile ? '10px 12px' : '6px 10px',
+                  background: TE.inputBg,
+                  border: `1px solid ${TE.border}`,
+                  borderRadius: 3,
+                  color: TE.black,
+                  fontSize: isMobile ? 16 : 9,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  minHeight: isMobile ? 44 : undefined,
+                  minWidth: isMobile ? 140 : 120,
+                }}
+              >
+                {presets.map(preset => (
+                  <option key={preset.name} value={preset.name}>
+                    {preset.name}
+                  </option>
+                ))}
+              </select>
               <button
                 onClick={handlePlay}
                 disabled={playing}

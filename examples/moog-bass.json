@@ -1,0 +1,87 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.75,
+        "oscillator": {
+          "waveform": "sawtooth",
+          "frequency": 110,
+          "detune": 0,
+          "sub": {
+            "level": 0.6,
+            "octave": -1,
+            "waveform": "square"
+          }
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 600,
+          "q": 4.8,
+          "envelope": {
+            "amount": 2200,
+            "attack": 0.001,
+            "decay": 0.6,
+            "sustain": 0.2,
+            "release": 0.3
+          }
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 1.2,
+          "sustain": 0.4,
+          "release": 0.5
+        },
+        "saturation": {
+          "type": "tube",
+          "drive": 0.35,
+          "mix": 0.5
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 1.0,
+    "sustain": 0.35,
+    "release": 0.5
+  },
+  "effects": {
+    "eq": {
+      "low": {
+        "frequency": 80,
+        "gain": 4
+      },
+      "mid": {
+        "frequency": 800,
+        "gain": -2,
+        "q": 1.5
+      },
+      "high": {
+        "frequency": 5000,
+        "gain": -3
+      }
+    },
+    "compressor": {
+      "threshold": -18,
+      "ratio": 5,
+      "attack": 0.008,
+      "release": 0.12,
+      "knee": 8
+    }
+  },
+  "timing": {
+    "duration": 3
+  },
+  "dynamics": {
+    "velocity": 0.85,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Moog Bass",
+    "category": "bass",
+    "description": "Classic Moog bass with massive resonant filter and sub oscillator",
+    "tags": ["moog", "bass", "analog", "filter", "funk"]
+  }
+}
+

@@ -1,0 +1,67 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.75,
+        "oscillator": {
+          "waveform": "sawtooth",
+          "frequency": 110,
+          "detune": 0
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 400,
+          "q": 7.5,
+          "envelope": {
+            "amount": 3800,
+            "attack": 0.001,
+            "decay": 0.15,
+            "sustain": 0.1,
+            "release": 0.1
+          }
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.2,
+          "sustain": 0.3,
+          "release": 0.15
+        },
+        "saturation": {
+          "type": "hard",
+          "drive": 0.5,
+          "mix": 0.6
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 0.2,
+    "sustain": 0.3,
+    "release": 0.15
+  },
+  "effects": {
+    "compressor": {
+      "threshold": -16,
+      "ratio": 6,
+      "attack": 0.003,
+      "release": 0.08,
+      "knee": 4
+    }
+  },
+  "timing": {
+    "duration": 1.5
+  },
+  "dynamics": {
+    "velocity": 0.85,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Acid Bassline",
+    "category": "bass",
+    "description": "Classic 303-style acid bassline with resonant filter",
+    "tags": ["acid", "303", "bass", "techno"]
+  }
+}
+

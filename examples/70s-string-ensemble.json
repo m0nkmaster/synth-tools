@@ -1,0 +1,92 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.4,
+        "oscillator": {
+          "waveform": "sawtooth",
+          "frequency": 440,
+          "detune": 0,
+          "unison": {
+            "voices": 4,
+            "detune": 8,
+            "spread": 0.6
+          }
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 2500,
+          "q": 0.5
+        },
+        "envelope": {
+          "attack": 0.8,
+          "decay": 0.5,
+          "sustain": 0.85,
+          "release": 1.5
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.35,
+        "oscillator": {
+          "waveform": "sawtooth",
+          "frequency": 440,
+          "detune": -5
+        },
+        "filter": {
+          "type": "highpass",
+          "frequency": 800,
+          "q": 0.5
+        },
+        "envelope": {
+          "attack": 1.0,
+          "decay": 0.4,
+          "sustain": 0.8,
+          "release": 1.8
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.8,
+    "decay": 0.5,
+    "sustain": 0.82,
+    "release": 1.6
+  },
+  "lfo": {
+    "waveform": "sine",
+    "frequency": 5.2,
+    "depth": 0.12,
+    "target": "pitch",
+    "fade": 1.5
+  },
+  "effects": {
+    "chorus": {
+      "rate": 0.6,
+      "depth": 0.5,
+      "mix": 0.45,
+      "feedback": 0.3,
+      "delay": 30
+    },
+    "reverb": {
+      "decay": 3.0,
+      "damping": 0.4,
+      "mix": 0.35
+    }
+  },
+  "timing": {
+    "duration": 5
+  },
+  "dynamics": {
+    "velocity": 0.7,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "70s String Ensemble",
+    "category": "pad",
+    "description": "Lush vintage string ensemble with chorus and slow attack",
+    "tags": ["strings", "70s", "ensemble", "pad", "vintage"]
+  }
+}
+

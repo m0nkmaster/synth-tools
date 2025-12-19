@@ -1,0 +1,82 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "fm",
+        "gain": 0.7,
+        "fm": {
+          "carrier": 440,
+          "modulatorRatio": 1.41,
+          "modulationIndex": 2.8
+        },
+        "envelope": {
+          "attack": 0.002,
+          "decay": 1.5,
+          "sustain": 0.25,
+          "release": 0.8
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.2,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 440,
+          "detune": -7
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 1.2,
+          "sustain": 0.15,
+          "release": 1.0
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.002,
+    "decay": 1.4,
+    "sustain": 0.2,
+    "release": 0.9
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 6000,
+    "q": 0.7
+  },
+  "effects": {
+    "chorus": {
+      "rate": 0.8,
+      "depth": 0.3,
+      "mix": 0.25,
+      "feedback": 0.2,
+      "delay": 25
+    },
+    "reverb": {
+      "decay": 2.0,
+      "damping": 0.5,
+      "mix": 0.2
+    },
+    "compressor": {
+      "threshold": -20,
+      "ratio": 3,
+      "attack": 0.005,
+      "release": 0.2,
+      "knee": 20
+    }
+  },
+  "timing": {
+    "duration": 3
+  },
+  "dynamics": {
+    "velocity": 0.75,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Rhodes Electric Piano",
+    "category": "keys",
+    "description": "Classic Fender Rhodes electric piano with bell-like FM tones",
+    "tags": ["rhodes", "electric-piano", "keys", "fm", "vintage"]
+  }
+}
+

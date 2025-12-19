@@ -1,0 +1,65 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.6,
+        "oscillator": {
+          "waveform": "square",
+          "frequency": 880,
+          "detune": 0
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 3500,
+          "q": 2.0,
+          "envelope": {
+            "amount": 4000,
+            "attack": 0.001,
+            "decay": 0.2,
+            "sustain": 0.1,
+            "release": 0.15
+          }
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.3,
+          "sustain": 0.15,
+          "release": 0.2
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 0.3,
+    "sustain": 0.15,
+    "release": 0.2
+  },
+  "effects": {
+    "delay": {
+      "time": 0.375,
+      "feedback": 0.35,
+      "mix": 0.25
+    },
+    "reverb": {
+      "decay": 1.5,
+      "damping": 0.6,
+      "mix": 0.2
+    }
+  },
+  "timing": {
+    "duration": 1.5
+  },
+  "dynamics": {
+    "velocity": 0.75,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Arpeggio Pluck",
+    "category": "pluck",
+    "description": "Bright pluck perfect for fast arpeggios",
+    "tags": ["pluck", "arp", "sequence", "bright"]
+  }
+}
+

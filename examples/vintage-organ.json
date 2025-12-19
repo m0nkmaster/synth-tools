@@ -1,0 +1,92 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.5,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 440,
+          "detune": 0
+        },
+        "envelope": {
+          "attack": 0.01,
+          "decay": 0.1,
+          "sustain": 0.95,
+          "release": 0.2
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.3,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 880,
+          "detune": 0
+        },
+        "envelope": {
+          "attack": 0.01,
+          "decay": 0.1,
+          "sustain": 0.9,
+          "release": 0.2
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.2,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 1320,
+          "detune": 0
+        },
+        "envelope": {
+          "attack": 0.015,
+          "decay": 0.1,
+          "sustain": 0.85,
+          "release": 0.2
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.01,
+    "decay": 0.1,
+    "sustain": 0.92,
+    "release": 0.2
+  },
+  "lfo": {
+    "waveform": "sine",
+    "frequency": 6.0,
+    "depth": 0.04,
+    "target": "amplitude",
+    "delay": 0
+  },
+  "effects": {
+    "chorus": {
+      "rate": 2.0,
+      "depth": 0.4,
+      "mix": 0.3,
+      "feedback": 0.25,
+      "delay": 18
+    },
+    "reverb": {
+      "decay": 2.2,
+      "damping": 0.5,
+      "mix": 0.25
+    }
+  },
+  "timing": {
+    "duration": 3
+  },
+  "dynamics": {
+    "velocity": 0.75,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Vintage Organ",
+    "category": "keys",
+    "description": "Classic drawbar organ with vibrato and chorus",
+    "tags": ["organ", "vintage", "hammond", "drawbar"]
+  }
+}
+

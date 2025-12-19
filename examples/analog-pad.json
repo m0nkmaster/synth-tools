@@ -1,0 +1,92 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.45,
+        "oscillator": {
+          "waveform": "sawtooth",
+          "frequency": 220,
+          "detune": 0,
+          "unison": {
+            "voices": 6,
+            "detune": 15,
+            "spread": 0.7
+          }
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 1800,
+          "q": 0.8
+        },
+        "envelope": {
+          "attack": 1.5,
+          "decay": 0.8,
+          "sustain": 0.9,
+          "release": 2.5
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.3,
+        "oscillator": {
+          "waveform": "square",
+          "frequency": 220,
+          "detune": 7
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 2200,
+          "q": 0.5
+        },
+        "envelope": {
+          "attack": 1.8,
+          "decay": 0.6,
+          "sustain": 0.85,
+          "release": 2.8
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 1.5,
+    "decay": 0.7,
+    "sustain": 0.88,
+    "release": 2.6
+  },
+  "lfo": {
+    "waveform": "sine",
+    "frequency": 0.3,
+    "depth": 0.08,
+    "target": "filter",
+    "fade": 2.0
+  },
+  "effects": {
+    "chorus": {
+      "rate": 0.4,
+      "depth": 0.6,
+      "mix": 0.5,
+      "feedback": 0.4,
+      "delay": 35
+    },
+    "reverb": {
+      "decay": 4.0,
+      "damping": 0.3,
+      "mix": 0.5
+    }
+  },
+  "timing": {
+    "duration": 6
+  },
+  "dynamics": {
+    "velocity": 0.65,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Analog Pad",
+    "category": "pad",
+    "description": "Warm, evolving analog pad with thick unison and chorus",
+    "tags": ["pad", "analog", "ambient", "warm"]
+  }
+}
+

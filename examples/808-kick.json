@@ -1,0 +1,67 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.95,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 55,
+          "detune": 0
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.5,
+          "sustain": 0,
+          "release": 0.001
+        },
+        "pitchEnvelope": {
+          "amount": 24,
+          "attack": 0.001,
+          "decay": 0.08,
+          "sustain": 0,
+          "release": 0.001
+        },
+        "saturation": {
+          "type": "soft",
+          "drive": 0.4,
+          "mix": 0.6
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 0.45,
+    "sustain": 0,
+    "release": 0.001
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 150,
+    "q": 0.7
+  },
+  "effects": {
+    "compressor": {
+      "threshold": -10,
+      "ratio": 8,
+      "attack": 0.001,
+      "release": 0.1,
+      "knee": 2
+    }
+  },
+  "timing": {
+    "duration": 1
+  },
+  "dynamics": {
+    "velocity": 1.0,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "808 Kick",
+    "category": "drums",
+    "description": "Classic TR-808 kick drum with pitch envelope",
+    "tags": ["808", "kick", "drum", "bass-drum"]
+  }
+}
+

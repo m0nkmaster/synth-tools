@@ -1,0 +1,75 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.6,
+        "oscillator": {
+          "waveform": "square",
+          "frequency": 880,
+          "detune": 0
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.15,
+          "sustain": 0.6,
+          "release": 0.1
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.3,
+        "oscillator": {
+          "waveform": "square",
+          "frequency": 880,
+          "detune": -24
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.12,
+          "sustain": 0.5,
+          "release": 0.08
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 0.15,
+    "sustain": 0.6,
+    "release": 0.1
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 4000,
+    "q": 0.5
+  },
+  "lfo": {
+    "waveform": "square",
+    "frequency": 8,
+    "depth": 0.15,
+    "target": "pitch",
+    "delay": 0
+  },
+  "effects": {
+    "bitcrusher": {
+      "bits": 4,
+      "sampleRate": 8000,
+      "mix": 0.8
+    }
+  },
+  "timing": {
+    "duration": 1
+  },
+  "dynamics": {
+    "velocity": 0.8,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Chiptune Lead",
+    "category": "lead",
+    "description": "8-bit video game lead sound with vibrato",
+    "tags": ["chiptune", "8-bit", "retro", "games"]
+  }
+}
+

@@ -1,0 +1,79 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.7,
+        "oscillator": {
+          "waveform": "sawtooth",
+          "frequency": 440,
+          "detune": 0,
+          "unison": {
+            "voices": 4,
+            "detune": 20,
+            "spread": 0.5
+          }
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 2500,
+          "q": 3.5,
+          "envelope": {
+            "amount": 3500,
+            "attack": 0.001,
+            "decay": 0.15,
+            "sustain": 0.3,
+            "release": 0.2
+          }
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.2,
+          "sustain": 0.4,
+          "release": 0.3
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 0.2,
+    "sustain": 0.4,
+    "release": 0.3
+  },
+  "effects": {
+    "chorus": {
+      "rate": 1.5,
+      "depth": 0.35,
+      "mix": 0.3,
+      "feedback": 0.2,
+      "delay": 22
+    },
+    "reverb": {
+      "decay": 2.0,
+      "damping": 0.5,
+      "mix": 0.25
+    },
+    "compressor": {
+      "threshold": -18,
+      "ratio": 4,
+      "attack": 0.001,
+      "release": 0.1,
+      "knee": 6
+    }
+  },
+  "timing": {
+    "duration": 1.5
+  },
+  "dynamics": {
+    "velocity": 0.85,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "90s Trance Stab",
+    "category": "stab",
+    "description": "Classic 90s trance stab with filter sweep",
+    "tags": ["trance", "90s", "stab", "edm"]
+  }
+}
+

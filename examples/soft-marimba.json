@@ -1,0 +1,68 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "fm",
+        "gain": 0.7,
+        "fm": {
+          "carrier": 440,
+          "modulatorRatio": 4.2,
+          "modulationIndex": 3.5
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 1.5,
+          "sustain": 0.1,
+          "release": 0.8
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.2,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 440,
+          "detune": -12
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 1.2,
+          "sustain": 0.08,
+          "release": 1.0
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 1.4,
+    "sustain": 0.09,
+    "release": 0.9
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 4000,
+    "q": 0.7
+  },
+  "effects": {
+    "reverb": {
+      "decay": 2.5,
+      "damping": 0.4,
+      "mix": 0.3
+    }
+  },
+  "timing": {
+    "duration": 3
+  },
+  "dynamics": {
+    "velocity": 0.75,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Soft Marimba",
+    "category": "percussion",
+    "description": "Gentle wooden marimba sound using FM synthesis",
+    "tags": ["marimba", "percussion", "wooden", "mallet"]
+  }
+}
+

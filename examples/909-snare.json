@@ -1,0 +1,68 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.4,
+        "oscillator": {
+          "waveform": "triangle",
+          "frequency": 180,
+          "detune": 0
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.08,
+          "sustain": 0,
+          "release": 0.001
+        }
+      },
+      {
+        "type": "noise",
+        "gain": 0.7,
+        "noise": {
+          "type": "white"
+        },
+        "filter": {
+          "type": "highpass",
+          "frequency": 2000,
+          "q": 1.5
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.12,
+          "sustain": 0,
+          "release": 0.001
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 0.15,
+    "sustain": 0,
+    "release": 0.001
+  },
+  "effects": {
+    "compressor": {
+      "threshold": -15,
+      "ratio": 6,
+      "attack": 0.001,
+      "release": 0.08,
+      "knee": 3
+    }
+  },
+  "timing": {
+    "duration": 0.3
+  },
+  "dynamics": {
+    "velocity": 0.95,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "909 Snare",
+    "category": "drums",
+    "description": "Punchy TR-909 snare with bright snap",
+    "tags": ["909", "snare", "drum"]
+  }
+}
+

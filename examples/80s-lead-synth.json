@@ -1,0 +1,107 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.65,
+        "oscillator": {
+          "waveform": "sawtooth",
+          "frequency": 440,
+          "detune": 0,
+          "unison": {
+            "voices": 5,
+            "detune": 22,
+            "spread": 0.4
+          }
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 1200,
+          "q": 4.5,
+          "envelope": {
+            "amount": 3500,
+            "attack": 0.01,
+            "decay": 0.5,
+            "sustain": 0.4,
+            "release": 0.8
+          }
+        },
+        "envelope": {
+          "attack": 0.05,
+          "decay": 0.4,
+          "sustain": 0.7,
+          "release": 1.0
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.3,
+        "oscillator": {
+          "waveform": "square",
+          "frequency": 440,
+          "detune": 12
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 2000,
+          "q": 2
+        },
+        "envelope": {
+          "attack": 0.08,
+          "decay": 0.3,
+          "sustain": 0.6,
+          "release": 1.2
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.05,
+    "decay": 0.4,
+    "sustain": 0.7,
+    "release": 1.0
+  },
+  "lfo": {
+    "waveform": "triangle",
+    "frequency": 5.5,
+    "depth": 0.25,
+    "target": "pitch",
+    "delay": 0.3,
+    "fade": 0.8
+  },
+  "effects": {
+    "chorus": {
+      "rate": 1.2,
+      "depth": 0.4,
+      "mix": 0.35,
+      "feedback": 0.2,
+      "delay": 20
+    },
+    "reverb": {
+      "decay": 2.2,
+      "damping": 0.5,
+      "mix": 0.25
+    },
+    "compressor": {
+      "threshold": -16,
+      "ratio": 4,
+      "attack": 0.005,
+      "release": 0.1,
+      "knee": 6
+    }
+  },
+  "timing": {
+    "duration": 4
+  },
+  "dynamics": {
+    "velocity": 0.8,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "80s Lead Synth",
+    "category": "lead",
+    "description": "Classic 80s analog lead with thick unison, resonant filter sweep, and vibrato",
+    "tags": ["80s", "lead", "synth", "retro", "analog"]
+  }
+}
+

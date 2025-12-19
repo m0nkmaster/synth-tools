@@ -1,0 +1,88 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.35,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 110,
+          "detune": 0
+        },
+        "envelope": {
+          "attack": 3.0,
+          "decay": 1.0,
+          "sustain": 0.9,
+          "release": 4.0
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.3,
+        "oscillator": {
+          "waveform": "triangle",
+          "frequency": 110,
+          "detune": 4
+        },
+        "envelope": {
+          "attack": 3.5,
+          "decay": 0.8,
+          "sustain": 0.85,
+          "release": 4.5
+        }
+      },
+      {
+        "type": "noise",
+        "gain": 0.15,
+        "noise": {
+          "type": "pink"
+        },
+        "filter": {
+          "type": "bandpass",
+          "frequency": 400,
+          "q": 0.5
+        },
+        "envelope": {
+          "attack": 4.0,
+          "decay": 1.0,
+          "sustain": 0.8,
+          "release": 5.0
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 3.2,
+    "decay": 1.0,
+    "sustain": 0.88,
+    "release": 4.5
+  },
+  "lfo": {
+    "waveform": "sine",
+    "frequency": 0.15,
+    "depth": 0.2,
+    "target": "amplitude",
+    "fade": 3.0
+  },
+  "effects": {
+    "reverb": {
+      "decay": 6.0,
+      "damping": 0.2,
+      "mix": 0.7
+    }
+  },
+  "timing": {
+    "duration": 10
+  },
+  "dynamics": {
+    "velocity": 0.6,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Atmospheric Drone",
+    "category": "ambient",
+    "description": "Deep atmospheric drone for ambient soundscapes",
+    "tags": ["drone", "ambient", "atmospheric", "soundscape"]
+  }
+}
+

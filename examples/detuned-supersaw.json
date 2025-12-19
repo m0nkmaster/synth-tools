@@ -1,0 +1,79 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.55,
+        "oscillator": {
+          "waveform": "sawtooth",
+          "frequency": 440,
+          "detune": 0,
+          "unison": {
+            "voices": 7,
+            "detune": 28,
+            "spread": 0.8
+          }
+        },
+        "filter": {
+          "type": "lowpass",
+          "frequency": 4000,
+          "q": 1.5
+        },
+        "envelope": {
+          "attack": 0.02,
+          "decay": 0.5,
+          "sustain": 0.8,
+          "release": 1.5
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.02,
+    "decay": 0.5,
+    "sustain": 0.8,
+    "release": 1.5
+  },
+  "lfo": {
+    "waveform": "sine",
+    "frequency": 0.2,
+    "depth": 0.05,
+    "target": "filter",
+    "fade": 1.0
+  },
+  "effects": {
+    "chorus": {
+      "rate": 0.8,
+      "depth": 0.4,
+      "mix": 0.3,
+      "feedback": 0.25,
+      "delay": 28
+    },
+    "reverb": {
+      "decay": 2.5,
+      "damping": 0.4,
+      "mix": 0.3
+    },
+    "compressor": {
+      "threshold": -16,
+      "ratio": 4,
+      "attack": 0.01,
+      "release": 0.15,
+      "knee": 8
+    }
+  },
+  "timing": {
+    "duration": 4
+  },
+  "dynamics": {
+    "velocity": 0.75,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Detuned Supersaw",
+    "category": "lead",
+    "description": "Massive supersaw with 7 detuned voices for trance and EDM",
+    "tags": ["supersaw", "trance", "edm", "lead", "wide"]
+  }
+}
+

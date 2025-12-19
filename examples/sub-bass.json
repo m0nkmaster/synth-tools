@@ -1,0 +1,90 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.9,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 55,
+          "detune": 0
+        },
+        "envelope": {
+          "attack": 0.005,
+          "decay": 2.5,
+          "sustain": 0.8,
+          "release": 0.6
+        },
+        "saturation": {
+          "type": "soft",
+          "drive": 0.3,
+          "mix": 0.4
+        }
+      },
+      {
+        "type": "oscillator",
+        "gain": 0.2,
+        "oscillator": {
+          "waveform": "sine",
+          "frequency": 55,
+          "detune": 2
+        },
+        "envelope": {
+          "attack": 0.008,
+          "decay": 2.2,
+          "sustain": 0.75,
+          "release": 0.5
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.005,
+    "decay": 2.0,
+    "sustain": 0.75,
+    "release": 0.6
+  },
+  "filter": {
+    "type": "lowpass",
+    "frequency": 250,
+    "q": 0.7
+  },
+  "effects": {
+    "eq": {
+      "low": {
+        "frequency": 50,
+        "gain": 6
+      },
+      "mid": {
+        "frequency": 400,
+        "gain": -3,
+        "q": 1.0
+      },
+      "high": {
+        "frequency": 2000,
+        "gain": -6
+      }
+    },
+    "compressor": {
+      "threshold": -12,
+      "ratio": 6,
+      "attack": 0.02,
+      "release": 0.2,
+      "knee": 10
+    }
+  },
+  "timing": {
+    "duration": 4
+  },
+  "dynamics": {
+    "velocity": 0.9,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "Sub Bass",
+    "category": "bass",
+    "description": "Deep, rumbling sub bass for low-end foundation",
+    "tags": ["bass", "sub", "808", "low-end"]
+  }
+}
+

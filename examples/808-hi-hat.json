@@ -1,0 +1,73 @@
+{
+  "synthesis": {
+    "layers": [
+      {
+        "type": "oscillator",
+        "gain": 0.3,
+        "oscillator": {
+          "waveform": "square",
+          "frequency": 8000,
+          "detune": 0
+        },
+        "filter": {
+          "type": "highpass",
+          "frequency": 7000,
+          "q": 1.0
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.06,
+          "sustain": 0,
+          "release": 0.001
+        }
+      },
+      {
+        "type": "noise",
+        "gain": 0.7,
+        "noise": {
+          "type": "white"
+        },
+        "filter": {
+          "type": "highpass",
+          "frequency": 9000,
+          "q": 2.0
+        },
+        "envelope": {
+          "attack": 0.001,
+          "decay": 0.05,
+          "sustain": 0,
+          "release": 0.001
+        }
+      }
+    ]
+  },
+  "envelope": {
+    "attack": 0.001,
+    "decay": 0.055,
+    "sustain": 0,
+    "release": 0.001
+  },
+  "effects": {
+    "compressor": {
+      "threshold": -20,
+      "ratio": 4,
+      "attack": 0.001,
+      "release": 0.05,
+      "knee": 2
+    }
+  },
+  "timing": {
+    "duration": 0.15
+  },
+  "dynamics": {
+    "velocity": 0.85,
+    "normalize": true
+  },
+  "metadata": {
+    "name": "808 Hi-Hat",
+    "category": "drums",
+    "description": "Classic TR-808 hi-hat sound",
+    "tags": ["808", "hi-hat", "drum", "closed-hat"]
+  }
+}
+
