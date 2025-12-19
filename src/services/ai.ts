@@ -13,6 +13,16 @@ Multi-layer additive/subtractive/FM/physical modeling synthesizer. Supports 1-8 
 
 ${generateParameterGuide()}
 
+ACOUSTIC INSTRUMENT GUIDANCE:
+- Grand Piano: Use karplus-strong (inharmonicity: 0.35-0.45, damping: 0.15-0.25). CRITICAL: attack: 0.005-0.015s (soft hammer strike, NOT instant pluck). Add noise layer (attack: 0.001, decay: 0.05-0.1) for hammer impact. Decay: 3-5s for rich sustain.
+- Harpsichord: Fast attack (0.001s), bright oscillators or karplus-strong (inharmonicity: 0.1-0.2, damping: 0.3-0.4), short decay (1-2s)
+- Electric Piano (Rhodes/Wurlitzer): FM layers (ratio: 1, 2, modulationIndex: 0.01-0.03, feedback: 0.05-0.15). Medium attack (0.002-0.005s), decay: 2-3s
+- Acoustic Bass: Karplus-strong (frequency: 80-200Hz, damping: 0.3-0.5, low inharmonicity: 0.1-0.2), slow attack (0.01-0.03s)
+- Synth Bass: Oscillator (sawtooth/square), sub-oscillator, low-pass filter with envelope (amount: 2000-4000Hz), slow attack (0.02-0.05s) for warmth
+- Plucked Strings: Karplus-strong or fast attack (<0.002s), short decay
+- Brass: Oscillators (sawtooth) with vibrato LFO (target: pitch, depth: 0.02-0.05, rate: 4-6Hz), filter sweep
+- Strings: Oscillators with slow attack (0.2-0.8s), unison (3-5 voices), chorus effect
+
 You DO NOT need to use all effects and features.
 
 TECHNICAL SPECIFICATIONS:
@@ -116,9 +126,18 @@ function processAIResponse(data: Record<string, unknown>): SoundConfig {
   // Handle Gemini's quirk of stringifying nested objects
   parseStringifiedObjects(data);
   
+  // Log the raw response for debugging
+  console.log('[AI Response Debug] Raw data:', JSON.stringify(data, null, 2));
+  
   // Use Zod schema for validation and coercion
   // Schema handles defaults (oscillator.frequency) and clamping (envelope times)
-  return coerceSoundConfig(data);
+  try {
+    return coerceSoundConfig(data);
+  } catch (error) {
+    console.error('[AI Response Error] Validation failed:', error);
+    console.error('[AI Response Error] Input data:', JSON.stringify(data, null, 2));
+    throw error;
+  }
 }
 
 // API base URL - uses Vite proxy in development

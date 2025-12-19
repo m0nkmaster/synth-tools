@@ -546,7 +546,13 @@ function range(bounds: { min: number; max: number }, unit = ''): string {
  */
 export function generateSchemaPrompt(): string {
   const b = BOUNDS;
-  return `STRICT RULES:
+  return `CRITICAL: You MUST use EXACT enum values as shown. DO NOT use synonyms or variations.
+For example:
+- Use "oscillator" NOT "osc" or "synthesizer"  
+- Use "karplus-strong" NOT "karplus" or "physical-modeling"
+- Use "lowpass" NOT "low-pass" or "lp"
+
+STRICT RULES:
 - ONLY use exact enum values shown below - do not invent alternatives
 - Keep all numbers within specified bounds
 - Return raw JSON only, no markdown
@@ -615,7 +621,9 @@ SCHEMA:
  */
 export function generateBatchSchemaPrompt(): string {
   const b = BOUNDS;
-  return `STRICT RULES:
+  return `CRITICAL: You MUST use EXACT enum values as shown. DO NOT use synonyms or variations.
+
+STRICT RULES:
 - ONLY use exact enum values shown below - do not invent alternatives
 - Keep all numbers within specified bounds
 - Return raw JSON only, no markdown

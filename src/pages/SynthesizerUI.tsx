@@ -10,6 +10,7 @@ import { JSONEditor } from '../components/JSONEditor';
 import { ValidationDisplay } from '../components/ValidationDisplay';
 import { useDefaultPreset } from '../hooks/useDefaultPreset';
 import { synthesizeSound } from '../audio/synthesizer';
+import { BOUNDS } from '../types/soundConfig';
 import { validateSoundConfigJSON, type ValidationResult } from '../utils/validation';
 import { generateSoundConfig, type AIProvider } from '../services/ai';
 import { useThemeMode } from '../context/ThemeContext';
@@ -643,10 +644,10 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               </Module>
               <Module label="ENVELOPE" color={TE.green} on={!!layer.envelope} onToggle={() => onUpdate({ ...layer, envelope: layer.envelope ? undefined : { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.3 } })} isMobile={isMobile} TE={TE}>
                 {layer.envelope && <>
-                  <MiniKnob value={layer.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, attack: v / 1000 } })} label="A" color={TE.green} size={knobSize} TE={TE} />
-                  <MiniKnob value={layer.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, decay: v / 1000 } })} label="D" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, attack: v / 1000 } })} label="A" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.decay * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, decay: v / 1000 } })} label="D" color={TE.green} size={knobSize} TE={TE} />
                   <MiniKnob value={layer.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, sustain: v } })} label="S" color={TE.green} size={knobSize} TE={TE} />
-                  <MiniKnob value={layer.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, release: v / 1000 } })} label="R" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, release: v / 1000 } })} label="R" color={TE.green} size={knobSize} TE={TE} />
                 </>}
               </Module>
               <Module label="FILTER" color={TE.cyan} on={!!layer.filter} onToggle={() => onUpdate({ ...layer, filter: layer.filter ? undefined : { type: 'lowpass', frequency: 2000, q: 1 } })} isMobile={isMobile} TE={TE}>
@@ -663,10 +664,10 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
                     <Toggle on={!!layer.filter.envelope} onChange={() => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: layer.filter!.envelope ? undefined : { amount: 2000, attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 } } })} color={TE.cyan} size={toggleSize} TE={TE} />
                     {layer.filter.envelope && <>
                       <MiniKnob value={layer.filter.envelope.amount} min={-10000} max={10000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, amount: v } } })} label="AMT" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
                       <MiniKnob value={layer.filter.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, sustain: v } } })} label="S" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
                     </>}
                   </div>
                 </>}
@@ -686,9 +687,9 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
                 {layer.oscillator?.pitchEnvelope && <>
                   <MiniKnob value={layer.oscillator.pitchEnvelope.amount} min={-4800} max={4800} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, amount: v } })} label="AMT" color={cfg.color} size={knobSize} TE={TE} />
                   <MiniKnob value={layer.oscillator.pitchEnvelope.attack * 1000} min={0} max={500} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, attack: v / 1000 } })} label="A" color={cfg.color} size={knobSize} TE={TE} />
-                  <MiniKnob value={layer.oscillator.pitchEnvelope.decay * 1000} min={1} max={2000} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, decay: v / 1000 } })} label="D" color={cfg.color} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.oscillator.pitchEnvelope.decay * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, decay: v / 1000 } })} label="D" color={cfg.color} size={knobSize} TE={TE} />
                   <MiniKnob value={layer.oscillator.pitchEnvelope.sustain} min={-2400} max={2400} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, sustain: v } })} label="S" color={cfg.color} size={knobSize} TE={TE} />
-                  <MiniKnob value={layer.oscillator.pitchEnvelope.release * 1000} min={1} max={2000} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, release: v / 1000 } })} label="R" color={cfg.color} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.oscillator.pitchEnvelope.release * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => updateOsc({ pitchEnvelope: { ...layer.oscillator!.pitchEnvelope!, release: v / 1000 } })} label="R" color={cfg.color} size={knobSize} TE={TE} />
                 </>}
               </Module>
             </div>
@@ -739,18 +740,18 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               </Module>
               <Module label="OP ENVELOPE" color={TE.yellow} on={!!fmConfig.envelope} onToggle={() => updateFM({ envelope: fmConfig.envelope ? undefined : { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.3 } })} isMobile={isMobile} TE={TE}>
                 {fmConfig.envelope && <>
-                  <MiniKnob value={fmConfig.envelope.attack * 1000} min={1} max={2000} onChange={v => updateFM({ envelope: { ...fmConfig.envelope!, attack: v / 1000 } })} label="A" color={TE.yellow} size={knobSize} TE={TE} />
-                  <MiniKnob value={fmConfig.envelope.decay * 1000} min={1} max={2000} onChange={v => updateFM({ envelope: { ...fmConfig.envelope!, decay: v / 1000 } })} label="D" color={TE.yellow} size={knobSize} TE={TE} />
+                  <MiniKnob value={fmConfig.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => updateFM({ envelope: { ...fmConfig.envelope!, attack: v / 1000 } })} label="A" color={TE.yellow} size={knobSize} TE={TE} />
+                  <MiniKnob value={fmConfig.envelope.decay * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => updateFM({ envelope: { ...fmConfig.envelope!, decay: v / 1000 } })} label="D" color={TE.yellow} size={knobSize} TE={TE} />
                   <MiniKnob value={fmConfig.envelope.sustain} min={0} max={1} onChange={v => updateFM({ envelope: { ...fmConfig.envelope!, sustain: v } })} label="S" color={TE.yellow} size={knobSize} TE={TE} />
-                  <MiniKnob value={fmConfig.envelope.release * 1000} min={1} max={5000} onChange={v => updateFM({ envelope: { ...fmConfig.envelope!, release: v / 1000 } })} label="R" color={TE.yellow} size={knobSize} TE={TE} />
+                  <MiniKnob value={fmConfig.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => updateFM({ envelope: { ...fmConfig.envelope!, release: v / 1000 } })} label="R" color={TE.yellow} size={knobSize} TE={TE} />
                 </>}
               </Module>
               <Module label="LAYER ENV" color={TE.green} on={!!layer.envelope} onToggle={() => onUpdate({ ...layer, envelope: layer.envelope ? undefined : { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.3 } })} isMobile={isMobile} TE={TE}>
                 {layer.envelope && <>
-                  <MiniKnob value={layer.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, attack: v / 1000 } })} label="A" color={TE.green} size={knobSize} TE={TE} />
-                  <MiniKnob value={layer.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, decay: v / 1000 } })} label="D" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, attack: v / 1000 } })} label="A" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.decay * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, decay: v / 1000 } })} label="D" color={TE.green} size={knobSize} TE={TE} />
                   <MiniKnob value={layer.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, sustain: v } })} label="S" color={TE.green} size={knobSize} TE={TE} />
-                  <MiniKnob value={layer.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, release: v / 1000 } })} label="R" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, release: v / 1000 } })} label="R" color={TE.green} size={knobSize} TE={TE} />
                 </>}
               </Module>
               <Module label="FILTER" color={TE.cyan} on={!!layer.filter} onToggle={() => onUpdate({ ...layer, filter: layer.filter ? undefined : { type: 'lowpass', frequency: 2000, q: 1 } })} isMobile={isMobile} TE={TE}>
@@ -767,10 +768,10 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
                     <Toggle on={!!layer.filter.envelope} onChange={() => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: layer.filter!.envelope ? undefined : { amount: 2000, attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 } } })} color={TE.cyan} size={toggleSize} TE={TE} />
                     {layer.filter.envelope && <>
                       <MiniKnob value={layer.filter.envelope.amount} min={-10000} max={10000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, amount: v } } })} label="AMT" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
                       <MiniKnob value={layer.filter.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, sustain: v } } })} label="S" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
                     </>}
                   </div>
                 </>}
@@ -799,10 +800,10 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               </Module>
               <Module label="ENVELOPE" color={TE.green} on={!!layer.envelope} onToggle={() => onUpdate({ ...layer, envelope: layer.envelope ? undefined : { attack: 0.001, decay: 0.1, sustain: 0.5, release: 0.5 } })} isMobile={isMobile} TE={TE}>
                 {layer.envelope && <>
-                  <MiniKnob value={layer.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, attack: v / 1000 } })} label="A" color={TE.green} size={knobSize} TE={TE} />
-                  <MiniKnob value={layer.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, decay: v / 1000 } })} label="D" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, attack: v / 1000 } })} label="A" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.decay * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, decay: v / 1000 } })} label="D" color={TE.green} size={knobSize} TE={TE} />
                   <MiniKnob value={layer.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, sustain: v } })} label="S" color={TE.green} size={knobSize} TE={TE} />
-                  <MiniKnob value={layer.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, release: v / 1000 } })} label="R" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, release: v / 1000 } })} label="R" color={TE.green} size={knobSize} TE={TE} />
                 </>}
               </Module>
               <Module label="FILTER" color={TE.cyan} on={!!layer.filter} onToggle={() => onUpdate({ ...layer, filter: layer.filter ? undefined : { type: 'lowpass', frequency: 4000, q: 1 } })} isMobile={isMobile} TE={TE}>
@@ -819,10 +820,10 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
                     <Toggle on={!!layer.filter.envelope} onChange={() => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: layer.filter!.envelope ? undefined : { amount: -2000, attack: 0.01, decay: 0.5, sustain: 0, release: 0.3 } } })} color={TE.cyan} size={toggleSize} TE={TE} />
                     {layer.filter.envelope && <>
                       <MiniKnob value={layer.filter.envelope.amount} min={-10000} max={10000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, amount: v } } })} label="AMT" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
                       <MiniKnob value={layer.filter.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, sustain: v } } })} label="S" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
                     </>}
                   </div>
                 </>}
@@ -852,10 +853,10 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
               </Module>
               <Module label="ENVELOPE" color={TE.green} on={!!layer.envelope} onToggle={() => onUpdate({ ...layer, envelope: layer.envelope ? undefined : { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.3 } })} isMobile={isMobile} TE={TE}>
                 {layer.envelope && <>
-                  <MiniKnob value={layer.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, attack: v / 1000 } })} label="A" color={TE.green} size={knobSize} TE={TE} />
-                  <MiniKnob value={layer.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, decay: v / 1000 } })} label="D" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, attack: v / 1000 } })} label="A" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.decay * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, decay: v / 1000 } })} label="D" color={TE.green} size={knobSize} TE={TE} />
                   <MiniKnob value={layer.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, sustain: v } })} label="S" color={TE.green} size={knobSize} TE={TE} />
-                  <MiniKnob value={layer.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, release: v / 1000 } })} label="R" color={TE.green} size={knobSize} TE={TE} />
+                  <MiniKnob value={layer.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => onUpdate({ ...layer, envelope: { ...layer.envelope!, release: v / 1000 } })} label="R" color={TE.green} size={knobSize} TE={TE} />
                 </>}
               </Module>
               <Module label="FILTER" color={TE.cyan} on={!!layer.filter} onToggle={() => onUpdate({ ...layer, filter: layer.filter ? undefined : { type: 'lowpass', frequency: 2000, q: 1 } })} isMobile={isMobile} TE={TE}>
@@ -872,10 +873,10 @@ function LayerPanel({ layer, index, selected, onSelect, onUpdate, onRemove, canR
                     <Toggle on={!!layer.filter.envelope} onChange={() => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: layer.filter!.envelope ? undefined : { amount: 2000, attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 } } })} color={TE.cyan} size={toggleSize} TE={TE} />
                     {layer.filter.envelope && <>
                       <MiniKnob value={layer.filter.envelope.amount} min={-10000} max={10000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, amount: v } } })} label="AMT" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={1} max={2000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, attack: v / 1000 } } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.decay * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, decay: v / 1000 } } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
                       <MiniKnob value={layer.filter.envelope.sustain} min={0} max={1} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, sustain: v } } })} label="S" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={layer.filter.envelope.release * 1000} min={1} max={5000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={layer.filter.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => onUpdate({ ...layer, filter: { ...layer.filter!, envelope: { ...layer.filter!.envelope!, release: v / 1000 } } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
                     </>}
                   </div>
                 </>}
@@ -1635,10 +1636,10 @@ export function SynthesizerUI() {
             </div>
             <EnvelopeDisplay {...config.envelope} TE={TE} />
             <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: isMobile ? 12 : 8, flexWrap: 'wrap', gap: isMobile ? 12 : 4 }}>
-              <MiniKnob value={config.envelope.attack * 1000} min={1} max={2000} onChange={v => updateEnvelope({ ...config.envelope, attack: v / 1000 })} label="ATK" color={TE.green} size={knobSize} TE={TE} />
-              <MiniKnob value={config.envelope.decay * 1000} min={1} max={2000} onChange={v => updateEnvelope({ ...config.envelope, decay: v / 1000 })} label="DEC" color={TE.green} size={knobSize} TE={TE} />
+              <MiniKnob value={config.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => updateEnvelope({ ...config.envelope, attack: v / 1000 })} label="ATK" color={TE.green} size={knobSize} TE={TE} />
+              <MiniKnob value={config.envelope.decay * 1000} min={BOUNDS.envelope.decay.min * 1000} max={BOUNDS.envelope.decay.max * 1000} onChange={v => updateEnvelope({ ...config.envelope, decay: v / 1000 })} label="DEC" color={TE.green} size={knobSize} TE={TE} />
               <MiniKnob value={config.envelope.sustain} min={0} max={1} onChange={v => updateEnvelope({ ...config.envelope, sustain: v })} label="SUS" color={TE.green} size={knobSize} TE={TE} />
-              <MiniKnob value={config.envelope.release * 1000} min={1} max={5000} onChange={v => updateEnvelope({ ...config.envelope, release: v / 1000 })} label="REL" color={TE.green} size={knobSize} TE={TE} />
+              <MiniKnob value={config.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => updateEnvelope({ ...config.envelope, release: v / 1000 })} label="REL" color={TE.green} size={knobSize} TE={TE} />
             </div>
           </div>
 
@@ -1702,10 +1703,10 @@ export function SynthesizerUI() {
                   {config.filter.envelope && (
                     <>
                       <MiniKnob value={config.filter.envelope.amount} min={-10000} max={10000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, amount: v } })} label="AMT" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={config.filter.envelope.attack * 1000} min={1} max={2000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, attack: v / 1000 } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={config.filter.envelope.decay * 1000} min={1} max={2000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, decay: v / 1000 } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={config.filter.envelope.attack * 1000} min={BOUNDS.envelope.attack.min * 1000} max={BOUNDS.envelope.attack.max * 1000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, attack: v / 1000 } })} label="A" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={config.filter.envelope.decay * 1000} min={BOUNDS.envelope.decay.min * 1000} max={BOUNDS.envelope.decay.max * 1000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, decay: v / 1000 } })} label="D" color={TE.cyan} size={knobSize} TE={TE} />
                       <MiniKnob value={config.filter.envelope.sustain} min={0} max={1} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, sustain: v } })} label="S" color={TE.cyan} size={knobSize} TE={TE} />
-                      <MiniKnob value={config.filter.envelope.release * 1000} min={1} max={5000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, release: v / 1000 } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
+                      <MiniKnob value={config.filter.envelope.release * 1000} min={BOUNDS.envelope.release.min * 1000} max={BOUNDS.envelope.release.max * 1000} onChange={v => updateFilter({ ...config.filter!, envelope: { ...config.filter!.envelope!, release: v / 1000 } })} label="R" color={TE.cyan} size={knobSize} TE={TE} />
                     </>
                   )}
                 </div>

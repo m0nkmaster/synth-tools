@@ -174,9 +174,13 @@ function applyEnvelope(
   const sustainLevel = Math.max(0, Math.min(1, sustain));
   const duration = config.timing.duration;
 
-  const safeAttack = Math.max(0.001, attack);
-  const safeDecay = Math.max(0.001, decay);
-  const safeRelease = Math.max(0.001, release);
+  // Ensure envelope phases don't exceed duration
+  const totalEnvTime = attack + decay + release;
+  const scale = totalEnvTime > duration * 0.95 ? (duration * 0.95) / totalEnvTime : 1;
+  
+  const safeAttack = Math.max(0.001, attack * scale);
+  const safeDecay = Math.max(0.001, decay * scale);
+  const safeRelease = Math.max(0.001, release * scale);
   const releaseStart = Math.max(safeAttack + safeDecay, duration - safeRelease);
 
   // Use 0.0001 (-80dB) as silence floor instead of 0.001 (-60dB) to prevent hiss
@@ -198,9 +202,13 @@ function applyFilterEnvelope(param: AudioParam, filter: NonNullable<SoundConfig[
   const sustainLevel = Math.max(0, Math.min(1, env.sustain));
   const duration = config.timing.duration;
 
-  const safeAttack = Math.max(0.001, env.attack);
-  const safeDecay = Math.max(0.001, env.decay);
-  const safeRelease = Math.max(0.001, env.release);
+  // Ensure envelope phases don't exceed duration
+  const totalEnvTime = env.attack + env.decay + env.release;
+  const scale = totalEnvTime > duration * 0.95 ? (duration * 0.95) / totalEnvTime : 1;
+  
+  const safeAttack = Math.max(0.001, env.attack * scale);
+  const safeDecay = Math.max(0.001, env.decay * scale);
+  const safeRelease = Math.max(0.001, env.release * scale);
   const releaseStart = Math.max(safeAttack + safeDecay, duration - safeRelease);
 
   const startFreq = Math.max(20, baseFreq);
@@ -227,9 +235,13 @@ function createLayerFilter(ctx: OfflineAudioContext, filterConfig: NonNullable<S
     const sustainLevel = Math.max(0, Math.min(1, env.sustain));
     const duration = config.timing.duration;
 
-    const safeAttack = Math.max(0.001, env.attack);
-    const safeDecay = Math.max(0.001, env.decay);
-    const safeRelease = Math.max(0.001, env.release);
+    // Ensure envelope phases don't exceed duration
+    const totalEnvTime = env.attack + env.decay + env.release;
+    const scale = totalEnvTime > duration * 0.95 ? (duration * 0.95) / totalEnvTime : 1;
+    
+    const safeAttack = Math.max(0.001, env.attack * scale);
+    const safeDecay = Math.max(0.001, env.decay * scale);
+    const safeRelease = Math.max(0.001, env.release * scale);
     const releaseStart = Math.max(safeAttack + safeDecay, duration - safeRelease);
 
     const startFreq = Math.max(20, baseFreq);
