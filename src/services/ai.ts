@@ -166,15 +166,42 @@ function processAIResponse(data: Record<string, unknown>): SoundConfig {
 
 // Auto-correct common AI mistakes before validation
 function normalizeAIResponse(data: Record<string, unknown>): void {
-  // Fix distortion type confusion (tape/tube are saturation-only, not valid for distortion effect)
-  if (data.effects && typeof data.effects === 'object') {
-    const effects = data.effects as Record<string, unknown>;
-    if (effects.distortion && typeof effects.distortion === 'object') {
-      const distortion = effects.distortion as Record<string, unknown>;
-      if (distortion.type === 'tape' || distortion.type === 'tube') {
-        distortion.type = 'soft'; // Map to closest valid distortion type
-        console.warn('[AI Auto-correction] Changed distortion type from tape/tube to soft (tape/tube are saturation types)');
-      }
+  if (!data.effects || typeof data.effects !== 'object') return;
+  
+  const effects = data.effects as Record<string, unknown>;
+  
+  // Fix distortion type confusion (tape/tube are saturation-only)
+  if (effects.distortion && typeof effects.distortion === 'object') {
+    const distortion = effects.distortion as Record<string, unknown>;
+    if (distortion.type === 'tape' || distortion.type === 'tube') {
+      distortion.type = 'soft';
+      console.warn('[AI Auto-correction] Changed distortion type from tape/tube to soft');
+    }
+  }
+  
+  // Fix invented effects (bitcrusher, crusher, etc. → distortion with bitcrush type)
+  if (effects.bitcrusher || effects.crusher || effects.bitcrush) {
+    const invented = effects.bitcrusher || effects.crusher || effects.bitcrush;
+    if (typeof invented === 'object') {
+      const inv = invented as Record<string, unknown>;
+      effects.distortion = {
+        type: 'bitcrush',
+        amount: typeof inv.amount === 'number' ? inv.amount : 0.7,
+        mix: typeof inv.mix === 'number' ? inv.mix : 0.8,
+      };
+      console.warn('[AI Auto-correction] Converted bitcrusher effect to distortion with type bitcrush');
+    }
+    delete effects.bitcrusher;
+    delete effects.crusher;
+    delete effects.bitcrush;
+  }
+  
+  // Remove any other unknown effects
+  const validEffects = ['distortion', 'reverb', 'delay', 'compressor', 'gate', 'chorus', 'eq'];
+  for (const key of Object.keys(effects)) {
+    if (!validEffects.includes(key)) {
+      console.warn(`[AI Auto-correction] Removed unknown effect: ${key}`);
+      delete effects[key];
     }
   }
 }

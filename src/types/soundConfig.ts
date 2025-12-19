@@ -550,15 +550,24 @@ function range(bounds: { min: number; max: number }, unit = ''): string {
  */
 export function generateSchemaPrompt(): string {
   const b = BOUNDS;
-  return `CRITICAL: You MUST use EXACT enum values as shown. DO NOT use synonyms or variations.
-For example:
-- Use "oscillator" NOT "osc" or "synthesizer"  
-- Use "karplus-strong" NOT "karplus" or "physical-modeling"
-- Use "lowpass" NOT "low-pass" or "lp"
+  return `CRITICAL: You MUST use EXACT enum values and effect names as shown. DO NOT invent new effects or use synonyms.
+
+Examples of CORRECT usage:
+- Layer type: "oscillator" (NOT "osc", "synth", "synthesizer")
+- Layer type: "karplus-strong" (NOT "karplus", "physical-modeling", "string")
+- Filter type: "lowpass" (NOT "low-pass", "lp", "lpf")
+- Effect: "distortion" with type "bitcrush" (NOT "bitcrusher", "crusher", separate effect)
+
+VALID EFFECTS (only these exist):
+- distortion, reverb, delay, compressor, gate, chorus, eq
+
+DO NOT invent effects like: bitcrusher, phaser, flanger (use chorus with low delay), limiter (use compressor with high ratio)
 
 STRICT RULES:
-- ONLY use exact enum values shown below - do not invent alternatives
+- ONLY use exact enum values shown below
+- ONLY use effects listed above
 - Keep all numbers within specified bounds
+- oscillator/karplus frequency must be 20-20000 (not 0)
 - Return raw JSON only, no markdown
 
 SCHEMA:
@@ -625,11 +634,18 @@ SCHEMA:
  */
 export function generateBatchSchemaPrompt(): string {
   const b = BOUNDS;
-  return `CRITICAL: You MUST use EXACT enum values as shown. DO NOT use synonyms or variations.
+  return `CRITICAL: You MUST use EXACT enum values and effect names as shown. DO NOT invent new effects.
+
+VALID EFFECTS (only these exist):
+- distortion, reverb, delay, compressor, gate, chorus, eq
+
+DO NOT invent: bitcrusher, phaser, flanger, limiter, etc.
 
 STRICT RULES:
-- ONLY use exact enum values shown below - do not invent alternatives
+- ONLY use exact enum values shown below
+- ONLY use effects listed above
 - Keep all numbers within specified bounds
+- oscillator/karplus frequency must be 20-20000 (not 0)
 - Return raw JSON only, no markdown
 
 SCHEMA:
