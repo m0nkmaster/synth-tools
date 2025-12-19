@@ -1110,9 +1110,6 @@ export function SynthesizerUI() {
       isUpdatingFromUI.current = true;
       setJsonValue(JSON.stringify(config, null, 2));
       setTimeout(() => { isUpdatingFromUI.current = false; }, 0);
-    } else {
-      // Even when loading from JSON/preset, update the JSON display
-      setJsonValue(JSON.stringify(config, null, 2));
     }
   }, [config]);
 
