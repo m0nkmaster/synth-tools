@@ -67,22 +67,18 @@ jobs:
 
       - name: Sync to S3
         run: |
-          aws s3 sync dist/ s3://${{ env.S3_BUCKET }}/synthtools/ \
+          aws s3 sync dist/ s3://${{ env.S3_BUCKET }}/ \
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
             --exclude "index.html"
           
           # index.html with shorter cache
-          aws s3 cp dist/index.html s3://${{ env.S3_BUCKET }}/synthtools/index.html \
+          aws s3 cp dist/index.html s3://${{ env.S3_BUCKET }}/index.html \
             --cache-control "public, max-age=0, must-revalidate"
-          
-          # Root redirect to /synthtools/
-          echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/synthtools/"><title>Redirecting...</title></head><body><p>Redirecting to <a href="/synthtools/">/synthtools/</a>...</p></body></html>' | \
-            aws s3 cp - s3://${{ env.S3_BUCKET }}/index.html --content-type "text/html"
 
       - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/synthtools/*" "/index.html"
+            --paths "/*"
 
