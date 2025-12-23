@@ -1021,6 +1021,7 @@ export function SynthesizerUI() {
   const [showSynthEngine, setShowSynthEngine] = useState(false);
   const [showSequencer, setShowSequencer] = useState(false);
   const [selectedStep, setSelectedStep] = useState<number | null>(null);
+  const [seqOctave, setSeqOctave] = useState(4); // Current octave for keyboard input
   const [selectedLayer, setSelectedLayer] = useState(0);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const isUpdatingFromUI = useRef(false);
@@ -1084,6 +1085,105 @@ export function SynthesizerUI() {
     onNoteOn: handleSeqNoteOn,
     onNoteOff: handleSeqNoteOff,
   });
+
+  // Keyboard input for step sequencer
+  // Keys: A=C, W=C#, S=D, E=D#, D=E, F=F, T=F#, G=G, Y=G#, H=A, U=A#, J=B
+  // Arrows: Up/Down = octave, Left/Right = step navigation
+  // Backspace/Delete = rest, Space = toggle play
+  useEffect(() => {
+    if (selectedStep === null || !showSequencer) return;
+
+    const keyToSemitone: Record<string, number> = {
+      'a': 0,  // C
+      'w': 1,  // C#
+      's': 2,  // D
+      'e': 3,  // D#
+      'd': 4,  // E
+      'f': 5,  // F
+      't': 6,  // F#
+      'g': 7,  // G
+      'y': 8,  // G#
+      'h': 9,  // A
+      'u': 10, // A#
+      'j': 11, // B
+      'k': 12, // C (next octave)
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const key = e.key.toLowerCase();
+
+      // Note input
+      if (key in keyToSemitone) {
+        e.preventDefault();
+        const semitone = keyToSemitone[key];
+        const octaveOffset = semitone === 12 ? 1 : 0;
+        const midiNote = (seqOctave + octaveOffset) * 12 + 12 + (semitone % 12); // MIDI: C4 = 60
+        sequencer.setStep(selectedStep, midiNote);
+        // Preview the note
+        realtimeSynthRef.current?.noteOn(midiNote, 100);
+        setTimeout(() => realtimeSynthRef.current?.noteOff(midiNote), 150);
+        // Auto-advance
+        setSelectedStep(selectedStep < 15 ? selectedStep + 1 : null);
+        return;
+      }
+
+      // Octave change
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSeqOctave(o => Math.min(7, o + 1));
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSeqOctave(o => Math.max(1, o - 1));
+        return;
+      }
+
+      // Step navigation
+      if (e.key === 'ArrowRight' || e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();
+        setSelectedStep(selectedStep < 15 ? selectedStep + 1 : 0);
+        return;
+      }
+      if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) {
+        e.preventDefault();
+        setSelectedStep(selectedStep > 0 ? selectedStep - 1 : 15);
+        return;
+      }
+
+      // Rest/clear
+      if (e.key === 'Backspace' || e.key === 'Delete' || key === 'x') {
+        e.preventDefault();
+        sequencer.setStep(selectedStep, null);
+        setSelectedStep(selectedStep < 15 ? selectedStep + 1 : null);
+        return;
+      }
+
+      // Escape to deselect
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedStep(null);
+        return;
+      }
+
+      // Space to toggle play
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (sequencer.isRunning) {
+          sequencer.stop();
+        } else if (sequencer.hasSteps()) {
+          sequencer.start();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedStep, seqOctave, showSequencer, sequencer]);
 
   // Responsive breakpoints
   const isMobile = useMediaQuery(`(max-width: ${BREAKPOINTS.mobile}px)`);
@@ -1698,8 +1798,8 @@ export function SynthesizerUI() {
                         onClick={() => setSelectedStep(isSelected ? null : index)}
                         style={{
                           width: '100%',
-                          minWidth: isMobile ? 32 : 24,
-                          height: isMobile ? 40 : 32,
+                          minWidth: isMobile ? 40 : 36,
+                          height: isMobile ? 52 : 44,
                           padding: 0,
                           background: isSelected
                             ? 'linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%)'
@@ -1707,40 +1807,39 @@ export function SynthesizerUI() {
                               ? 'linear-gradient(180deg, #333 0%, #222 50%, #1a1a1a 100%)'
                               : 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%)',
                           border: isSelected 
-                            ? '1px solid #ff3300'
+                            ? '2px solid #ff3300'
                             : hasNote 
                               ? '1px solid #555' 
                               : '1px solid #333',
-                          borderRadius: 3,
+                          borderRadius: 4,
                           cursor: 'pointer',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: 1,
+                          gap: 2,
                           boxShadow: isSelected 
-                            ? 'inset 0 1px 0 rgba(255,255,255,0.1), 0 0 6px #ff330060'
+                            ? 'inset 0 1px 0 rgba(255,255,255,0.1), 0 0 8px #ff330080'
                             : 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -2px 4px rgba(0,0,0,0.3)',
                           transition: 'all 0.1s ease',
                         }}
                       >
                         <span style={{ 
-                          fontSize: isMobile ? 7 : 5, 
-                          color: '#555',
+                          fontSize: isMobile ? 10 : 9, 
+                          color: '#666',
                           fontWeight: 600,
                         }}>
                           {index + 1}
                         </span>
-                        {hasNote && (
-                          <span style={{ 
-                            fontSize: isMobile ? 9 : 7, 
-                            color: '#ff9966',
-                            fontWeight: 700,
-                            letterSpacing: -0.5,
-                          }}>
-                            {noteLabel}
-                          </span>
-                        )}
+                        <span style={{ 
+                          fontSize: isMobile ? 13 : 11, 
+                          color: hasNote ? '#ff9966' : '#333',
+                          fontWeight: 700,
+                          letterSpacing: -0.5,
+                          minHeight: isMobile ? 16 : 14,
+                        }}>
+                          {hasNote ? noteLabel : '—'}
+                        </span>
                       </button>
                     </div>
                   );
