@@ -289,7 +289,7 @@ function AppContent() {
             pointerEvents: 'none',
           }}
         >
-          beta 0.3.2
+          beta 0.4.0
         </Box>
       </Box>
     </ThemeProvider>

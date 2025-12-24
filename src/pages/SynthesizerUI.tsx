@@ -18,6 +18,7 @@ import { TE_COLORS } from '../theme';
 import type { SoundConfig } from '../types/soundConfig';
 import { useMidi, midiNoteToName, type MidiNote } from '../hooks/useMidi';
 import { RealtimeSynth } from '../audio/realtimeSynth';
+import { useStepSequencer, MIDI_NOTES } from '../hooks/useStepSequencer';
 import type { z } from 'zod';
 
 type Waveform = z.infer<typeof waveformEnum>;
@@ -1018,6 +1019,9 @@ export function SynthesizerUI() {
   const [showJSONEditor, setShowJSONEditor] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
   const [showSynthEngine, setShowSynthEngine] = useState(false);
+  const [showSequencer, setShowSequencer] = useState(false);
+  const [selectedStep, setSelectedStep] = useState<number | null>(null);
+  const [seqOctave, setSeqOctave] = useState(4); // Current octave for keyboard input
   const [selectedLayer, setSelectedLayer] = useState(0);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const isUpdatingFromUI = useRef(false);
@@ -1067,6 +1071,119 @@ export function SynthesizerUI() {
     onNoteOn: handleMidiNoteOn,
     onNoteOff: handleMidiNoteOff,
   });
+
+  // Step sequencer hook
+  const handleSeqNoteOn = useCallback((note: number, velocity: number) => {
+    realtimeSynthRef.current?.noteOn(note, velocity);
+  }, []);
+
+  const handleSeqNoteOff = useCallback((note: number) => {
+    realtimeSynthRef.current?.noteOff(note);
+  }, []);
+
+  const sequencer = useStepSequencer({
+    onNoteOn: handleSeqNoteOn,
+    onNoteOff: handleSeqNoteOff,
+  });
+
+  // Keyboard input for step sequencer
+  // Keys: A=C, W=C#, S=D, E=D#, D=E, F=F, T=F#, G=G, Y=G#, H=A, U=A#, J=B
+  // Arrows: Up/Down = octave, Left/Right = step navigation
+  // Backspace/Delete = rest, Space = toggle play
+  useEffect(() => {
+    if (selectedStep === null || !showSequencer) return;
+
+    const keyToSemitone: Record<string, number> = {
+      'a': 0,  // C
+      'w': 1,  // C#
+      's': 2,  // D
+      'e': 3,  // D#
+      'd': 4,  // E
+      'f': 5,  // F
+      't': 6,  // F#
+      'g': 7,  // G
+      'y': 8,  // G#
+      'h': 9,  // A
+      'u': 10, // A#
+      'j': 11, // B
+      'k': 12, // C (next octave)
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const key = e.key.toLowerCase();
+
+      // Note input
+      if (key in keyToSemitone) {
+        e.preventDefault();
+        const semitone = keyToSemitone[key];
+        const octaveOffset = semitone === 12 ? 1 : 0;
+        const midiNote = (seqOctave + octaveOffset) * 12 + 12 + (semitone % 12); // MIDI: C4 = 60
+        sequencer.setStep(selectedStep, midiNote);
+        // Preview the note
+        realtimeSynthRef.current?.noteOn(midiNote, 100);
+        setTimeout(() => realtimeSynthRef.current?.noteOff(midiNote), 150);
+        // Auto-advance
+        setSelectedStep(selectedStep < 15 ? selectedStep + 1 : null);
+        return;
+      }
+
+      // Octave change
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSeqOctave(o => Math.min(7, o + 1));
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSeqOctave(o => Math.max(1, o - 1));
+        return;
+      }
+
+      // Step navigation
+      if (e.key === 'ArrowRight' || e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();
+        setSelectedStep(selectedStep < 15 ? selectedStep + 1 : 0);
+        return;
+      }
+      if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) {
+        e.preventDefault();
+        setSelectedStep(selectedStep > 0 ? selectedStep - 1 : 15);
+        return;
+      }
+
+      // Rest/clear
+      if (e.key === 'Backspace' || e.key === 'Delete' || key === 'x') {
+        e.preventDefault();
+        sequencer.setStep(selectedStep, null);
+        setSelectedStep(selectedStep < 15 ? selectedStep + 1 : null);
+        return;
+      }
+
+      // Escape to deselect
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedStep(null);
+        return;
+      }
+
+      // Space to toggle play
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (sequencer.isRunning) {
+          sequencer.stop();
+        } else if (sequencer.hasSteps()) {
+          sequencer.start();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedStep, seqOctave, showSequencer, sequencer]);
 
   // Responsive breakpoints
   const isMobile = useMediaQuery(`(max-width: ${BREAKPOINTS.mobile}px)`);
@@ -1232,8 +1349,24 @@ export function SynthesizerUI() {
     }
   };
 
-  // Play sound
+  // Play sound or sequencer
   const handlePlay = async () => {
+    // If sequencer is running, stop it
+    if (sequencer.isRunning) {
+      sequencer.stop();
+      setPlaying(false);
+      return;
+    }
+    
+    // If sequencer has steps configured, start sequencer
+    if (sequencer.hasSteps()) {
+      setPlaying(true);
+      setError(null);
+      sequencer.start();
+      return;
+    }
+    
+    // Otherwise play single sound
     setPlaying(true);
     setError(null);
     try {
@@ -1329,6 +1462,25 @@ export function SynthesizerUI() {
               >
                 {'</>'}
               </button>
+              <button
+                onClick={() => setShowSequencer(!showSequencer)}
+                style={{
+                  padding: isMobile ? '10px 14px' : '6px 10px',
+                  border: `1px solid ${showSequencer ? TE.cyan : TE.border}`,
+                  borderRadius: 3,
+                  background: showSequencer ? `${TE.cyan}20` : TE.panel,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: isMobile ? 11 : 9,
+                  fontWeight: 600,
+                  color: showSequencer ? TE.cyan : TE.grey,
+                  minHeight: isMobile ? 44 : undefined,
+                }}
+              >
+                SEQ
+              </button>
               <select
                 value={selectedPreset}
                 onChange={(e) => handlePresetChange(e.target.value)}
@@ -1353,22 +1505,22 @@ export function SynthesizerUI() {
               </select>
               <button
                 onClick={handlePlay}
-                disabled={playing}
+                disabled={playing && !sequencer.isRunning}
                 style={{
                   padding: isMobile ? '10px 28px' : '6px 24px',
-                  background: playing ? TE.surface : TE.orange,
+                  background: sequencer.isRunning ? TE.pink : playing ? TE.surface : TE.orange,
                   border: 'none',
                   borderRadius: 3,
-                  color: playing ? TE.grey : '#fff',
+                  color: sequencer.isRunning ? '#fff' : playing ? TE.grey : '#fff',
                   fontSize: isMobile ? 12 : 10,
                   fontWeight: 800,
-                  cursor: playing ? 'not-allowed' : 'pointer',
+                  cursor: (playing && !sequencer.isRunning) ? 'not-allowed' : 'pointer',
                   letterSpacing: 0.5,
                   minHeight: isMobile ? 44 : undefined,
                   flex: isMobile ? 1 : undefined,
                 }}
               >
-                {playing ? '■ PLAYING' : '▶ PLAY'}
+                {sequencer.isRunning ? '■ STOP' : playing ? '■ PLAYING' : '▶ PLAY'}
               </button>
               <button
                 onClick={handleExport}
@@ -1539,6 +1691,293 @@ export function SynthesizerUI() {
               </div>
             </div>
           )}
+
+          {/* STEP SEQUENCER PANEL - 808 Style */}
+          <Collapse in={showSequencer}>
+            <div style={{
+              padding: isMobile ? '16px 12px' : '14px 16px',
+              borderTop: `1px solid ${TE.border}`,
+              background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
+            }}>
+              {/* Header Row */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                marginBottom: isMobile ? 16 : 12,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 16 : 12 }}>
+                  <span style={{ 
+                    fontSize: isMobile ? 11 : 9, 
+                    fontWeight: 800, 
+                    color: '#ff3300',
+                    letterSpacing: 2,
+                    textTransform: 'uppercase',
+                  }}>TR-SEQ</span>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 8,
+                    background: '#0a0a0a',
+                    padding: '4px 10px',
+                    borderRadius: 2,
+                    border: '1px solid #333',
+                  }}>
+                    <span style={{ fontSize: isMobile ? 9 : 7, color: '#666', fontWeight: 600 }}>TEMPO</span>
+                    <input
+                      type="number"
+                      min={40}
+                      max={240}
+                      value={sequencer.tempo}
+                      onChange={(e) => sequencer.setTempo(parseInt(e.target.value) || 120)}
+                      style={{
+                        width: isMobile ? 50 : 42,
+                        padding: '2px 4px',
+                        background: '#000',
+                        border: '1px solid #444',
+                        borderRadius: 2,
+                        color: '#ff3300',
+                        fontSize: isMobile ? 16 : 12,
+                        fontWeight: 700,
+                        textAlign: 'center',
+                        fontFamily: 'monospace',
+                      }}
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => { sequencer.clearAllSteps(); setSelectedStep(null); }}
+                  style={{
+                    padding: isMobile ? '6px 14px' : '4px 10px',
+                    background: '#1a1a1a',
+                    border: '1px solid #444',
+                    borderRadius: 2,
+                    color: '#888',
+                    fontSize: isMobile ? 9 : 7,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    letterSpacing: 1,
+                  }}
+                >
+                  CLR
+                </button>
+              </div>
+              
+              {/* 808-Style Step Buttons */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(8, 1fr)' : 'repeat(16, 1fr)',
+                gap: isMobile ? 8 : 6,
+              }}>
+                {sequencer.steps.map((step, index) => {
+                  const isPlaying = sequencer.isRunning && sequencer.currentStep === index;
+                  const hasNote = step.note !== null;
+                  const isSelected = selectedStep === index;
+                  const noteLabel = hasNote ? MIDI_NOTES.find(n => n.value === step.note)?.label ?? '' : '';
+                  
+                  return (
+                    <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      {/* LED Indicator */}
+                      <div style={{
+                        width: isMobile ? 8 : 6,
+                        height: isMobile ? 8 : 6,
+                        borderRadius: '50%',
+                        background: isPlaying 
+                          ? '#ff3300' 
+                          : hasNote 
+                            ? '#ff330040'
+                            : '#222',
+                        boxShadow: isPlaying 
+                          ? '0 0 8px #ff3300, 0 0 16px #ff330080' 
+                          : 'none',
+                        transition: 'all 0.05s ease',
+                      }} />
+                      
+                      {/* Step Button */}
+                      <button
+                        onClick={() => setSelectedStep(isSelected ? null : index)}
+                        style={{
+                          width: '100%',
+                          minWidth: isMobile ? 40 : 36,
+                          height: isMobile ? 52 : 44,
+                          padding: 0,
+                          background: isSelected
+                            ? 'linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%)'
+                            : hasNote
+                              ? 'linear-gradient(180deg, #333 0%, #222 50%, #1a1a1a 100%)'
+                              : 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%)',
+                          border: isSelected 
+                            ? '2px solid #ff3300'
+                            : hasNote 
+                              ? '1px solid #555' 
+                              : '1px solid #333',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 2,
+                          boxShadow: isSelected 
+                            ? 'inset 0 1px 0 rgba(255,255,255,0.1), 0 0 8px #ff330080'
+                            : 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -2px 4px rgba(0,0,0,0.3)',
+                          transition: 'all 0.1s ease',
+                        }}
+                      >
+                        <span style={{ 
+                          fontSize: isMobile ? 10 : 9, 
+                          color: '#666',
+                          fontWeight: 600,
+                        }}>
+                          {index + 1}
+                        </span>
+                        <span style={{ 
+                          fontSize: isMobile ? 13 : 11, 
+                          color: hasNote ? '#ff9966' : '#333',
+                          fontWeight: 700,
+                          letterSpacing: -0.5,
+                          minHeight: isMobile ? 16 : 14,
+                        }}>
+                          {hasNote ? noteLabel : '—'}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Piano Roll - appears when step is selected */}
+              <Collapse in={selectedStep !== null}>
+                <div style={{
+                  marginTop: isMobile ? 16 : 12,
+                  padding: isMobile ? 12 : 10,
+                  background: '#0a0a0a',
+                  borderRadius: 4,
+                  border: '1px solid #333',
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    marginBottom: 10,
+                  }}>
+                    <span style={{ fontSize: isMobile ? 10 : 8, color: '#666', fontWeight: 600 }}>
+                      STEP {selectedStep !== null ? selectedStep + 1 : ''} — SELECT NOTE
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (selectedStep !== null) {
+                          sequencer.setStep(selectedStep, null);
+                          // Brief delay to show selection, then auto-advance
+                          const nextStep = selectedStep + 1;
+                          setTimeout(() => {
+                            setSelectedStep(nextStep < 16 ? nextStep : null);
+                          }, 150);
+                        }
+                      }}
+                      style={{
+                        padding: '3px 8px',
+                        background: 'transparent',
+                        border: '1px solid #444',
+                        borderRadius: 2,
+                        color: '#666',
+                        fontSize: isMobile ? 8 : 6,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      REST
+                    </button>
+                  </div>
+                  
+                  {/* Piano Keys - grouped by octave */}
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: 4,
+                    maxHeight: isMobile ? 200 : 160,
+                    overflowY: 'auto',
+                  }}>
+                    {[7, 6, 5, 4, 3, 2, 1, 0].map(octave => {
+                      const octaveNotes = MIDI_NOTES.filter(n => {
+                        const noteOctave = Math.floor(n.value / 12) - 1;
+                        return noteOctave === octave;
+                      });
+                      if (octaveNotes.length === 0) return null;
+                      
+                      return (
+                        <div key={octave} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ 
+                            width: isMobile ? 24 : 20, 
+                            fontSize: isMobile ? 9 : 7, 
+                            color: '#444',
+                            fontWeight: 600,
+                            textAlign: 'right',
+                          }}>
+                            {octave}
+                          </span>
+                          <div style={{ display: 'flex', gap: 2, flex: 1 }}>
+                            {octaveNotes.map(note => {
+                              const isBlackKey = note.label.includes('#');
+                              const isCurrentNote = selectedStep !== null && sequencer.steps[selectedStep]?.note === note.value;
+                              
+                              return (
+                                <button
+                                  key={note.value}
+                                  onClick={() => {
+                                    if (selectedStep !== null) {
+                                      sequencer.setStep(selectedStep, note.value);
+                                      // Brief delay to show selection, then auto-advance
+                                      const nextStep = selectedStep + 1;
+                                      setTimeout(() => {
+                                        setSelectedStep(nextStep < 16 ? nextStep : null);
+                                      }, 150);
+                                    }
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    minWidth: isMobile ? 24 : 18,
+                                    height: isMobile ? 28 : 22,
+                                    padding: 0,
+                                    background: isCurrentNote
+                                      ? '#ff3300'
+                                      : isBlackKey 
+                                        ? 'linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%)'
+                                        : 'linear-gradient(180deg, #f0f0f0 0%, #d0d0d0 100%)',
+                                    border: isCurrentNote 
+                                      ? '1px solid #ff5500'
+                                      : isBlackKey 
+                                        ? '1px solid #333' 
+                                        : '1px solid #999',
+                                    borderRadius: 2,
+                                    color: isCurrentNote
+                                      ? '#fff'
+                                      : isBlackKey 
+                                        ? '#666' 
+                                        : '#333',
+                                    fontSize: isMobile ? 8 : 6,
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    boxShadow: isCurrentNote
+                                      ? '0 0 8px #ff330080'
+                                      : isBlackKey
+                                        ? 'inset 0 -2px 4px rgba(0,0,0,0.5)'
+                                        : 'inset 0 -2px 4px rgba(0,0,0,0.1)',
+                                  }}
+                                >
+                                  {note.label.replace(/\d/, '')}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </Collapse>
+            </div>
+          </Collapse>
 
           {/* JSON EDITOR - inside same block */}
           <Collapse in={showJSONEditor}>
